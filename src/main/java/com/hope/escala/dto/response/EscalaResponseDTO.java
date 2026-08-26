@@ -22,8 +22,7 @@ public class EscalaResponseDTO {
 	private String nomeDepartamento;
 	private Long departamentoId;
 	private StatusEscala status;
- 
-	
+
 	public StatusEscala getStatus() {
 		return status;
 	}
@@ -74,11 +73,14 @@ public class EscalaResponseDTO {
 	public void setHorario(LocalTime horario) {
 		this.horario = horario;
 	}
-	
-	  public LocalTime getHorarioFim() { return horarioFim; }
-	    
-	    public void setHorarioFim(LocalTime horarioFim) { this.horarioFim = horarioFim; }
 
+	public LocalTime getHorarioFim() {
+		return horarioFim;
+	}
+
+	public void setHorarioFim(LocalTime horarioFim) {
+		this.horarioFim = horarioFim;
+	}
 
 	public String getCulto() {
 		return culto;
@@ -111,35 +113,28 @@ public class EscalaResponseDTO {
 	public void setYoutubePlaylistUrl(String youtubePlaylistUrl) {
 		this.youtubePlaylistUrl = youtubePlaylistUrl;
 	}
-	
+
 	public Long getAgendaMensalId() {
-	    return agendaMensalId;
+		return agendaMensalId;
 	}
 
-	public void setAgendaMensalId(
-	        Long agendaMensalId
-	) {
-	    this.agendaMensalId = agendaMensalId;
+	public void setAgendaMensalId(Long agendaMensalId) {
+		this.agendaMensalId = agendaMensalId;
 	}
 
 	public String getDescricaoAgendaMensal() {
-	    return descricaoAgendaMensal;
+		return descricaoAgendaMensal;
 	}
 
-	public void setDescricaoAgendaMensal(
-	        String descricaoAgendaMensal
-	) {
-	    this.descricaoAgendaMensal =
-	            descricaoAgendaMensal;
+	public void setDescricaoAgendaMensal(String descricaoAgendaMensal) {
+		this.descricaoAgendaMensal = descricaoAgendaMensal;
 	}
-	
+
 	public TipoEscala getTipoEscala() {
-	    return tipoEscala;
+		return tipoEscala;
 	}
 
-	public void setTipoEscala(
-	        TipoEscala tipoEscala
-	) {
-	    this.tipoEscala = tipoEscala;
+	public void setTipoEscala(TipoEscala tipoEscala) {
+		this.tipoEscala = tipoEscala;
 	}
 }

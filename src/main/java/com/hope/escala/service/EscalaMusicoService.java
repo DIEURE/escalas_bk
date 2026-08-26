@@ -72,6 +72,8 @@ public class EscalaMusicoService {
 		escalaMusico.setConfirmado(dto.getConfirmado());
 
 		EscalaMusico escalaMusicoAtualizado = escalaMusicoRepository.save(escalaMusico);
+		
+		
 
 		verificarFechamentoEscala(escalaMusico.getEscala().getId());
 

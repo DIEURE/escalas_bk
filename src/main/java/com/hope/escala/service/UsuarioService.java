@@ -77,6 +77,8 @@ public class UsuarioService {
 		usuario.setDepartamentos(departamentos);
 
 		usuario.setAtivo(true);
+		
+		 
 
 		Usuario salvo = usuarioRepository.save(usuario);
 
@@ -185,6 +187,8 @@ public class UsuarioService {
 			dto.setInstrumentoId(usuario.getInstrumento().getId());
 
 			dto.setNomeInstrumento(usuario.getInstrumento().getNome());
+			
+		    dto.setQuantidade_Escala(usuario.getInstrumento().getQuantidadeEscala());
 		}
 
 		dto.setDepartamentos(

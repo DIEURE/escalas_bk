@@ -15,7 +15,8 @@ public class EscalaRequestDTO {
 
 	@NotNull(message = "Horário é obrigatório")
 	private LocalTime horario;
-	private LocalTime horarioFim; // ADICIONE ESTA LINHA
+
+	private LocalTime horarioFim;
 
 	@NotBlank(message = "Culto é obrigatório")
 	private String culto;
@@ -54,11 +55,14 @@ public class EscalaRequestDTO {
 	public void setHorario(LocalTime horario) {
 		this.horario = horario;
 	}
-	
- 
-    public LocalTime getHorarioFim() { return horarioFim; }
-    
-    public void setHorarioFim(LocalTime horarioFim) { this.horarioFim = horarioFim; }
+
+	public LocalTime getHorarioFim() {
+		return horarioFim;
+	}
+
+	public void setHorarioFim(LocalTime horarioFim) {
+		this.horarioFim = horarioFim;
+	}
 
 	public String getCulto() {
 		return culto;

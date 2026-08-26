@@ -54,7 +54,7 @@ public class EscalaService {
 	private final EscalaAutomaticaService escalaAutomaticaService;
 
 	private final InstrumentoRepository instrumentoRepository;
-	
+
 	private final UsuarioRepository usuarioRepository;
 
 	private final SecurityUtils securityUtils;
@@ -78,7 +78,7 @@ public class EscalaService {
 		this.escalaAutomaticaService = escalaAutomaticaService;
 
 		this.instrumentoRepository = instrumentoRepository;
-		
+
 		this.usuarioRepository = usuarioRepository;
 
 		this.securityUtils = securityUtils;
@@ -97,8 +97,8 @@ public class EscalaService {
 		escala.setDataEscala(dto.getDataEscala());
 
 		escala.setHorario(dto.getHorario());
-		
-		escala.setHorarioFim(dto.getHorarioFim());  
+
+		escala.setHorarioFim(dto.getHorarioFim());
 
 		escala.setCulto(dto.getCulto());
 
@@ -109,6 +109,8 @@ public class EscalaService {
 		escala.setAgendaMensal(agendaMensal);
 
 		escala.setDepartamento(departamento);
+		
+		escala.setStatus(StatusEscala.ABERTA);
 
 		escala.setAtiva(true);
 
@@ -148,6 +150,8 @@ public class EscalaService {
 
 		escala.setHorario(dto.getHorario());
 
+		escala.setHorarioFim(dto.getHorarioFim());
+
 		escala.setCulto(dto.getCulto());
 
 		escala.setObservacao(dto.getObservacao());
@@ -171,8 +175,6 @@ public class EscalaService {
 
 		escalaRepository.save(escala);
 	}
-	
-	
 
 	public List<EscalaResponseDTO> listarPorAgendaMensal(Long agendaMensalId) {
 
@@ -180,10 +182,7 @@ public class EscalaService {
 				.collect(Collectors.toList());
 	}
 
-	
-	public List<EscalaResponseDTO> gerarEscalasMes(
-			Long agendaMensalId, 
-			GerarEscalasMesRequestDTO dto) {
+	public List<EscalaResponseDTO> gerarEscalasMes(Long agendaMensalId, GerarEscalasMesRequestDTO dto) {
 
 		if (!Boolean.TRUE.equals(dto.getGerarDomingos())) {
 
@@ -231,7 +230,7 @@ public class EscalaService {
 	}
 
 	private Escala criarEscala(AgendaMensal agendaMensal, Departamento departamento, LocalDate data, LocalTime horario,
-			String culto, TipoEscala tipoEscala, Boolean gerarAutomaticamente) {
+			  String culto, TipoEscala tipoEscala, Boolean gerarAutomaticamente) {
 
 		Escala escala = new Escala();
 
@@ -241,7 +240,7 @@ public class EscalaService {
 
 		escala.setDataEscala(data);
 
-		escala.setHorario(horario);
+		escala.setHorario(horario);	 
 
 		escala.setCulto(culto);
 
@@ -351,6 +350,8 @@ public class EscalaService {
 		dto.setDataEscala(escala.getDataEscala());
 
 		dto.setHorario(escala.getHorario());
+		
+		dto.setHorarioFim(escala.getHorarioFim());
 
 		dto.setCulto(escala.getCulto());
 
@@ -425,6 +426,8 @@ public class EscalaService {
 		dto.setOrdem(escalaMusica.getOrdem());
 
 		dto.setObservacao(escalaMusica.getObservacao());
+		
+		
 
 		return dto;
 	}
@@ -463,55 +466,61 @@ public class EscalaService {
 		agendaMensalRepository.save(agenda);
 	}
 
-	
 	public void fecharEscala(Long escalaId) {
 
-	    Escala escala = escalaRepository.findById(escalaId)
-	            .orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada"));
+		Escala escala = escalaRepository.findById(escalaId)
+				.orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada"));
 
-	    if (escala.getStatus() == StatusEscala.FECHADA) {
-	        return;
-	    }
+		if (escala.getStatus() == StatusEscala.FECHADA) {
+			return;
+		}
 
-	    escala.setStatus(StatusEscala.FECHADA);
+		escala.setStatus(StatusEscala.FECHADA);
 
-	    escalaRepository.save(escala);
+		escalaRepository.save(escala);
 
-	    atualizarStatusAgendaMensal(escala.getAgendaMensal().getId());
+		atualizarStatusAgendaMensal(escala.getAgendaMensal().getId());
 	}
-	
-	
+
 	private Escala buscarEscala(Long id) {
 
-	    return escalaRepository.findById(id)
-	            .orElseThrow(() ->
-	                    new ResourceNotFoundException("Escala não encontrada"));
+		return escalaRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada"));
 	}
 
 	@Transactional
 	public void adicionarMusicos(Long escalaId, List<Long> musicosIds) {
-	    // 1. Busca a escala
-	    Escala escala = escalaRepository.findById(escalaId)
+		// 1. Busca a escala
+		Escala escala = escalaRepository.findById(escalaId)
+				.orElseThrow(() -> new RuntimeException("Escala não encontrada"));
+
+		// 2. Remove músicos antigos (se for substituir tudo)
+		List<EscalaMusico> antigos = escalaMusicoRepository.findByEscalaId(escalaId);
+		escalaMusicoRepository.deleteAll(antigos);
+
+		// 3. Adiciona os novos músicos
+		for (Long usuarioId : musicosIds) {
+			Usuario usuario = usuarioRepository.findById(usuarioId)
+					.orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + usuarioId));
+
+			EscalaMusico novo = new EscalaMusico();
+			novo.setEscala(escala);
+			novo.setUsuario(usuario);
+			novo.setConfirmado(false); // Default
+			novo.setSubstituido(false);
+			escalaMusicoRepository.save(novo);
+		}
+	}
+	
+	@Transactional
+	public EscalaResponseDTO alterarStatus(Long id, StatusEscala novoStatus) {
+	    Escala escala = escalaRepository.findById(id)
 	            .orElseThrow(() -> new RuntimeException("Escala não encontrada"));
-
-	    // 2. Remove músicos antigos (se for substituir tudo)
-	    List<EscalaMusico> antigos = escalaMusicoRepository.findByEscalaId(escalaId);
-	    escalaMusicoRepository.deleteAll(antigos);
-
-	    // 3. Adiciona os novos músicos
-	    for (Long usuarioId : musicosIds) {
-	        Usuario usuario = usuarioRepository.findById(usuarioId)
-	                .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + usuarioId));
-	        
-	        EscalaMusico novo = new EscalaMusico();
-	        novo.setEscala(escala);
-	        novo.setUsuario(usuario);
-	        novo.setConfirmado(false); // Default
-	        novo.setSubstituido(false);
-	        escalaMusicoRepository.save(novo);
-	    }
+	    
+	     
+	    escala.setStatus(novoStatus);
+	    
+	    Escala salva = escalaRepository.save(escala);
+	    return converterParaDTO(salva);
 	}
 
-
-	
 }

@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -19,6 +20,7 @@ import com.hope.escala.dto.request.EscalaRequestDTO;
 import com.hope.escala.dto.request.GerarEscalasMesRequestDTO;
 import com.hope.escala.dto.response.EscalaDetalhesResponseDTO;
 import com.hope.escala.dto.response.EscalaResponseDTO;
+import com.hope.escala.enums.StatusEscala;
 import com.hope.escala.security.annotation.PodeGerenciarDepartamento;
 import com.hope.escala.service.EscalaService;
 import com.hope.escala.service.PdfEscalaService;
@@ -104,4 +106,12 @@ public class EscalaController {
 		escalaService.adicionarMusicos(id, musicosIds);
 		return ResponseEntity.ok().build();
 	}
+	
+	@PatchMapping("/{id}/status")
+	public ResponseEntity<EscalaResponseDTO> alterarStatus(
+	        @PathVariable Long id, 
+	        @RequestBody StatusEscala status) {
+	    return ResponseEntity.ok(escalaService.alterarStatus(id, status));
+	}
+	
 }

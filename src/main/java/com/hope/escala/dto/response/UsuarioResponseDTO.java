@@ -26,98 +26,101 @@ public class UsuarioResponseDTO {
     private String nomeInstrumento;
 
     private Set<String> departamentos;
+    
+    private Integer quantidade_Escala;
 
     public UsuarioResponseDTO() {
     }
 
-    public Long getId() {
-        return id;
-    }
+	public Long getId() {
+		return id;
+	}
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+	public void setId(Long id) {
+		this.id = id;
+	}
 
-    public String getNome() {
-        return nome;
-    }
+	public String getNome() {
+		return nome;
+	}
 
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
+	public void setNome(String nome) {
+		this.nome = nome;
+	}
 
-    public String getEmail() {
-        return email;
-    }
+	public String getEmail() {
+		return email;
+	}
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+	public void setEmail(String email) {
+		this.email = email;
+	}
 
-    public String getTelefone() {
-        return telefone;
-    }
+	public String getTelefone() {
+		return telefone;
+	}
 
-    public void setTelefone(String telefone) {
-        this.telefone = telefone;
-    }
+	public void setTelefone(String telefone) {
+		this.telefone = telefone;
+	}
 
-    public Boolean getDisponibilidade() {
-        return disponibilidade;
-    }
+	public Boolean getDisponibilidade() {
+		return disponibilidade;
+	}
 
-    public void setDisponibilidade(
-            Boolean disponibilidade
-    ) {
-        this.disponibilidade = disponibilidade;
-    }
+	public void setDisponibilidade(Boolean disponibilidade) {
+		this.disponibilidade = disponibilidade;
+	}
 
-    public Boolean getAtivo() {
-        return ativo;
-    }
+	public Boolean getAtivo() {
+		return ativo;
+	}
 
-    public void setAtivo(Boolean ativo) {
-        this.ativo = ativo;
-    }
+	public void setAtivo(Boolean ativo) {
+		this.ativo = ativo;
+	}
 
-    public PerfilUsuario getPerfil() {
-        return perfil;
-    }
+	public PerfilUsuario getPerfil() {
+		return perfil;
+	}
 
-    public void setPerfil(
-            PerfilUsuario perfil
-    ) {
-        this.perfil = perfil;
-    }
+	public void setPerfil(PerfilUsuario perfil) {
+		this.perfil = perfil;
+	}
 
-    public Long getInstrumentoId() {
-        return instrumentoId;
-    }
+	public Long getInstrumentoId() {
+		return instrumentoId;
+	}
 
-    public void setInstrumentoId(
-            Long instrumentoId
-    ) {
-        this.instrumentoId = instrumentoId;
-    }
+	public void setInstrumentoId(Long instrumentoId) {
+		this.instrumentoId = instrumentoId;
+	}
 
-    public String getNomeInstrumento() {
-        return nomeInstrumento;
-    }
+	public String getNomeInstrumento() {
+		return nomeInstrumento;
+	}
 
-    public void setNomeInstrumento(
-            String nomeInstrumento
-    ) {
-        this.nomeInstrumento = nomeInstrumento;
-    }
+	public void setNomeInstrumento(String nomeInstrumento) {
+		this.nomeInstrumento = nomeInstrumento;
+	}
 
-    public Set<String> getDepartamentos() {
-        return departamentos;
-    }
+	public Set<String> getDepartamentos() {
+		return departamentos;
+	}
 
-    public void setDepartamentos(
-            Set<String> departamentos
-    ) {
-        this.departamentos = departamentos;
-    }
+	public void setDepartamentos(Set<String> departamentos) {
+		this.departamentos = departamentos;
+	}
+
+	public Integer getQuantidade_Escala() {
+		return quantidade_Escala;
+	}
+
+	public void setQuantidade_Escala(Integer quantidade_Escala) {
+		this.quantidade_Escala = quantidade_Escala;
+	}
+
+      
+    
 }
 
