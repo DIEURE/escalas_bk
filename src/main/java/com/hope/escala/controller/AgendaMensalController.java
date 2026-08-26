@@ -31,9 +31,7 @@ public class AgendaMensalController {
 		this.service = service;
 	}
 
-	@PostMapping
-	// ❌ REMOVER: @PodeGerenciarDepartamento(parametro = "departamentoId")
-	// A validação será feita no service
+	@PostMapping	 
 	public ResponseEntity<AgendaMensalResponseDTO> salvar(@Valid @RequestBody AgendaMensalRequestDTO dto) {
 		return ResponseEntity.status(HttpStatus.CREATED).body(service.salvar(dto));
 	}

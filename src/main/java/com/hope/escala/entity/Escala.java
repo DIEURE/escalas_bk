@@ -30,6 +30,7 @@ public class Escala {
 	private LocalDate dataEscala;
 
 	private LocalTime horario;
+	private LocalTime horarioFim;
 
 	private String culto;
 
@@ -149,6 +150,9 @@ public class Escala {
 	public TipoEscala getTipoEscala() {
 		return tipoEscala;
 	}
+	
+	public LocalTime getHorarioFim() { return horarioFim; }
+	public void setHorarioFim(LocalTime horarioFim) { this.horarioFim = horarioFim; }
 
 	public void setTipoEscala(TipoEscala tipoEscala) {
 		this.tipoEscala = tipoEscala;

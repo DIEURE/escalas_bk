@@ -33,8 +33,10 @@ import com.hope.escala.repository.EscalaMusicaRepository;
 import com.hope.escala.repository.EscalaMusicoRepository;
 import com.hope.escala.repository.EscalaRepository;
 import com.hope.escala.repository.InstrumentoRepository;
+import com.hope.escala.repository.UsuarioRepository;
 import com.hope.escala.security.SecurityUtils;
-import com.hope.escala.security.annotation.PodeGerenciarDepartamento;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class EscalaService {
@@ -52,13 +54,16 @@ public class EscalaService {
 	private final EscalaAutomaticaService escalaAutomaticaService;
 
 	private final InstrumentoRepository instrumentoRepository;
+	
+	private final UsuarioRepository usuarioRepository;
 
 	private final SecurityUtils securityUtils;
 
 	public EscalaService(EscalaRepository escalaRepository, AgendaMensalRepository agendaMensalRepository,
 			EscalaMusicoRepository escalaMusicoRepository, EscalaMusicaRepository escalaMusicaRepository,
 			DepartamentoRepository departamentoRepository, EscalaAutomaticaService escalaAutomaticaService,
-			InstrumentoRepository instrumentoRepository, SecurityUtils securityUtils) {
+			InstrumentoRepository instrumentoRepository, SecurityUtils securityUtils,
+			UsuarioRepository usuarioRepository) {
 
 		this.escalaRepository = escalaRepository;
 
@@ -73,6 +78,8 @@ public class EscalaService {
 		this.escalaAutomaticaService = escalaAutomaticaService;
 
 		this.instrumentoRepository = instrumentoRepository;
+		
+		this.usuarioRepository = usuarioRepository;
 
 		this.securityUtils = securityUtils;
 	}
@@ -90,6 +97,8 @@ public class EscalaService {
 		escala.setDataEscala(dto.getDataEscala());
 
 		escala.setHorario(dto.getHorario());
+		
+		escala.setHorarioFim(dto.getHorarioFim());  
 
 		escala.setCulto(dto.getCulto());
 
@@ -162,6 +171,8 @@ public class EscalaService {
 
 		escalaRepository.save(escala);
 	}
+	
+	
 
 	public List<EscalaResponseDTO> listarPorAgendaMensal(Long agendaMensalId) {
 
@@ -475,6 +486,30 @@ public class EscalaService {
 	    return escalaRepository.findById(id)
 	            .orElseThrow(() ->
 	                    new ResourceNotFoundException("Escala não encontrada"));
+	}
+
+	@Transactional
+	public void adicionarMusicos(Long escalaId, List<Long> musicosIds) {
+	    // 1. Busca a escala
+	    Escala escala = escalaRepository.findById(escalaId)
+	            .orElseThrow(() -> new RuntimeException("Escala não encontrada"));
+
+	    // 2. Remove músicos antigos (se for substituir tudo)
+	    List<EscalaMusico> antigos = escalaMusicoRepository.findByEscalaId(escalaId);
+	    escalaMusicoRepository.deleteAll(antigos);
+
+	    // 3. Adiciona os novos músicos
+	    for (Long usuarioId : musicosIds) {
+	        Usuario usuario = usuarioRepository.findById(usuarioId)
+	                .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + usuarioId));
+	        
+	        EscalaMusico novo = new EscalaMusico();
+	        novo.setEscala(escala);
+	        novo.setUsuario(usuario);
+	        novo.setConfirmado(false); // Default
+	        novo.setSubstituido(false);
+	        escalaMusicoRepository.save(novo);
+	    }
 	}
 
 

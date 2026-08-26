@@ -65,6 +65,11 @@ public class UsuarioController {
             @Valid @RequestBody UsuarioDisponibilidadeDTO dto) {
         return ResponseEntity.ok(service.atualizarDisponibilidade(id, dto.disponibilidade));
     }
+    
+    @GetMapping("/departamento/{departamentoId}")
+    public ResponseEntity<List<UsuarioResponseDTO>> buscarPorDepartamento(@PathVariable Long departamentoId) {
+        return ResponseEntity.ok(service.buscarPorDepartamento(departamentoId));
+    }
 
     @DeleteMapping("/{id}")
       

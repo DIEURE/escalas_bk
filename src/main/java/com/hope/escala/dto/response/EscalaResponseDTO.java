@@ -11,6 +11,7 @@ public class EscalaResponseDTO {
 	private Long id;
 	private LocalDate dataEscala;
 	private LocalTime horario;
+	private LocalTime horarioFim;
 	private String culto;
 	private String observacao;
 	private Boolean ativa;
@@ -73,6 +74,11 @@ public class EscalaResponseDTO {
 	public void setHorario(LocalTime horario) {
 		this.horario = horario;
 	}
+	
+	  public LocalTime getHorarioFim() { return horarioFim; }
+	    
+	    public void setHorarioFim(LocalTime horarioFim) { this.horarioFim = horarioFim; }
+
 
 	public String getCulto() {
 		return culto;

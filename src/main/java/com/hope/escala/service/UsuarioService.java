@@ -95,6 +95,13 @@ public class UsuarioService {
 
 		return converterParaDTO(usuario);
 	}
+	
+	public List<UsuarioResponseDTO> buscarPorDepartamento(Long departamentoId) {
+	    return usuarioRepository.findByDepartamentoIdAndAtivoTrue(departamentoId)
+	            .stream()
+	            .map(this::converterParaDTO) // Certifique-se de ter este método de conversão
+	            .collect(Collectors.toList());
+	}
 
 	public UsuarioResponseDTO atualizar(Long id, UsuarioRequestDTO dto) {
 
@@ -133,9 +140,8 @@ public class UsuarioService {
 		/*
 		 * Atualiza senha somente se enviada
 		 */
-		if (dto.getSenha() != null && !dto.getSenha().isBlank()) {
-
-			usuario.setSenha(dto.getSenha());
+		if (dto.getSenha() != null && !dto.getSenha().isBlank()) {  
+		    usuario.setSenha(passwordEncoder.encode(dto.getSenha())); 
 		}
 
 		Usuario atualizado = usuarioRepository.save(usuario);
