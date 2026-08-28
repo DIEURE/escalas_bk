@@ -84,13 +84,27 @@ public class EscalaService {
 		this.securityUtils = securityUtils;
 	}
 
+	@Transactional
 	public EscalaResponseDTO salvar(EscalaRequestDTO dto) {
 
+		// Validar se ja existe alguma escala no mesmo horario e dia
+		 boolean existeConflito = escalaRepository.existsByDataEscalaAndHorarioAndDepartamentoId(
+		            dto.getDataEscala(), 
+		            dto.getHorario(), 
+		            dto.getDepartamentoId()
+		    );
+
+		    if (existeConflito) {
+		        throw new RuntimeException("Já existe uma escala agendada para este departamento neste mesmo horário!");
+		    }
+		
 		AgendaMensal agendaMensal = agendaMensalRepository.findById(dto.getAgendaMensalId())
 				.orElseThrow(() -> new RuntimeException("Agenda mensal não encontrada"));
 
 		Departamento departamento = departamentoRepository.findById(dto.getDepartamentoId())
 				.orElseThrow(() -> new RuntimeException("Departamento não encontrado"));
+		
+	 
 
 		Escala escala = new Escala();
 
@@ -136,16 +150,24 @@ public class EscalaService {
 		return converterParaDTO(escala);
 	}
 
+	
+	@Transactional
 	public EscalaResponseDTO atualizar(Long id, EscalaRequestDTO dto) {
 
 		Escala escala = escalaRepository.findById(id).orElseThrow(() -> new RuntimeException("Escala não encontrada"));
 
+		// Adicione este log para garantir que o ID não está nulo antes de salvar
+		System.out.println("DEBUG: Atualizando escala com ID: " + escala.getId()); 
+		
 		AgendaMensal agendaMensal = agendaMensalRepository.findById(dto.getAgendaMensalId())
 				.orElseThrow(() -> new RuntimeException("Agenda mensal não encontrada"));
 
 		Departamento departamento = departamentoRepository.findById(dto.getDepartamentoId())
 				.orElseThrow(() -> new RuntimeException("Departamento não encontrado"));
+		
+		System.out.println("DEBUG: Escala ID " + id + " recebida com musicos: " + dto.getMusicosIds());
 
+		
 		escala.setDataEscala(dto.getDataEscala());
 
 		escala.setHorario(dto.getHorario());
@@ -162,8 +184,31 @@ public class EscalaService {
 
 		escala.setDepartamento(departamento);
 
-		Escala atualizada = escalaRepository.save(escala);
+		  
+		// 2. Lógica para ATUALIZAR MÚSICOS
+		if (dto.getMusicosIds() != null) {
+	        List<EscalaMusico> musicosAtuais = escala.getMusicos();
+	        List<Long> novosIds = dto.getMusicosIds();
 
+	        // A. Remover quem não está mais na lista
+	        musicosAtuais.removeIf(m -> !novosIds.contains(m.getUsuario().getId()));
+
+	        // B. Adicionar quem é novo
+	        for (Long idUsuario : novosIds) {
+	            boolean jaExiste = musicosAtuais.stream()
+	                .anyMatch(m -> m.getUsuario().getId().equals(idUsuario));
+	            
+	            if (!jaExiste) {
+	                Usuario usuario = usuarioRepository.findById(idUsuario).orElseThrow();
+	                EscalaMusico novo = new EscalaMusico();
+	                novo.setEscala(escala);
+	                novo.setUsuario(usuario);
+	                escala.getMusicos().add(novo); // O CascadeType.ALL salvará este novo
+	            }
+	        }
+	    }
+		Escala atualizada = escalaRepository.save(escala);
+		escalaRepository.flush();
 		return converterParaDTO(atualizada);
 	}
 

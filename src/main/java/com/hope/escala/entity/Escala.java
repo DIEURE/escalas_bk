@@ -3,10 +3,14 @@ package com.hope.escala.entity;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
+import com.hope.escala.dto.response.EscalaResponseDTO;
 import com.hope.escala.enums.StatusEscala;
 import com.hope.escala.enums.TipoEscala;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,6 +20,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
@@ -50,6 +55,18 @@ public class Escala {
 
 	public StatusEscala getStatus() {
 		return status;
+	}
+	
+	@OneToMany(mappedBy = "escala", cascade = CascadeType.ALL, orphanRemoval = true)	
+	private List<EscalaMusico> musicos = new ArrayList<>();
+
+	// Adicione estes métodos se não existirem:
+	public List<EscalaMusico> getMusicos() {
+	    return musicos;
+	}
+
+	public void setMusicos(List<EscalaMusico> musicos) {
+	    this.musicos = musicos;
 	}
 
 	public void setStatus(StatusEscala status) {
@@ -165,4 +182,6 @@ public class Escala {
 	public void setDepartamento(Departamento departamento) {
 		this.departamento = departamento;
 	}
+
+	 
 }

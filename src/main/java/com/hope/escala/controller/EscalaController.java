@@ -1,7 +1,10 @@
 package com.hope.escala.controller;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hope.escala.dto.request.EscalaRequestDTO;
@@ -21,6 +25,7 @@ import com.hope.escala.dto.request.GerarEscalasMesRequestDTO;
 import com.hope.escala.dto.response.EscalaDetalhesResponseDTO;
 import com.hope.escala.dto.response.EscalaResponseDTO;
 import com.hope.escala.enums.StatusEscala;
+import com.hope.escala.repository.EscalaRepository;
 import com.hope.escala.security.annotation.PodeGerenciarDepartamento;
 import com.hope.escala.service.EscalaService;
 import com.hope.escala.service.PdfEscalaService;
@@ -35,12 +40,13 @@ public class EscalaController {
 	private final EscalaService escalaService;
 	private final YoutubePlaylistService youTubePlaylistService;
 	private final PdfEscalaService pdfEscalaService;
-
+	private final EscalaRepository escalaRepository;
 	public EscalaController(EscalaService escalaService, YoutubePlaylistService youTubePlaylistService,
-			PdfEscalaService pdfEscalaService) {
+			PdfEscalaService pdfEscalaService, EscalaRepository escalaRepository) {
 		this.escalaService = escalaService;
 		this.youTubePlaylistService = youTubePlaylistService;
 		this.pdfEscalaService = pdfEscalaService;
+		this.escalaRepository = escalaRepository;
 	}
 
 	@PostMapping
@@ -61,12 +67,34 @@ public class EscalaController {
 	}
 
 	@PutMapping("/{id}")
-
 	public ResponseEntity<EscalaResponseDTO> atualizar(@PathVariable Long id,
 			@Valid @RequestBody EscalaRequestDTO dto) {
 		return ResponseEntity.ok(escalaService.atualizar(id, dto));
 	}
 
+	@GetMapping("/verificar-conflito")
+	public ResponseEntity<Boolean> verificarConflito(
+	        @RequestParam String data,
+	        @RequestParam String horario,
+	        @RequestParam Long departamentoId) {
+	    
+	    // Converte a string recebida para os tipos do Java
+	    LocalDate localDate = LocalDate.parse(data);
+	    
+	    // Garante que o horario tenha segundos (se vier apenas HH:mm)
+	    String horarioComSegundos = horario.length() == 5 ? horario + ":00" : horario;
+	    LocalTime localTime = LocalTime.parse(horarioComSegundos);
+	    
+	    // Realiza a busca no repositório
+	    boolean existe = escalaRepository.existsByDataEscalaAndHorarioAndDepartamentoId(
+	            localDate, 
+	            localTime, 
+	            departamentoId
+	    );
+	            
+	    return ResponseEntity.ok(existe);
+	}
+	
 	@DeleteMapping("/{id}")
 
 	public ResponseEntity<String> inativar(@PathVariable Long id) {

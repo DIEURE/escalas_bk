@@ -2,6 +2,7 @@ package com.hope.escala.dto.request;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 import com.hope.escala.enums.TipoEscala;
 
@@ -28,6 +29,16 @@ public class EscalaRequestDTO {
 	private TipoEscala tipoEscala;
 
 	private Long departamentoId;
+
+	private List<Long> musicosIds; // Vamos enviar apenas a lista de IDs dos músicos
+
+	public List<Long> getMusicosIds() {
+		return musicosIds;
+	}
+
+	public void setMusicosIds(List<Long> musicosIds) {
+		this.musicosIds = musicosIds;
+	}
 
 	public Long getDepartamentoId() {
 		return departamentoId;
@@ -95,4 +106,5 @@ public class EscalaRequestDTO {
 	public void setTipoEscala(TipoEscala tipoEscala) {
 		this.tipoEscala = tipoEscala;
 	}
+
 }

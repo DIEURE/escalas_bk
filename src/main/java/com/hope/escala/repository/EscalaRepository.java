@@ -16,4 +16,6 @@ public interface EscalaRepository extends JpaRepository<Escala, Long> {
 	boolean existsByDataEscalaAndCultoAndAtivaTrue(LocalDate dataEscala, String culto);
 	
 	boolean existsByAgendaMensalIdAndDepartamentoIdAndDataEscalaAndHorario( Long agendaMensalId, Long departamentoId, LocalDate dataEscala, LocalTime horario );
+	
+	boolean existsByDataEscalaAndHorarioAndDepartamentoId(LocalDate dataEscala, LocalTime horario, Long departamentoId);
 }
