@@ -37,7 +37,8 @@ public class EscalaMusico {
     
     private LocalDate dataEscala; 
     
-    private LocalTime horario;       
+    private LocalTime horarioManha;
+    private LocalTime horarioNoite;
 
     
     public EscalaMusico() {
@@ -111,13 +112,22 @@ public class EscalaMusico {
 		this.dataEscala = dataEscala;
 	}
 
-	public LocalTime getHorario() {
-		return horario;
+	public LocalTime getHorarioManha() {
+		return horarioManha;
 	}
 
-	public void setHorario(LocalTime horario) {
-		this.horario = horario;
+	public void setHorarioManha(LocalTime horarioManha) {
+		this.horarioManha = horarioManha;
 	}
-	
+
+	public LocalTime getHorarioNoite() {
+		return horarioNoite;
+	}
+
+	public void setHorarioNoite(LocalTime horarioNoite) {
+		this.horarioNoite = horarioNoite;
+	}
+
+ 
  
 }

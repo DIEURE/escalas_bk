@@ -58,11 +58,11 @@ public class PdfEscalaService {
 
 		document.add(new Paragraph("ESCALA DO CULTO"));
 
-		document.add(new Paragraph("Culto: " + detalhes.getEscala().getCulto()));
+		document.add(new Paragraph("Culto: " + detalhes.getEscala().getNomeCultoManha()));
 
 		document.add(new Paragraph("Data: " + detalhes.getEscala().getDataEscala()));
 
-		document.add(new Paragraph("Horário: " + detalhes.getEscala().getHorario()));
+		document.add(new Paragraph("Horário: " + detalhes.getEscala().getHorarioManha()));
 
 		if (detalhes.getEscala().getNomeDepartamento() != null) {
 

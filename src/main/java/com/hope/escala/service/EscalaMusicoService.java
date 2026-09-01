@@ -129,13 +129,14 @@ public class EscalaMusicoService {
 		dto.setId(escalaMusico.getId());
 
 		dto.setEscalaId(escalaMusico.getEscala().getId());
-
-		dto.setCulto(escalaMusico.getEscala().getCulto());
 		
+		dto.setNomeCultoManha(escalaMusico.getEscala().getNomeCultoManha());
+		
+		dto.setNomeCultoNoite(escalaMusico.getEscala().getNomeCultoNoite());
 		 
 	    dto.setDataEscala(escalaMusico.getEscala().getDataEscala()); 
 	    
-	    dto.setHorario(escalaMusico.getEscala().getHorario());
+	    dto.setHorarioManha(escalaMusico.getEscala().getHorarioManha());
 
 		dto.setUsuarioId(escalaMusico.getUsuario().getId());
 

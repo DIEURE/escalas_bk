@@ -14,13 +14,17 @@ public class EscalaRequestDTO {
 	@NotNull(message = "Data da escala é obrigatória")
 	private LocalDate dataEscala;
 
-	@NotNull(message = "Horário é obrigatório")
-	private LocalTime horario;
+	private String nomeCultoManha;
+	
+	 
+	private String nomeCultoNoite; 
+	
+	private LocalTime horarioManha;
+	private LocalTime horarioManhaFim;
 
-	private LocalTime horarioFim;
-
-	@NotBlank(message = "Culto é obrigatório")
-	private String culto;
+	 
+	private LocalTime horarioNoite;
+	private LocalTime horarioNoiteFim;
 
 	private String observacao;
 
@@ -58,29 +62,54 @@ public class EscalaRequestDTO {
 	public void setDataEscala(LocalDate dataEscala) {
 		this.dataEscala = dataEscala;
 	}
+ 
 
-	public LocalTime getHorario() {
-		return horario;
+	public String getNomeCultoManha() {
+		return nomeCultoManha;
 	}
 
-	public void setHorario(LocalTime horario) {
-		this.horario = horario;
+	public void setNomeCultoManha(String nomeCultoManha) {
+		this.nomeCultoManha = nomeCultoManha;
 	}
 
-	public LocalTime getHorarioFim() {
-		return horarioFim;
+	public String getNomeCultoNoite() {
+		return nomeCultoNoite;
 	}
 
-	public void setHorarioFim(LocalTime horarioFim) {
-		this.horarioFim = horarioFim;
+	public void setNomeCultoNoite(String nomeCultoNoite) {
+		this.nomeCultoNoite = nomeCultoNoite;
 	}
 
-	public String getCulto() {
-		return culto;
+	public LocalTime getHorarioManha() {
+		return horarioManha;
 	}
 
-	public void setCulto(String culto) {
-		this.culto = culto;
+	public void setHorarioManha(LocalTime horarioManha) {
+		this.horarioManha = horarioManha;
+	}
+
+	public LocalTime getHorarioManhaFim() {
+		return horarioManhaFim;
+	}
+
+	public void setHorarioManhaFim(LocalTime horarioManhaFim) {
+		this.horarioManhaFim = horarioManhaFim;
+	}
+
+	public LocalTime getHorarioNoite() {
+		return horarioNoite;
+	}
+
+	public void setHorarioNoite(LocalTime horarioNoite) {
+		this.horarioNoite = horarioNoite;
+	}
+
+	public LocalTime getHorarioNoiteFim() {
+		return horarioNoiteFim;
+	}
+
+	public void setHorarioNoiteFim(LocalTime horarioNoiteFim) {
+		this.horarioNoiteFim = horarioNoiteFim;
 	}
 
 	public String getObservacao() {

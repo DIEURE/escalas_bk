@@ -10,9 +10,14 @@ public class EscalaResponseDTO {
 
 	private Long id;
 	private LocalDate dataEscala;
-	private LocalTime horario;
-	private LocalTime horarioFim;
-	private String culto;
+	private LocalTime horarioManha;
+	private LocalTime horarioManhaFim;
+	private LocalTime horarioNoite;
+	private LocalTime horarioNoiteFim;
+	private String nomeCultoManha;
+	private String nomeCultoNoite;
+	
+	
 	private String observacao;
 	private Boolean ativa;
 	private String youtubePlaylistUrl;
@@ -66,28 +71,54 @@ public class EscalaResponseDTO {
 		this.dataEscala = dataEscala;
 	}
 
-	public LocalTime getHorario() {
-		return horario;
+	 
+
+	public LocalTime getHorarioManha() {
+		return horarioManha;
 	}
 
-	public void setHorario(LocalTime horario) {
-		this.horario = horario;
+	public void setHorarioManha(LocalTime horarioManha) {
+		this.horarioManha = horarioManha;
 	}
 
-	public LocalTime getHorarioFim() {
-		return horarioFim;
+	public LocalTime getHorarioManhaFim() {
+		return horarioManhaFim;
 	}
 
-	public void setHorarioFim(LocalTime horarioFim) {
-		this.horarioFim = horarioFim;
+	public void setHorarioManhaFim(LocalTime horarioManhaFim) {
+		this.horarioManhaFim = horarioManhaFim;
 	}
 
-	public String getCulto() {
-		return culto;
+	public LocalTime getHorarioNoite() {
+		return horarioNoite;
 	}
 
-	public void setCulto(String culto) {
-		this.culto = culto;
+	public void setHorarioNoite(LocalTime horarioNoite) {
+		this.horarioNoite = horarioNoite;
+	}
+
+	public LocalTime getHorarioNoiteFim() {
+		return horarioNoiteFim;
+	}
+
+	public void setHorarioNoiteFim(LocalTime horarioNoiteFim) {
+		this.horarioNoiteFim = horarioNoiteFim;
+	}
+
+	public String getNomeCultoManha() {
+		return nomeCultoManha;
+	}
+
+	public void setNomeCultoManha(String nomeCultoManha) {
+		this.nomeCultoManha = nomeCultoManha;
+	}
+
+	public String getNomeCultoNoite() {
+		return nomeCultoNoite;
+	}
+
+	public void setNomeCultoNoite(String nomeCultoNoite) {
+		this.nomeCultoNoite = nomeCultoNoite;
 	}
 
 	public String getObservacao() {

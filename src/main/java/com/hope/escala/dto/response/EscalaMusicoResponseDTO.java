@@ -5,25 +5,31 @@ import java.time.LocalTime;
 
 public class EscalaMusicoResponseDTO {
 
-    private Long id;
+	private Long id;
 
-    private Long escalaId;
-    private String culto;
+	private Long escalaId;
 
-    private Long usuarioId;
-    private String nomeUsuario;
+	private String nomeCultoManha;
 
-    private String instrumento;
+	private String nomeCultoNoite;
 
-    private Boolean confirmado;
+	private Long usuarioId;
 
-    private String observacao;
-    
-   private LocalDate dataEscala; 
-    
-    private LocalTime horario;       
-    
-    public LocalDate getDataEscala() {
+	private String nomeUsuario;
+
+	private String instrumento;
+
+	private Boolean confirmado;
+
+	private String observacao;
+
+	private LocalDate dataEscala;
+
+	private LocalTime horarioManha;
+
+	private LocalTime horarioNoite;
+
+	public LocalDate getDataEscala() {
 		return dataEscala;
 	}
 
@@ -31,89 +37,89 @@ public class EscalaMusicoResponseDTO {
 		this.dataEscala = dataEscala;
 	}
 
-	public LocalTime getHorario() {
-		return horario;
+	public LocalTime getHorarioManha() {
+		return horarioManha;
 	}
 
-	public void setHorario(LocalTime localTime) {
-		this.horario = localTime;
+	public void setHorarioManha(LocalTime horarioManha) {
+		this.horarioManha = horarioManha;
+	}
+
+	public LocalTime getHorarioNoite() {
+		return horarioNoite;
+	}
+
+	public void setHorarioNoite(LocalTime horarioNoite) {
+		this.horarioNoite = horarioNoite;
 	}
 
 	private Boolean substituido;
 
-    private Long usuarioSubstitutoId;
-    
-    private String nomeSubstituto;
+	private Long usuarioSubstitutoId;
 
-    private String motivoSubstituicao;
+	private String nomeSubstituto;
 
-    public EscalaMusicoResponseDTO() {
-    }
+	private String motivoSubstituicao;
 
-    public Long getId() {
-        return id;
-    }
+	public EscalaMusicoResponseDTO() {
+	}
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+	public Long getId() {
+		return id;
+	}
 
-    public Long getEscalaId() {
-        return escalaId;
-    }
+	public void setId(Long id) {
+		this.id = id;
+	}
 
-    public void setEscalaId(Long escalaId) {
-        this.escalaId = escalaId;
-    }
+	public Long getEscalaId() {
+		return escalaId;
+	}
 
-    public String getCulto() {
-        return culto;
-    }
+	public void setEscalaId(Long escalaId) {
+		this.escalaId = escalaId;
+	}
 
-    public void setCulto(String culto) {
-        this.culto = culto;
-    }
+	public Long getUsuarioId() {
+		return usuarioId;
+	}
 
-    public Long getUsuarioId() {
-        return usuarioId;
-    }
+	public void setUsuarioId(Long usuarioId) {
+		this.usuarioId = usuarioId;
+	}
 
-    public void setUsuarioId(Long usuarioId) {
-        this.usuarioId = usuarioId;
-    }
+	public String getNomeUsuario() {
+		return nomeUsuario;
+	}
 
-    public String getNomeUsuario() {
-        return nomeUsuario;
-    }
+	public void setNomeUsuario(String nomeUsuario) {
+		this.nomeUsuario = nomeUsuario;
+	}
 
-    public void setNomeUsuario(String nomeUsuario) {
-        this.nomeUsuario = nomeUsuario;
-    }
+	public String getInstrumento() {
+		return instrumento;
+	}
 
-    public String getInstrumento() {
-        return instrumento;
-    }
+	public void setInstrumento(String instrumento) {
+		this.instrumento = instrumento;
+	}
 
-    public void setInstrumento(String instrumento) {
-        this.instrumento = instrumento;
-    }
+	public Boolean getConfirmado() {
+		return confirmado;
+	}
 
-    public Boolean getConfirmado() {
-        return confirmado;
-    }
+	public void setConfirmado(Boolean confirmado) {
+		this.confirmado = confirmado;
+	}
 
-    public void setConfirmado(Boolean confirmado) {
-        this.confirmado = confirmado;
-    }
+	public String getObservacao() {
+		return observacao;
+	}
 
-    public String getObservacao() {
-        return observacao;
-    }
+	public void setObservacao(String observacao) {
 
-    public void setObservacao(String observacao) {
-      
-    	this.observacao = observacao;
-    }
+		this.observacao = observacao;
+	}
 
 	public Boolean getSubstituido() {
 		return substituido;
@@ -146,6 +152,21 @@ public class EscalaMusicoResponseDTO {
 	public void setMotivoSubstituicao(String motivoSubstituicao) {
 		this.motivoSubstituicao = motivoSubstituicao;
 	}
-    
-    
+
+	public String getNomeCultoManha() {
+		return nomeCultoManha;
+	}
+
+	public void setNomeCultoManha(String nomeCultoManha) {
+		this.nomeCultoManha = nomeCultoManha;
+	}
+
+	public String getNomeCultoNoite() {
+		return nomeCultoNoite;
+	}
+
+	public void setNomeCultoNoite(String nomeCultoNoite) {
+		this.nomeCultoNoite = nomeCultoNoite;
+	}
+
 }

@@ -6,7 +6,6 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.hope.escala.dto.response.EscalaResponseDTO;
 import com.hope.escala.enums.StatusEscala;
 import com.hope.escala.enums.TipoEscala;
 
@@ -23,6 +22,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "escalas")
@@ -34,10 +34,15 @@ public class Escala {
 
 	private LocalDate dataEscala;
 
-	private LocalTime horario;
-	private LocalTime horarioFim;
+	private String nomeCultoManha;
 
-	private String culto;
+	private String nomeCultoNoite;
+
+	private LocalTime horarioManha;
+	private LocalTime horarioManhaFim;
+
+	private LocalTime horarioNoite;
+	private LocalTime horarioNoiteFim;
 
 	@Column(columnDefinition = "TEXT")
 	private String observacao;
@@ -46,9 +51,17 @@ public class Escala {
 
 	private LocalDateTime dataCadastro;
 
-	private String youtubePlaylistId;
+	// Na sua Entity Escala (ex: com.hope.escala.entity.Escala)
+	private String linkPlaylistManual;
 
-	private String youtubePlaylistUrl;
+	// Getters e Setters
+	public String getLinkPlaylistManual() {
+		return linkPlaylistManual;
+	}
+
+	public void setLinkPlaylistManual(String linkPlaylistManual) {
+		this.linkPlaylistManual = linkPlaylistManual;
+	}
 
 	@Enumerated(EnumType.STRING)
 	private StatusEscala status;
@@ -56,22 +69,9 @@ public class Escala {
 	public StatusEscala getStatus() {
 		return status;
 	}
-	
-	@OneToMany(mappedBy = "escala", cascade = CascadeType.ALL, orphanRemoval = true)	
+
+	@OneToMany(mappedBy = "escala", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<EscalaMusico> musicos = new ArrayList<>();
-
-	// Adicione estes métodos se não existirem:
-	public List<EscalaMusico> getMusicos() {
-	    return musicos;
-	}
-
-	public void setMusicos(List<EscalaMusico> musicos) {
-	    this.musicos = musicos;
-	}
-
-	public void setStatus(StatusEscala status) {
-		this.status = status;
-	}
 
 	@ManyToOne
 	@JoinColumn(name = "agenda_mensal_id")
@@ -96,6 +96,10 @@ public class Escala {
 		return id;
 	}
 
+	public void setId(Long id) {
+		this.id = id;
+	}
+
 	public LocalDate getDataEscala() {
 		return dataEscala;
 	}
@@ -104,20 +108,52 @@ public class Escala {
 		this.dataEscala = dataEscala;
 	}
 
-	public LocalTime getHorario() {
-		return horario;
+	public String getNomeCultoManha() {
+		return nomeCultoManha;
 	}
 
-	public void setHorario(LocalTime horario) {
-		this.horario = horario;
+	public void setNomeCultoManha(String nomeCultoManha) {
+		this.nomeCultoManha = nomeCultoManha;
 	}
 
-	public String getCulto() {
-		return culto;
+	public String getNomeCultoNoite() {
+		return nomeCultoNoite;
 	}
 
-	public void setCulto(String culto) {
-		this.culto = culto;
+	public void setNomeCultoNoite(String nomeCultoNoite) {
+		this.nomeCultoNoite = nomeCultoNoite;
+	}
+
+	public LocalTime getHorarioManha() {
+		return horarioManha;
+	}
+
+	public void setHorarioManha(LocalTime horarioManha) {
+		this.horarioManha = horarioManha;
+	}
+
+	public LocalTime getHorarioManhaFim() {
+		return horarioManhaFim;
+	}
+
+	public void setHorarioManhaFim(LocalTime horarioManhaFim) {
+		this.horarioManhaFim = horarioManhaFim;
+	}
+
+	public LocalTime getHorarioNoite() {
+		return horarioNoite;
+	}
+
+	public void setHorarioNoite(LocalTime horarioNoite) {
+		this.horarioNoite = horarioNoite;
+	}
+
+	public LocalTime getHorarioNoiteFim() {
+		return horarioNoiteFim;
+	}
+
+	public void setHorarioNoiteFim(LocalTime horarioNoiteFim) {
+		this.horarioNoiteFim = horarioNoiteFim;
 	}
 
 	public String getObservacao() {
@@ -140,20 +176,16 @@ public class Escala {
 		return dataCadastro;
 	}
 
-	public String getYoutubePlaylistId() {
-		return youtubePlaylistId;
+	public void setDataCadastro(LocalDateTime dataCadastro) {
+		this.dataCadastro = dataCadastro;
 	}
 
-	public void setYoutubePlaylistId(String youtubePlaylistId) {
-		this.youtubePlaylistId = youtubePlaylistId;
+	public List<EscalaMusico> getMusicos() {
+		return musicos;
 	}
 
-	public String getYoutubePlaylistUrl() {
-		return youtubePlaylistUrl;
-	}
-
-	public void setYoutubePlaylistUrl(String youtubePlaylistUrl) {
-		this.youtubePlaylistUrl = youtubePlaylistUrl;
+	public void setMusicos(List<EscalaMusico> musicos) {
+		this.musicos = musicos;
 	}
 
 	public AgendaMensal getAgendaMensal() {
@@ -164,17 +196,6 @@ public class Escala {
 		this.agendaMensal = agendaMensal;
 	}
 
-	public TipoEscala getTipoEscala() {
-		return tipoEscala;
-	}
-	
-	public LocalTime getHorarioFim() { return horarioFim; }
-	public void setHorarioFim(LocalTime horarioFim) { this.horarioFim = horarioFim; }
-
-	public void setTipoEscala(TipoEscala tipoEscala) {
-		this.tipoEscala = tipoEscala;
-	}
-
 	public Departamento getDepartamento() {
 		return departamento;
 	}
@@ -183,5 +204,16 @@ public class Escala {
 		this.departamento = departamento;
 	}
 
-	 
+	public TipoEscala getTipoEscala() {
+		return tipoEscala;
+	}
+
+	public void setTipoEscala(TipoEscala tipoEscala) {
+		this.tipoEscala = tipoEscala;
+	}
+
+	public void setStatus(StatusEscala status) {
+		this.status = status;
+	}
+
 }

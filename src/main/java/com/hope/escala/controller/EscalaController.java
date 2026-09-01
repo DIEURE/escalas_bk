@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -26,7 +25,6 @@ import com.hope.escala.dto.response.EscalaDetalhesResponseDTO;
 import com.hope.escala.dto.response.EscalaResponseDTO;
 import com.hope.escala.enums.StatusEscala;
 import com.hope.escala.repository.EscalaRepository;
-import com.hope.escala.security.annotation.PodeGerenciarDepartamento;
 import com.hope.escala.service.EscalaService;
 import com.hope.escala.service.PdfEscalaService;
 import com.hope.escala.service.YoutubePlaylistService;
@@ -41,6 +39,7 @@ public class EscalaController {
 	private final YoutubePlaylistService youTubePlaylistService;
 	private final PdfEscalaService pdfEscalaService;
 	private final EscalaRepository escalaRepository;
+
 	public EscalaController(EscalaService escalaService, YoutubePlaylistService youTubePlaylistService,
 			PdfEscalaService pdfEscalaService, EscalaRepository escalaRepository) {
 		this.escalaService = escalaService;
@@ -55,13 +54,11 @@ public class EscalaController {
 	}
 
 	@GetMapping
-	// ✅ Público - todos podem listar (depois filtrar por departamento no service)
 	public ResponseEntity<List<EscalaResponseDTO>> listar() {
 		return ResponseEntity.ok(escalaService.listar());
 	}
 
 	@GetMapping("/{id}")
-	// ← Protegido
 	public ResponseEntity<EscalaResponseDTO> buscarPorId(@PathVariable Long id) {
 		return ResponseEntity.ok(escalaService.buscarPorId(id));
 	}
@@ -73,50 +70,47 @@ public class EscalaController {
 	}
 
 	@GetMapping("/verificar-conflito")
-	public ResponseEntity<Boolean> verificarConflito(
-	        @RequestParam String data,
-	        @RequestParam String horario,
-	        @RequestParam Long departamentoId) {
-	    
-	    // Converte a string recebida para os tipos do Java
-	    LocalDate localDate = LocalDate.parse(data);
-	    
-	    // Garante que o horario tenha segundos (se vier apenas HH:mm)
-	    String horarioComSegundos = horario.length() == 5 ? horario + ":00" : horario;
-	    LocalTime localTime = LocalTime.parse(horarioComSegundos);
-	    
-	    // Realiza a busca no repositório
-	    boolean existe = escalaRepository.existsByDataEscalaAndHorarioAndDepartamentoId(
-	            localDate, 
-	            localTime, 
-	            departamentoId
-	    );
-	            
-	    return ResponseEntity.ok(existe);
-	}
-	
-	@DeleteMapping("/{id}")
+	public ResponseEntity<Boolean> verificarConflito(@RequestParam String data, @RequestParam String horario,
+			@RequestParam Long departamentoId) {
 
+		LocalDate localDate = LocalDate.parse(data);
+
+		String horarioComSegundos = horario.length() == 5 ? horario + ":00" : horario;
+		LocalTime localTime = LocalTime.parse(horarioComSegundos);
+
+		boolean existe = escalaRepository.existeConflitoHorario(localDate, localTime, localTime, departamentoId);
+
+		return ResponseEntity.ok(existe);
+	}
+
+	@DeleteMapping("/{id}")
 	public ResponseEntity<String> inativar(@PathVariable Long id) {
 		escalaService.inativar(id);
 		return ResponseEntity.ok("Escala inativada com sucesso");
 	}
 
 	@GetMapping("/{id}/detalhes")
-
 	public ResponseEntity<EscalaDetalhesResponseDTO> buscarDetalhesEscala(@PathVariable Long id) {
 		return ResponseEntity.ok(escalaService.buscarDetalhesEscala(id));
 	}
 
 	@PostMapping("/{id}/gerar-playlist")
-
 	public ResponseEntity<String> gerarPlaylist(@PathVariable Long id) {
 		String playlistUrl = youTubePlaylistService.gerarLinkPlaylistFake(id);
 		return ResponseEntity.ok(playlistUrl);
 	}
 
-	@GetMapping("/{id}/pdf")
+	// ✅ NOVO: Playlist Manual (recebe lista de IDs de música e retorna a URL gerada)
+	@PostMapping("/{id}/playlist-manual")
+	public ResponseEntity<String> salvarPlaylistManual(
+			@PathVariable Long id,
+			@RequestBody List<Long> musicasIds) {
 
+		String url = escalaService.salvarPlaylistManual(id, musicasIds);
+		return ResponseEntity.ok(url);
+	}
+
+	@GetMapping("/{id}/pdf")
 	public ResponseEntity<byte[]> gerarPdf(@PathVariable Long id) {
 		byte[] pdf = pdfEscalaService.gerarPdfEscala(id);
 		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=escala.pdf")
@@ -134,12 +128,10 @@ public class EscalaController {
 		escalaService.adicionarMusicos(id, musicosIds);
 		return ResponseEntity.ok().build();
 	}
-	
+
 	@PatchMapping("/{id}/status")
-	public ResponseEntity<EscalaResponseDTO> alterarStatus(
-	        @PathVariable Long id, 
-	        @RequestBody StatusEscala status) {
-	    return ResponseEntity.ok(escalaService.alterarStatus(id, status));
+	public ResponseEntity<EscalaResponseDTO> alterarStatus(@PathVariable Long id, @RequestBody StatusEscala status) {
+		return ResponseEntity.ok(escalaService.alterarStatus(id, status));
 	}
-	
+
 }

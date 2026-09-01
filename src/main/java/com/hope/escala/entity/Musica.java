@@ -20,7 +20,7 @@ public class Musica {
 
 	private Integer bpm;
 
-	private String linkYoutube;
+	private String linkPlaylistManual;
 
 	private String youtubeVideoId;
 
@@ -85,12 +85,12 @@ public class Musica {
 		this.bpm = bpm;
 	}
 
-	public String getLinkYoutube() {
-		return linkYoutube;
+	public String getLinkPlaylistManual() {
+		return linkPlaylistManual;
 	}
 
-	public void setLinkYoutube(String linkYoutube) {
-		this.linkYoutube = linkYoutube;
+	public void setLinkPlaylistManual(String linkPlaylistManual) {
+		this.linkPlaylistManual = linkPlaylistManual;
 	}
 
 	public String getCifra() {

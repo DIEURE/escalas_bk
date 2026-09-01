@@ -6,7 +6,9 @@ public class EscalaMusicaResponseDTO {
 
 	private Long escalaId;
 
-	private String culto;
+	private String nomeCultoManha;
+	
+	private String nomeCultoNoite;
 
 	private Long musicaId;
 
@@ -53,12 +55,22 @@ public class EscalaMusicaResponseDTO {
 		this.escalaId = escalaId;
 	}
 
-	public String getCulto() {
-		return culto;
+	 
+
+	public String getNomeCultoManha() {
+		return nomeCultoManha;
 	}
 
-	public void setCulto(String culto) {
-		this.culto = culto;
+	public void setNomeCultoManha(String nomeCultoManha) {
+		this.nomeCultoManha = nomeCultoManha;
+	}
+
+	public String getNomeCultoNoite() {
+		return nomeCultoNoite;
+	}
+
+	public void setNomeCultoNoite(String nomeCultoNoite) {
+		this.nomeCultoNoite = nomeCultoNoite;
 	}
 
 	public Long getMusicaId() {

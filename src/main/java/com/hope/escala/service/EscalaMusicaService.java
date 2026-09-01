@@ -83,7 +83,9 @@ public class EscalaMusicaService {
 
 		dto.setEscalaId(escalaMusica.getEscala().getId());
 
-		dto.setCulto(escalaMusica.getEscala().getCulto());
+		dto.setNomeCultoManha(escalaMusica.getEscala().getNomeCultoManha());
+		
+		dto.setNomeCultoNoite(escalaMusica.getEscala().getNomeCultoNoite());
 
 		dto.setMusicaId(escalaMusica.getMusica().getId());
 

@@ -27,7 +27,7 @@ public class MusicaService {
 		musica.setCantor(dto.getCantor());
 		musica.setTom(dto.getTom());
 		musica.setBpm(dto.getBpm());
-		musica.setLinkYoutube(dto.getLinkYoutube());
+		musica.setLinkPlaylistManual(dto.getLinkPlaylistManual());
 		musica.setYoutubeVideoId(dto.getYoutubeVideoId());
 		musica.setCifra(dto.getCifra());
 		musica.setCifraUrl(dto.getCifraUrl());
@@ -48,7 +48,7 @@ public class MusicaService {
 		dto.setCantor(musica.getCantor());
 		dto.setTom(musica.getTom());
 		dto.setBpm(musica.getBpm());
-		dto.setLinkYoutube(musica.getLinkYoutube());
+		dto.setLinkPlaylistManual(musica.getLinkPlaylistManual());
 		dto.setYoutubeVideoId(musica.getYoutubeVideoId());
 		dto.setCifra(musica.getCifra());
 		dto.setCifraUrl(musica.getCifraUrl());
@@ -66,7 +66,7 @@ public class MusicaService {
 		musica.setCantor(dto.getCantor());
 		musica.setTom(dto.getTom());
 		musica.setBpm(dto.getBpm());
-		musica.setLinkYoutube(dto.getLinkYoutube());
+		musica.setLinkPlaylistManual(dto.getLinkPlaylistManual());
 		musica.setYoutubeVideoId(dto.getYoutubeVideoId());
 		musica.setCifra(dto.getCifra());
 		musica.setCifraUrl(dto.getCifraUrl());
