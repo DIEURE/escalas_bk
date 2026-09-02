@@ -24,7 +24,16 @@ public class EscalaMusica {
 	@JoinColumn(name = "musica_id")
 	private Musica musica;
 	
+	private String tituloPlaylistManual;
 	
+	public String getTituloPlaylistManual() {
+		return tituloPlaylistManual;
+	}
+
+	public void setTituloPlaylistManual(String tituloPlaylistManual) {
+		this.tituloPlaylistManual = tituloPlaylistManual;
+	}
+
 	private Boolean substituida = false;
 
 	@ManyToOne

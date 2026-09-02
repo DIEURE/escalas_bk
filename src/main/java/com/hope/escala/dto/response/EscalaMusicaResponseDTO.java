@@ -1,5 +1,7 @@
 package com.hope.escala.dto.response;
 
+import jakarta.persistence.Column;
+
 public class EscalaMusicaResponseDTO {
 
 	private Long id;
@@ -19,10 +21,15 @@ public class EscalaMusicaResponseDTO {
 	private String cantor;
 
 	private String tom;
+	
+	private Integer bpm;
+	
+	@Column(columnDefinition = "TEXT")
+	private String cifra;
 
 	private Integer ordem;
 	
-	
+	private String tituloPlaylistManual;
 
 	private String observacao;
 
@@ -67,6 +74,14 @@ public class EscalaMusicaResponseDTO {
 
 	public String getNomeCultoNoite() {
 		return nomeCultoNoite;
+	}
+
+	public String getTituloPlaylistManual() {
+		return tituloPlaylistManual;
+	}
+
+	public void setTituloPlaylistManual(String tituloPlaylistManual) {
+		this.tituloPlaylistManual = tituloPlaylistManual;
 	}
 
 	public void setNomeCultoNoite(String nomeCultoNoite) {
@@ -165,8 +180,24 @@ public class EscalaMusicaResponseDTO {
 		return cifraUrl;
 	}
 
+	public Integer getBpm() {
+		return bpm;
+	}
+
+	public void setBpm(Integer integer) {
+		this.bpm = integer;
+	}
+
 	public void setCifraUrl(String cifraUrl) {
 		this.cifraUrl = cifraUrl;
+	}
+
+	public String getCifra() {
+		return cifra;
+	}
+
+	public void setCifra(String cifra) {
+		this.cifra = cifra;
 	}
 
 }

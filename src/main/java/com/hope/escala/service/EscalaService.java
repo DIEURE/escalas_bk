@@ -339,11 +339,13 @@ public class EscalaService {
 
 		dto.setNomeCultoManha(escalaMusica.getEscala().getNomeCultoManha());
 		dto.setNomeCultoNoite(escalaMusica.getEscala().getNomeCultoNoite());
-
+		dto.setCifraUrl(escalaMusica.getMusica().getCifraUrl());
 		dto.setMusicaId(escalaMusica.getMusica().getId());
 		dto.setNomeMusica(escalaMusica.getMusica().getNome());
 		dto.setCantor(escalaMusica.getMusica().getCantor());
 		dto.setTom(escalaMusica.getMusica().getTom());
+		dto.setCifra(escalaMusica.getMusica().getCifra());
+		dto.setBpm(escalaMusica.getMusica().getBpm());
 		dto.setOrdem(escalaMusica.getOrdem());
 		dto.setObservacao(escalaMusica.getObservacao());
 		return dto;
@@ -419,12 +421,10 @@ public class EscalaService {
 	    Escala escala = escalaRepository.findById(escalaId)
 	            .orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + escalaId));
 
-	    // Remove as músicas antigas
 	    List<EscalaMusica> antigas = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);
 	    escalaMusicaRepository.deleteAll(antigas);
 	    escalaMusicaRepository.flush();
 
-	    // Adiciona as novas com ordem
 	    List<EscalaMusica> novas = new ArrayList<>();
 	    int ordem = 1;
 	    for (Long musicaId : musicasIds) {
@@ -439,9 +439,17 @@ public class EscalaService {
 	        novas.add(em);
 	    }
 
-	    // Monta a URL do YouTube
+	    // 💡 1. Monta o título descritivo inteligente da escala
+	    String nomeCulto = escala.getNomeCultoNoite() != null ? escala.getNomeCultoNoite() 
+	                     : (escala.getNomeCultoManha() != null ? escala.getNomeCultoManha() : "Culto");
+	    String tituloPlaylist = "Culto " + nomeCulto + " - " + escala.getDataEscala();
+
+	    // 💡 2. Monta a URL limpa do YouTube
 	    String urlPlaylist = montarUrlPlaylistYoutube(novas);
+	    
+	    // 💡 3. Salva a URL e o Título na Escala
 	    escala.setLinkPlaylistManual(urlPlaylist);
+	    escala.setTituloPlaylistManual(tituloPlaylist); // Salvando o título na base!
 	    escalaRepository.save(escala);
 
 	    return urlPlaylist;
@@ -459,5 +467,4 @@ public class EscalaService {
 
 	    return "https://www.youtube.com/watch_videos?video_ids=" + ids;
 	}
-
 }

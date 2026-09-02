@@ -51,7 +51,8 @@ public class Escala {
 
 	private LocalDateTime dataCadastro;
 
-	// Na sua Entity Escala (ex: com.hope.escala.entity.Escala)
+	private String tituloPlaylistManual;
+	
 	private String linkPlaylistManual;
 
 	// Getters e Setters
@@ -216,4 +217,13 @@ public class Escala {
 		this.status = status;
 	}
 
+	public String getTituloPlaylistManual() {
+		return tituloPlaylistManual;
+	}
+
+	public void setTituloPlaylistManual(String tituloPlaylistManual) {
+		this.tituloPlaylistManual = tituloPlaylistManual;
+	}
+
+	
 }
