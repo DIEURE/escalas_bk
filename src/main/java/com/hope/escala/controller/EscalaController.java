@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.hope.escala.dto.request.EscalaRequestDTO;
 import com.hope.escala.dto.request.GerarEscalasMesRequestDTO;
 import com.hope.escala.dto.response.EscalaDetalhesResponseDTO;
+import com.hope.escala.dto.response.EscalaMusicaResponseDTO;
 import com.hope.escala.dto.response.EscalaResponseDTO;
 import com.hope.escala.enums.StatusEscala;
 import com.hope.escala.repository.EscalaRepository;
@@ -108,6 +109,12 @@ public class EscalaController {
 
 		String url = escalaService.salvarPlaylistManual(id, musicasIds);
 		return ResponseEntity.ok(url);
+	}
+	
+	@GetMapping("/{id}/playlist-manual/musicas")
+	public ResponseEntity<List<EscalaMusicaResponseDTO>> listarMusicasDaPlaylistManual(@PathVariable Long id) {
+	    List<EscalaMusicaResponseDTO> musicas = escalaService.listarMusicasDaPlaylistManual(id);
+	    return ResponseEntity.ok(musicas);
 	}
 
 	@GetMapping("/{id}/pdf")

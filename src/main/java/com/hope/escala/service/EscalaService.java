@@ -442,7 +442,7 @@ public class EscalaService {
 	    // 💡 1. Monta o título descritivo inteligente da escala
 	    String nomeCulto = escala.getNomeCultoNoite() != null ? escala.getNomeCultoNoite() 
 	                     : (escala.getNomeCultoManha() != null ? escala.getNomeCultoManha() : "Culto");
-	    String tituloPlaylist = "Culto " + nomeCulto + " - " + escala.getDataEscala();
+	    String tituloPlaylist =  nomeCulto + "-" + escala.getDataEscala();
 
 	    // 💡 2. Monta a URL limpa do YouTube
 	    String urlPlaylist = montarUrlPlaylistYoutube(novas);
@@ -467,4 +467,11 @@ public class EscalaService {
 
 	    return "https://www.youtube.com/watch_videos?video_ids=" + ids;
 	}
+	
+	public List<EscalaMusicaResponseDTO> listarMusicasDaPlaylistManual(Long escalaId) {
+	    List<EscalaMusica> lista = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);
+	    return lista.stream().map(this::converterMusicaDTO).collect(Collectors.toList());
+	}
+
+
 }
