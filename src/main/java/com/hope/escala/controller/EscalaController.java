@@ -101,14 +101,19 @@ public class EscalaController {
 		return ResponseEntity.ok(playlistUrl);
 	}
 
+	public record PlaylistManualRequest(
+		    String tituloPlaylistManual,
+		    List<Long> musicasIds
+		) {}
+	
 	// ✅ NOVO: Playlist Manual (recebe lista de IDs de música e retorna a URL gerada)
 	@PostMapping("/{id}/playlist-manual")
-	public ResponseEntity<String> salvarPlaylistManual(
-			@PathVariable Long id,
-			@RequestBody List<Long> musicasIds) {
-
-		String url = escalaService.salvarPlaylistManual(id, musicasIds);
-		return ResponseEntity.ok(url);
+	public ResponseEntity<String> criarPlaylistManual(
+	        @PathVariable Long id,
+	        @RequestBody PlaylistManualRequest request) {
+	    
+	    String urlPlaylist = escalaService.salvarPlaylistManual(id, request.tituloPlaylistManual(), request.musicasIds());
+	    return ResponseEntity.ok(urlPlaylist);
 	}
 	
 	@GetMapping("/{id}/playlist-manual/musicas")

@@ -59,4 +59,10 @@ public class YoutubeConfigController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
+    
+    @GetMapping("/status")
+    public ResponseEntity<Map<String, Boolean>> verificarStatusConexao() {
+        boolean conectado = youtubeService.isConfiguradoEConectado();
+        return ResponseEntity.ok(Map.of("conectado", conectado));
+    }
 }

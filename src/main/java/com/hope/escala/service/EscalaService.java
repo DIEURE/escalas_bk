@@ -7,11 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import com.hope.escala.dto.request.EscalaRequestDTO;
 import com.hope.escala.dto.request.GerarEscalasMesRequestDTO;
@@ -58,6 +55,8 @@ public class EscalaService {
 	private final UsuarioRepository usuarioRepository;
 	private final SecurityUtils securityUtils;
 	private final MusicaRepository musicaRepository;
+	@Autowired
+	private YoutubeService youtubeService; // 👈 Certifique-se que está injetado aqui
 
 	public EscalaService(EscalaRepository escalaRepository, AgendaMensalRepository agendaMensalRepository,
 			EscalaMusicoRepository escalaMusicoRepository, EscalaMusicaRepository escalaMusicaRepository,
@@ -417,61 +416,79 @@ public class EscalaService {
 
 	// No seu EscalaService.java
 	@Transactional
-	public String salvarPlaylistManual(Long escalaId, List<Long> musicasIds) {
-	    Escala escala = escalaRepository.findById(escalaId)
-	            .orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + escalaId));
+	public String salvarPlaylistManual(Long escalaId, String tituloPersonalizado, List<Long> musicasIds) {
 
-	    List<EscalaMusica> antigas = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);
-	    escalaMusicaRepository.deleteAll(antigas);
-	    escalaMusicaRepository.flush();
+		if (!youtubeService.isConfiguradoEConectado()) {
+			throw new RuntimeException(
+					"A conta do YouTube não está configurada ou conectada. Vá em Configurações para autenticar.");
+		}
+		
+		Escala escala = escalaRepository.findById(escalaId)
+				.orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + escalaId));
 
-	    List<EscalaMusica> novas = new ArrayList<>();
-	    int ordem = 1;
-	    for (Long musicaId : musicasIds) {
-	        Musica musica = musicaRepository.findById(musicaId)
-	                .orElseThrow(() -> new ResourceNotFoundException("Música não encontrada: " + musicaId));
+		List<EscalaMusica> antigas = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);
+		escalaMusicaRepository.deleteAll(antigas);
+		escalaMusicaRepository.flush();
 
-	        EscalaMusica em = new EscalaMusica();
-	        em.setEscala(escala);
-	        em.setMusica(musica);
-	        em.setOrdem(ordem++);
-	        escalaMusicaRepository.save(em);
-	        novas.add(em);
-	    }
+		List<EscalaMusica> novas = new ArrayList<>();
+		int ordem = 1;
+		for (Long musicaId : musicasIds) {
+			Musica musica = musicaRepository.findById(musicaId)
+					.orElseThrow(() -> new ResourceNotFoundException("Música não encontrada: " + musicaId));
 
-	    // 💡 1. Monta o título descritivo inteligente da escala
-	    String nomeCulto = escala.getNomeCultoNoite() != null ? escala.getNomeCultoNoite() 
-	                     : (escala.getNomeCultoManha() != null ? escala.getNomeCultoManha() : "Culto");
-	    String tituloPlaylist =  nomeCulto + "-" + escala.getDataEscala();
+			EscalaMusica em = new EscalaMusica();
+			em.setEscala(escala);
+			em.setMusica(musica);
+			em.setOrdem(ordem++);
+			escalaMusicaRepository.save(em);
+			novas.add(em);
+		}
 
-	    // 💡 2. Monta a URL limpa do YouTube
-	    String urlPlaylist = montarUrlPlaylistYoutube(novas);
-	    
-	    // 💡 3. Salva a URL e o Título na Escala
-	    escala.setLinkPlaylistManual(urlPlaylist);
-	    escala.setTituloPlaylistManual(tituloPlaylist); // Salvando o título na base!
-	    escalaRepository.save(escala);
+		// Título final personalizado
+		String tituloFinal = (tituloPersonalizado != null && !tituloPersonalizado.isBlank()) ? tituloPersonalizado
+				: ("" + escala.getDataEscala());
 
-	    return urlPlaylist;
+		String urlPlaylist = "";
+
+		try {
+			// 1. Obtém o Access Token atualizado via OAuth
+			String accessToken = youtubeService.obterAccessToken();
+
+			// 2. Cria a playlist no YouTube com o título personalizado
+			String youtubePlaylistId = youtubeService.criarPlaylistNoYoutube(accessToken, tituloFinal);
+
+			if (youtubePlaylistId == null || youtubePlaylistId.isBlank()) {
+				throw new RuntimeException("O YouTube não retornou o ID da playlist criada.");
+			}
+
+			// 3. Adiciona cada música dentro da playlist oficial
+			for (EscalaMusica em : novas) {
+				String videoId = em.getMusica().getYoutubeVideoId();
+				if (videoId != null && !videoId.isBlank()) {
+					youtubeService.adicionarVideoNaPlaylist(accessToken, youtubePlaylistId, videoId);
+				}
+			}
+
+			// 4. Monta a URL oficial e limpa da playlist do YouTube
+			urlPlaylist = "https://www.youtube.com/playlist?list=" + youtubePlaylistId;
+
+		} catch (Exception e) {
+			// Se houver qualquer falha, o erro é disparado para você ver exatamente o que
+			// aconteceu
+			throw new RuntimeException("Erro ao criar playlist oficial no YouTube: " + e.getMessage(), e);
+		}
+
+		// 5. Salva a URL oficial e o Título na Escala
+		escala.setLinkPlaylistManual(urlPlaylist);
+		escala.setTituloPlaylistManual(tituloFinal);
+		escalaRepository.save(escala);
+
+		return urlPlaylist;
 	}
 
-	private String montarUrlPlaylistYoutube(List<EscalaMusica> musicas) {
-	    String ids = musicas.stream()
-	            .map(em -> em.getMusica().getYoutubeVideoId())
-	            .filter(id -> id != null && !id.isBlank())
-	            .collect(Collectors.joining(","));
-
-	    if (ids.isBlank()) {
-	        return null;
-	    }
-
-	    return "https://www.youtube.com/watch_videos?video_ids=" + ids;
-	}
-	
 	public List<EscalaMusicaResponseDTO> listarMusicasDaPlaylistManual(Long escalaId) {
-	    List<EscalaMusica> lista = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);
-	    return lista.stream().map(this::converterMusicaDTO).collect(Collectors.toList());
+		List<EscalaMusica> lista = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);
+		return lista.stream().map(this::converterMusicaDTO).collect(Collectors.toList());
 	}
-
 
 }
