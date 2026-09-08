@@ -19,6 +19,14 @@ public class Musica {
 	private String tom;
 
 	private Integer bpm;
+	
+	@ManyToOne
+	@JoinColumn(name = "categoria_id")
+	private Categoria categoria;
+
+	@Column(name = "vezes_escalada")
+	private Integer vezesEscalada = 0;
+
 
 	private String linkPlaylistManual;
 
@@ -121,4 +129,29 @@ public class Musica {
 		this.youtubeVideoId = youtubeVideoId;
 	}
 
+	public Categoria getCategoria() {
+		return categoria;
+	}
+
+	public void setCategoria(Categoria categoria) {
+		this.categoria = categoria;
+	}
+
+	public Integer getVezesEscalada() {
+		return vezesEscalada;
+	}
+
+	public void setVezesEscalada(Integer vezesEscalada) {
+		this.vezesEscalada = vezesEscalada;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public void setDataCadastro(LocalDateTime dataCadastro) {
+		this.dataCadastro = dataCadastro;
+	}
+
+	
 }

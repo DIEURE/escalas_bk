@@ -22,6 +22,10 @@ public class MusicaRequestDTO {
     private String cifra;
     
     private String cifraUrl;
+    
+    private Boolean ativa;
+    
+    private Long categoriaId; // ID da categoria selecionada no frontend
 
     public MusicaRequestDTO() {
     }
@@ -91,6 +95,26 @@ public class MusicaRequestDTO {
 
 	public void setYoutubeVideoId(String youtubeVideoId) {
 	    this.youtubeVideoId = youtubeVideoId;
+	}
+
+
+	public Boolean getAtiva() {
+		return ativa;
+	}
+
+
+	public void setAtiva(Boolean ativa) {
+		this.ativa = ativa;
+	}
+
+
+	public Long getCategoriaId() {
+		return categoriaId;
+	}
+
+
+	public void setCategoriaId(Long categoriaId) {
+		this.categoriaId = categoriaId;
 	}
     
     

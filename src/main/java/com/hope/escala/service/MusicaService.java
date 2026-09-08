@@ -31,9 +31,15 @@ public class MusicaService {
 		musica.setYoutubeVideoId(dto.getYoutubeVideoId());
 		musica.setCifra(dto.getCifra());
 		musica.setCifraUrl(dto.getCifraUrl());
+		
+		musica.setAtiva(musica.getAtiva());
+		musica.setDataCadastro(musica.getDataCadastro());
+		musica.setVezesEscalada(musica.getVezesEscalada());
 
-		musica.setAtiva(true);
-
+		 if (musica.getCategoria() != null) {
+		        dto.setCategoriaId(musica.getCategoria().getId());
+		    }
+		
 		Musica musicaSalva = musicaRepository.save(musica);
 
 		return converterParaDTO(musicaSalva);
@@ -52,8 +58,13 @@ public class MusicaService {
 		dto.setYoutubeVideoId(musica.getYoutubeVideoId());
 		dto.setCifra(musica.getCifra());
 		dto.setCifraUrl(musica.getCifraUrl());
-		dto.setAtiva(musica.getAtiva());
+		musica.setAtiva(musica.getAtiva());
+		musica.setDataCadastro(musica.getDataCadastro());
+		musica.setVezesEscalada(musica.getVezesEscalada());
 
+		 if (musica.getCategoria() != null) {
+		        dto.setCategoriaId(musica.getCategoria().getId());
+		    }
 		return dto;
 	}
 

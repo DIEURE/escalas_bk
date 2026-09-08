@@ -1,5 +1,7 @@
 package com.hope.escala.dto.response;
 
+import java.time.LocalDateTime;
+
 public class MusicaResponseDTO {
 
     private Long id;
@@ -12,6 +14,14 @@ public class MusicaResponseDTO {
     private String cifra;
     private String cifraUrl;
     private Boolean ativa;
+    private LocalDateTime dataCadastro;
+    
+    // Dados da categoria aninhados ou simplificados
+    private Long categoriaId;
+    private String categoriaNome;
+    
+    // Contador recap
+    private Integer vezesEscalada;
 
     public MusicaResponseDTO() {
     }
@@ -94,6 +104,38 @@ public class MusicaResponseDTO {
 
 	public void setYoutubeVideoId(String youtubeVideoId) {
 	    this.youtubeVideoId = youtubeVideoId;
+	}
+
+	public LocalDateTime getDataCadastro() {
+		return dataCadastro;
+	}
+
+	public void setDataCadastro(LocalDateTime dataCadastro) {
+		this.dataCadastro = dataCadastro;
+	}
+
+	public Long getCategoriaId() {
+		return categoriaId;
+	}
+
+	public void setCategoriaId(Long categoriaId) {
+		this.categoriaId = categoriaId;
+	}
+
+	public String getCategoriaNome() {
+		return categoriaNome;
+	}
+
+	public void setCategoriaNome(String categoriaNome) {
+		this.categoriaNome = categoriaNome;
+	}
+
+	public Integer getVezesEscalada() {
+		return vezesEscalada;
+	}
+
+	public void setVezesEscalada(Integer vezesEscalada) {
+		this.vezesEscalada = vezesEscalada;
 	}
 
     // getters e setters
