@@ -50,7 +50,7 @@ public class MusicaController {
     @GetMapping
     // ✅ Público - todos podem listar músicas
     public ResponseEntity<List<MusicaResponseDTO>> listar() {
-        List<MusicaResponseDTO> musicas = musicaService.listar();
+        List<MusicaResponseDTO> musicas = musicaService.listarTodas();
         return ResponseEntity.ok(musicas);
     }
 

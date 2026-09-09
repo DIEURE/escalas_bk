@@ -1,5 +1,7 @@
 package com.hope.escala.dto.response;
 
+import com.hope.escala.entity.Musica;
+
 import java.time.LocalDateTime;
 
 public class MusicaResponseDTO {
@@ -15,130 +17,139 @@ public class MusicaResponseDTO {
     private String cifraUrl;
     private Boolean ativa;
     private LocalDateTime dataCadastro;
-    
-    // Dados da categoria aninhados ou simplificados
+    private Integer vezesEscalada;
     private Long categoriaId;
     private String categoriaNome;
-    
-    // Contador recap
-    private Integer vezesEscalada;
 
     public MusicaResponseDTO() {
     }
 
-	public Long getId() {
-		return id;
-	}
+    public MusicaResponseDTO(Musica musica) {
+        this.id = musica.getId();
+        this.nome = musica.getNome();
+        this.cantor = musica.getCantor();
+        this.tom = musica.getTom();
+        this.bpm = musica.getBpm();
+        this.linkPlaylistManual = musica.getLinkPlaylistManual();
+        this.youtubeVideoId = musica.getYoutubeVideoId();
+        this.cifra = musica.getCifra();
+        this.cifraUrl = musica.getCifraUrl();
+        this.ativa = musica.getAtiva();
+        this.dataCadastro = musica.getDataCadastro();
+        this.vezesEscalada = musica.getVezesEscalada();
+        this.categoriaId = musica.getCategoria() != null ? musica.getCategoria().getId() : null;
+        this.categoriaNome = musica.getCategoria() != null ? musica.getCategoria().getNome() : null;
+    }
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	public String getNome() {
-		return nome;
-	}
+    public String getNome() {
+        return nome;
+    }
 
-	public void setNome(String nome) {
-		this.nome = nome;
-	}
+    public String getCantor() {
+        return cantor;
+    }
 
-	public String getCantor() {
-		return cantor;
-	}
+    public String getTom() {
+        return tom;
+    }
 
-	public void setCantor(String cantor) {
-		this.cantor = cantor;
-	}
+    public Integer getBpm() {
+        return bpm;
+    }
 
-	public String getTom() {
-		return tom;
-	}
+    public String getLinkPlaylistManual() {
+        return linkPlaylistManual;
+    }
 
-	public void setTom(String tom) {
-		this.tom = tom;
-	}
+    public String getYoutubeVideoId() {
+        return youtubeVideoId;
+    }
 
-	public Integer getBpm() {
-		return bpm;
-	}
+    public String getCifra() {
+        return cifra;
+    }
 
-	public void setBpm(Integer bpm) {
-		this.bpm = bpm;
-	}
+    public String getCifraUrl() {
+        return cifraUrl;
+    }
 
-	public String getLinkPlaylistManual() {
-		return linkPlaylistManual;
-	}
+    public Boolean getAtiva() {
+        return ativa;
+    }
 
-	public void setLinkPlaylistManual(String linkPlaylistManual) {
-		this.linkPlaylistManual = linkPlaylistManual;
-	}
+    public LocalDateTime getDataCadastro() {
+        return dataCadastro;
+    }
 
-	public String getCifra() {
-		return cifra;
-	}
+    public Integer getVezesEscalada() {
+        return vezesEscalada;
+    }
 
-	public void setCifra(String cifra) {
-		this.cifra = cifra;
-	}
-	
-	public String getCifraUrl() {
-	    return cifraUrl;
-	}
+    public Long getCategoriaId() {
+        return categoriaId;
+    }
 
-	public void setCifraUrl(String cifraUrl) {
-	    this.cifraUrl = cifraUrl;
-	}
+    public String getCategoriaNome() {
+        return categoriaNome;
+    }
 
-	public Boolean getAtiva() {
-		return ativa;
-	}
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-	public void setAtiva(Boolean ativa) {
-		this.ativa = ativa;
-	}
-	
-	public String getYoutubeVideoId() {
-	    return youtubeVideoId;
-	}
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
 
-	public void setYoutubeVideoId(String youtubeVideoId) {
-	    this.youtubeVideoId = youtubeVideoId;
-	}
+    public void setCantor(String cantor) {
+        this.cantor = cantor;
+    }
 
-	public LocalDateTime getDataCadastro() {
-		return dataCadastro;
-	}
+    public void setTom(String tom) {
+        this.tom = tom;
+    }
 
-	public void setDataCadastro(LocalDateTime dataCadastro) {
-		this.dataCadastro = dataCadastro;
-	}
+    public void setBpm(Integer bpm) {
+        this.bpm = bpm;
+    }
 
-	public Long getCategoriaId() {
-		return categoriaId;
-	}
+    public void setLinkPlaylistManual(String linkPlaylistManual) {
+        this.linkPlaylistManual = linkPlaylistManual;
+    }
 
-	public void setCategoriaId(Long categoriaId) {
-		this.categoriaId = categoriaId;
-	}
+    public void setYoutubeVideoId(String youtubeVideoId) {
+        this.youtubeVideoId = youtubeVideoId;
+    }
 
-	public String getCategoriaNome() {
-		return categoriaNome;
-	}
+    public void setCifra(String cifra) {
+        this.cifra = cifra;
+    }
 
-	public void setCategoriaNome(String categoriaNome) {
-		this.categoriaNome = categoriaNome;
-	}
+    public void setCifraUrl(String cifraUrl) {
+        this.cifraUrl = cifraUrl;
+    }
 
-	public Integer getVezesEscalada() {
-		return vezesEscalada;
-	}
+    public void setAtiva(Boolean ativa) {
+        this.ativa = ativa;
+    }
 
-	public void setVezesEscalada(Integer vezesEscalada) {
-		this.vezesEscalada = vezesEscalada;
-	}
+    public void setDataCadastro(LocalDateTime dataCadastro) {
+        this.dataCadastro = dataCadastro;
+    }
 
-    // getters e setters
-    
-    
+    public void setVezesEscalada(Integer vezesEscalada) {
+        this.vezesEscalada = vezesEscalada;
+    }
+
+    public void setCategoriaId(Long categoriaId) {
+        this.categoriaId = categoriaId;
+    }
+
+    public void setCategoriaNome(String categoriaNome) {
+        this.categoriaNome = categoriaNome;
+    }
 }
