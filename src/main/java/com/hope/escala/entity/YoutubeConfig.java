@@ -23,7 +23,16 @@ public class YoutubeConfig {
     
     private String redirectUri;
 
- 
+    private String apiKey;
+
+
+	public String getApiKey() {
+		return apiKey;
+	}
+
+	public void setApiKey(String apiKey) {
+		this.apiKey = apiKey;
+	}
 
 	public Long getId() {
 		return id;

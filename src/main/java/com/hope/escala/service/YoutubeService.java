@@ -1,5 +1,6 @@
 package com.hope.escala.service;
 
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,9 @@ public class YoutubeService {
 		}
 		if (novaConfig.getRefreshToken() != null && !novaConfig.getRefreshToken().trim().isEmpty()) {
 			configAtual.setRefreshToken(novaConfig.getRefreshToken().trim());
+		}
+		if (novaConfig.getApiKey() != null && !novaConfig.getApiKey().trim().isEmpty()) {
+		    configAtual.setApiKey(novaConfig.getApiKey().trim());
 		}
 
 		// Salva sem forçar o ID manualmente, deixando o JPA gerenciar o registro único
@@ -233,4 +237,74 @@ public class YoutubeService {
 				System.err.println("Erro ao adicionar o vídeo " + youtubeVideoId + " na playlist: " + e.getMessage());
 			}
 		}
+	 
+	 /*Busca direta no youtube*/
+	 
+	 public List<Map<String, String>> pesquisarVideos(String query) {
+		    if (query == null || query.isBlank()) {
+		        return List.of();
+		    }
+
+		    // Pega a chave salva no banco de dados (mesma usada nas outras operações)
+		    String apiKey = getConfig().getApiKey();
+		    if (apiKey == null || apiKey.isBlank()) {
+		        throw new RuntimeException("Chave da API do YouTube não configurada.");
+		    }
+
+		    String url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=45&q=" 
+		                 + java.net.URLEncoder.encode(query, java.nio.charset.StandardCharsets.UTF_8) 
+		                 + "&key=" + apiKey.trim();
+
+		    RestTemplate restTemplate = new RestTemplate();
+		    List<Map<String, String>> listaResultados = new java.util.ArrayList<>();
+
+		    try {
+		        ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+		        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+		            Map<String, Object> body = response.getBody();
+		            java.util.List<Map<String, Object>> items = (java.util.List<Map<String, Object>>) body.get("items");
+
+		            if (items != null) {
+		                for (Map<String, Object> item : items) {
+		                    Map<String, String> videoInfo = new java.util.HashMap<>();
+		                    
+		                    Map<String, Object> idMap = (Map<String, Object>) item.get("id");
+		                    if (idMap == null) continue;
+		                    
+		                    String videoId = (String) idMap.get("videoId");
+		                    if (videoId == null) continue;
+
+		                    Map<String, Object> snippet = (Map<String, Object>) item.get("snippet");
+		                    String title = snippet != null ? (String) snippet.get("title") : "";
+		                    String channelTitle = snippet != null ? (String) snippet.get("channelTitle") : "";
+
+		                    String thumbnailUrl = "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg";
+		                    if (snippet != null && snippet.get("thumbnails") instanceof Map) {
+		                        Map<String, Object> thumbnails = (Map<String, Object>) snippet.get("thumbnails");
+		                        if (thumbnails.get("high") instanceof Map) {
+		                            Map<String, Object> high = (Map<String, Object>) thumbnails.get("high");
+		                            if (high.get("url") != null) {
+		                                thumbnailUrl = (String) high.get("url");
+		                            }
+		                        }
+		                    }
+
+		                    videoInfo.put("id", videoId);
+		                    videoInfo.put("titulo", title);
+		                    videoInfo.put("canal", channelTitle);
+		                    videoInfo.put("thumbnail", thumbnailUrl);
+
+		                    listaResultados.add(videoInfo);
+		                }
+		            }
+		        }
+		    } catch (Exception e) {
+		        throw new RuntimeException("Erro ao pesquisar vídeos no YouTube: " + e.getMessage());
+		    }
+
+		    return listaResultados;
+		}
+
+	 
+	 
 }

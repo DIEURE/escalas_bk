@@ -145,5 +145,11 @@ public class EscalaController {
 	public ResponseEntity<EscalaResponseDTO> alterarStatus(@PathVariable Long id, @RequestBody StatusEscala status) {
 		return ResponseEntity.ok(escalaService.alterarStatus(id, status));
 	}
+	
+	 @DeleteMapping("/{id}/playlist")
+	    public ResponseEntity<Void> desvincularPlaylist(@PathVariable Long id) {
+	        escalaService.desvincularPlaylist(id);
+	        return ResponseEntity.noContent().build();
+	    }
 
 }

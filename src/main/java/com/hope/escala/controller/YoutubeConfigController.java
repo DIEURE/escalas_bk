@@ -1,6 +1,7 @@
 package com.hope.escala.controller;
 
 
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hope.escala.entity.YoutubeConfig;
@@ -65,4 +67,16 @@ public class YoutubeConfigController {
         boolean conectado = youtubeService.isConfiguradoEConectado();
         return ResponseEntity.ok(Map.of("conectado", conectado));
     }
+    
+    /*Pesquisa direta Youtube*/
+    @GetMapping("/search")
+    public ResponseEntity<?> pesquisarVideos(@RequestParam String query) {
+        try {
+            List<Map<String, String>> resultados = youtubeService.pesquisarVideos(query);
+            return ResponseEntity.ok(resultados);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
 }

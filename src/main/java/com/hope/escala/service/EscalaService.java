@@ -55,6 +55,7 @@ public class EscalaService {
 	private final UsuarioRepository usuarioRepository;
 	private final SecurityUtils securityUtils;
 	private final MusicaRepository musicaRepository;
+	
 	@Autowired
 	private YoutubeService youtubeService; // 👈 Certifique-se que está injetado aqui
 
@@ -426,7 +427,18 @@ public class EscalaService {
 		Escala escala = escalaRepository.findById(escalaId)
 				.orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + escalaId));
 
+		// 1. Decrementar o contador das músicas antigas que estavam na escala
 		List<EscalaMusica> antigas = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);
+		for (EscalaMusica antiga : antigas) {
+			Musica musicaAntiga = antiga.getMusica();
+			if (musicaAntiga.getVezesEscalada() != null && musicaAntiga.getVezesEscalada() > 0) {
+				musicaAntiga.setVezesEscalada(musicaAntiga.getVezesEscalada() - 1);
+			} else {
+				musicaAntiga.setVezesEscalada(0);
+			}
+			musicaRepository.save(musicaAntiga);
+		}
+
 		escalaMusicaRepository.deleteAll(antigas);
 		escalaMusicaRepository.flush();
 
@@ -435,6 +447,11 @@ public class EscalaService {
 		for (Long musicaId : musicasIds) {
 			Musica musica = musicaRepository.findById(musicaId)
 					.orElseThrow(() -> new ResourceNotFoundException("Música não encontrada: " + musicaId));
+
+			// 2. Incrementar o contador da nova música adicionada
+			int vezesAtual = musica.getVezesEscalada() != null ? musica.getVezesEscalada() : 0;
+			musica.setVezesEscalada(vezesAtual + 1);
+			musicaRepository.save(musica);
 
 			EscalaMusica em = new EscalaMusica();
 			em.setEscala(escala);
@@ -451,17 +468,17 @@ public class EscalaService {
 		String urlPlaylist = "";
 
 		try {
-			// 1. Obtém o Access Token atualizado via OAuth
+			// 3. Obtém o Access Token atualizado via OAuth
 			String accessToken = youtubeService.obterAccessToken();
 
-			// 2. Cria a playlist no YouTube com o título personalizado
+			// 4. Cria a playlist no YouTube com o título personalizado
 			String youtubePlaylistId = youtubeService.criarPlaylistNoYoutube(accessToken, tituloFinal);
 
 			if (youtubePlaylistId == null || youtubePlaylistId.isBlank()) {
 				throw new RuntimeException("O YouTube não retornou o ID da playlist criada.");
 			}
 
-			// 3. Adiciona cada música dentro da playlist oficial
+			// 5. Adiciona cada música dentro da playlist oficial
 			for (EscalaMusica em : novas) {
 				String videoId = em.getMusica().getYoutubeVideoId();
 				if (videoId != null && !videoId.isBlank()) {
@@ -469,16 +486,14 @@ public class EscalaService {
 				}
 			}
 
-			// 4. Monta a URL oficial e limpa da playlist do YouTube
+			// 6. Monta a URL oficial e limpa da playlist do YouTube
 			urlPlaylist = "https://www.youtube.com/playlist?list=" + youtubePlaylistId;
 
 		} catch (Exception e) {
-			// Se houver qualquer falha, o erro é disparado para você ver exatamente o que
-			// aconteceu
 			throw new RuntimeException("Erro ao criar playlist oficial no YouTube: " + e.getMessage(), e);
 		}
 
-		// 5. Salva a URL oficial e o Título na Escala
+		// 7. Salva a URL oficial e o Título na Escala
 		escala.setLinkPlaylistManual(urlPlaylist);
 		escala.setTituloPlaylistManual(tituloFinal);
 		escalaRepository.save(escala);
@@ -490,5 +505,31 @@ public class EscalaService {
 		List<EscalaMusica> lista = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);
 		return lista.stream().map(this::converterMusicaDTO).collect(Collectors.toList());
 	}
+	
+	@Transactional
+	public void desvincularPlaylist(Long escalaId) {
+		Escala escala = escalaRepository.findById(escalaId)
+				.orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + escalaId));
+
+		// Limpa os dados da playlist no YouTube vinculada à escala
+		escala.setLinkPlaylistManual(null);
+		escala.setTituloPlaylistManual(null);
+		
+		// Opcional: Se quiser remover também as músicas associadas à playlist manual da escala:
+		List<EscalaMusica> musicasEscala = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);
+		
+		// Diminui o contador de vezes escalada das músicas que estavam nessa playlist
+		for (EscalaMusica em : musicasEscala) {
+			Musica musica = em.getMusica();
+			if (musica.getVezesEscalada() != null && musica.getVezesEscalada() > 0) {
+				musica.setVezesEscalada(musica.getVezesEscalada() - 1);
+				musicaRepository.save(musica);
+			}
+		}
+
+		escalaMusicaRepository.deleteAll(musicasEscala);
+		escalaRepository.save(escala);
+	}
+
 
 }
