@@ -348,6 +348,7 @@ public class EscalaService {
 		dto.setBpm(escalaMusica.getMusica().getBpm());
 		dto.setOrdem(escalaMusica.getOrdem());
 		dto.setObservacao(escalaMusica.getObservacao());
+		 dto.setYoutubeVideoId(escalaMusica.getMusica().getYoutubeVideoId());
 		return dto;
 	}
 
