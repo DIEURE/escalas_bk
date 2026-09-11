@@ -137,6 +137,8 @@ public class EscalaMusicoService {
 	    dto.setDataEscala(escalaMusico.getEscala().getDataEscala()); 
 	    
 	    dto.setHorarioManha(escalaMusico.getEscala().getHorarioManha());
+	    
+	    dto.setHorarioNoite(escalaMusico.getEscala().getHorarioNoite());
 
 		dto.setUsuarioId(escalaMusico.getUsuario().getId());
 
