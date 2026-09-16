@@ -34,22 +34,21 @@ public class JwtService {
 
 	public String gerarToken(Usuario usuario) {
 
-	    return Jwts.builder()
-	            .setSubject(usuario.getEmail())
+		return Jwts.builder().setSubject(usuario.getEmail())
 
-	            .claim("id", usuario.getId())
-	            .claim("nome", usuario.getNome())
-	            .claim("perfil", usuario.getPerfil().name())
+				.claim("id", usuario.getId())
+				.claim("nome", usuario.getNome())
+				.claim("perfil", usuario.getPerfil().name())
+				.claim("empresaId", usuario.getEmpresa() != null ? usuario.getEmpresa().getId() : null)
+				.claim("nomeEmpresa", usuario.getEmpresa() != null ? usuario.getEmpresa().getNome() : null)
 
-	            .setIssuedAt(new Date())
+				.setIssuedAt(new Date())
 
-	            .setExpiration(
-	                    new Date(System.currentTimeMillis() + expiration)
-	            )
+				.setExpiration(new Date(System.currentTimeMillis() + expiration))
 
-	            .signWith(getSignKey(), SignatureAlgorithm.HS256)
+				.signWith(getSignKey(), SignatureAlgorithm.HS256)
 
-	            .compact();
+				.compact();
 	}
 
 	public String extrairEmail(String token) {

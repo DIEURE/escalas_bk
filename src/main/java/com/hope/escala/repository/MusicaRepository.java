@@ -9,5 +9,6 @@ import com.hope.escala.entity.Musica;
 
 public interface MusicaRepository extends JpaRepository<Musica, Long>{
 	List<Musica> findByAtivaTrue();
+	 List<Musica> findByEmpresaId(Long empresaId);
 
 }

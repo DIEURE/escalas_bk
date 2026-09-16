@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import com.hope.escala.entity.AgendaMensal;
 import com.hope.escala.entity.Departamento;
+import com.hope.escala.entity.Musica;
 
 @Repository
 public interface AgendaMensalRepository extends JpaRepository<AgendaMensal, Long> {
@@ -15,6 +16,8 @@ public interface AgendaMensalRepository extends JpaRepository<AgendaMensal, Long
     List<AgendaMensal> findByAtivaTrue();
 
     List<AgendaMensal> findByDepartamentoAndAtivaTrue(Departamento departamento);
+    
+    List<AgendaMensal> findByEmpresaId(Long empresaId);
 
     boolean existsByMesAndAno(Integer mes, Integer ano);
 

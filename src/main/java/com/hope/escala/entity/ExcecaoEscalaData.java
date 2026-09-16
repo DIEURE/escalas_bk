@@ -33,8 +33,20 @@ public class ExcecaoEscalaData {
 
     @Column(name = "data_criacao")
     private LocalDateTime dataCriacao = LocalDateTime.now();
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "empresa_id", nullable = false)
+    private Empresa empresa;
 
-    public ExcecaoEscalaData() {
+    public Empresa getEmpresa() {
+		return empresa;
+	}
+
+	public void setEmpresa(Empresa empresa) {
+		this.empresa = empresa;
+	}
+
+	public ExcecaoEscalaData() {
     }
 
     // Getters e Setters

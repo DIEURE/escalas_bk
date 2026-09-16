@@ -8,4 +8,5 @@ import com.hope.escala.entity.EscalaMusica;
 
 public interface EscalaMusicaRepository extends JpaRepository<EscalaMusica, Long> {
 	List<EscalaMusica> findByEscalaIdOrderByOrdemAsc(Long escalaId);
+	List<EscalaMusica> findByEmpresaId(Long empresaId);
 }

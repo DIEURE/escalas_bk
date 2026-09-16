@@ -1,6 +1,7 @@
 package com.hope.escala.entity;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -46,6 +47,10 @@ public class EscalaMusica {
 	private Integer ordem;
 
 	private String observacao;
+	
+	@ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "empresa_id", nullable = false)
+    private Empresa empresa;
 
 	public EscalaMusica() {
 	}
@@ -108,6 +113,18 @@ public class EscalaMusica {
 
 	public void setMotivoSubstituicao(String motivoSubstituicao) {
 		this.motivoSubstituicao = motivoSubstituicao;
+	}
+
+	public Empresa getEmpresa() {
+		return empresa;
+	}
+
+	public void setEmpresa(Empresa empresa) {
+		this.empresa = empresa;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
 	}
 	
 	

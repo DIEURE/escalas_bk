@@ -14,6 +14,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -22,7 +23,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "escalas")
@@ -54,6 +54,10 @@ public class Escala {
 	private String tituloPlaylistManual;
 	
 	private String linkPlaylistManual;
+	
+	@ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "empresa_id", nullable = false)
+    private Empresa empresa;
 
 	// Getters e Setters
 	public String getLinkPlaylistManual() {
@@ -223,6 +227,14 @@ public class Escala {
 
 	public void setTituloPlaylistManual(String tituloPlaylistManual) {
 		this.tituloPlaylistManual = tituloPlaylistManual;
+	}
+
+	public Empresa getEmpresa() {
+		return empresa;
+	}
+
+	public void setEmpresa(Empresa empresa) {
+		this.empresa = empresa;
 	}
 
 	

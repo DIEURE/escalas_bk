@@ -40,6 +40,10 @@ public class EscalaMusico {
     
     private LocalTime horarioManha;
     private LocalTime horarioNoite;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "empresa_id", nullable = false)
+    private Empresa empresa;
 
     public EscalaMusico() {
     }
@@ -139,4 +143,14 @@ public class EscalaMusico {
 	public void setHorarioNoite(LocalTime horarioNoite) {
 		this.horarioNoite = horarioNoite;
 	}
+
+	public Empresa getEmpresa() {
+		return empresa;
+	}
+
+	public void setEmpresa(Empresa empresa) {
+		this.empresa = empresa;
+	}
+	
+	
 }

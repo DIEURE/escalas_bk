@@ -1,30 +1,46 @@
 package com.hope.escala.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
 import com.hope.escala.dto.request.MusicaRequestDTO;
 import com.hope.escala.dto.response.MusicaResponseDTO;
 import com.hope.escala.entity.Categoria;
+import com.hope.escala.entity.Empresa;
 import com.hope.escala.entity.Musica;
 import com.hope.escala.repository.CategoriaRepository;
+import com.hope.escala.repository.EmpresaRepository;
 import com.hope.escala.repository.MusicaRepository;
-import jakarta.transaction.Transactional;
-import org.springframework.stereotype.Service;
+import com.hope.escala.security.SecurityUtils;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import jakarta.transaction.Transactional;
 
 @Service
 public class MusicaService {
 
     private final MusicaRepository musicaRepository;
     private final CategoriaRepository categoriaRepository;
-
-    public MusicaService(MusicaRepository musicaRepository, CategoriaRepository categoriaRepository) {
+    private final EmpresaRepository empresaRepository;
+    private final SecurityUtils securityUtils;
+    public MusicaService(
+    		MusicaRepository musicaRepository,
+    		CategoriaRepository categoriaRepository,
+    		EmpresaRepository empresaRepository,
+    		SecurityUtils securityUtils
+    		) {
         this.musicaRepository = musicaRepository;
         this.categoriaRepository = categoriaRepository;
+        this.empresaRepository = empresaRepository;
+        this.securityUtils = securityUtils;
     }
 
     @Transactional
     public MusicaResponseDTO salvar(MusicaRequestDTO dto) {
+    	 Long empresaId = securityUtils.empresaId();
+         Empresa empresa = empresaRepository.findById(empresaId)
+                 .orElseThrow(() -> new RuntimeException("Empresa não encontrada"));
         Musica musica = new Musica();
 
         musica.setNome(dto.getNome());
@@ -36,6 +52,7 @@ public class MusicaService {
         musica.setLinkPlaylistManual(dto.getLinkPlaylistManual());
         musica.setYoutubeVideoId(dto.getYoutubeVideoId());
         musica.setAtiva(dto.getAtiva() != null ? dto.getAtiva() : true);
+        musica.setEmpresa(empresa);
 
         if (dto.getCategoriaId() != null) {
             Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())

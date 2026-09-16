@@ -5,6 +5,7 @@ import com.hope.escala.enums.StatusAgendaMensal;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -27,6 +28,10 @@ public class AgendaMensal {
 	private String descricao;
 
 	private Boolean ativa = true;
+	
+	@ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "empresa_id", nullable = false)
+    private Empresa empresa;
 	
 	@ManyToOne
     @JoinColumn(name = "departamento_id", nullable = false)
@@ -92,6 +97,14 @@ public class AgendaMensal {
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	public Empresa getEmpresa() {
+		return empresa;
+	}
+
+	public void setEmpresa(Empresa empresa) {
+		this.empresa = empresa;
 	}
 	
   

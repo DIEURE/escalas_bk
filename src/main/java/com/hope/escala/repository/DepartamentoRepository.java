@@ -10,5 +10,7 @@ public interface DepartamentoRepository extends JpaRepository<Departamento, Long
 	
 	List<Departamento> findByAtivoTrue();
 	List<Departamento> findByAtivoFalse();
+	List<Departamento> findByEmpresaId(Long empresaId);
+	
 
 }

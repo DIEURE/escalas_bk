@@ -1,9 +1,12 @@
 package com.hope.escala.entity;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -21,6 +24,10 @@ public class Categoria {
 		super();
 		// TODO Auto-generated constructor stub
 	}
+	
+	@ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "empresa_id", nullable = false)
+    private Empresa empresa;
 	
 	
 	public Categoria(Long id, String nome, Boolean ativo) {
@@ -49,5 +56,17 @@ public class Categoria {
 	public void setAtivo(Boolean ativo) {
 		this.ativo = ativo;
 	}
+
+
+	public Empresa getEmpresa() {
+		return empresa;
+	}
+
+
+	public void setEmpresa(Empresa empresa) {
+		this.empresa = empresa;
+	}
+	
+	
 }
 

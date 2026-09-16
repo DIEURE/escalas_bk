@@ -7,27 +7,49 @@ import jakarta.persistence.*;
 @Table(name = "instrumentos")
 public class Instrumento {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    private String nome; // Ex: Teclado, Ministro, Back-Vocal
-    private Integer quantidadeEscala = 1;
-    private Boolean ativo = true;
-    private String tipo;
-    private String descricao;
+	private String nome; // Ex: Teclado, Ministro, Back-Vocal
+	private Integer quantidadeEscala = 1;
+	private Boolean ativo = true;
+	private String tipo;
+	private String descricao;
 
-    // REMOVEMOS o @ManyToOne para Usuario daqui, 
-    // pois agora a relação é ManyToMany mapeada na entidade Usuario.
+	
+	@ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "empresa_id", nullable = false)
+    private Empresa empresa;
 
-    public Instrumento() {}
+	public Empresa getEmpresa() {
+		return empresa;
+	}
 
-    // Getters e Setters normais (sem getUsuario/setUsuario)
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public String getNome() { return nome; }
-    public void setNome(String nome) { this.nome = nome; }
-    // ... demais getters e setters
+	public void setEmpresa(Empresa empresa) {
+		this.empresa = empresa;
+	}
+
+	public Instrumento() {
+	}
+
+	// Getters e Setters normais (sem getUsuario/setUsuario)
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public String getNome() {
+		return nome;
+	}
+
+	public void setNome(String nome) {
+		this.nome = nome;
+	}
+	// ... demais getters e setters
 
 	public Integer getQuantidadeEscala() {
 		return quantidadeEscala;
@@ -60,9 +82,5 @@ public class Instrumento {
 	public void setDescricao(String descricao) {
 		this.descricao = descricao;
 	}
-    
-    
-}
 
-    
- 
+}

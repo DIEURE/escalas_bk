@@ -46,46 +46,52 @@ public class AuthController {
 
 		System.out.println("Email recebido: " + dto.getEmail());
 		System.out.println("Senha recebida: " + dto.getSenha());
-		authenticationManager.authenticate(
-				new UsernamePasswordAuthenticationToken(dto.getEmail(), dto.getSenha()));
+		authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(dto.getEmail(), dto.getSenha()));
 
 		Usuario usuario = usuarioRepository.findByEmail(dto.getEmail())
 				.orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
-		// 🟢 Regra de segurança opcional: impedir login se o usuário não estiver aprovado
+		// 🟢 Regra de segurança opcional: impedir login se o usuário não estiver
+		// aprovado
 		// if (!usuario.isAtivo()) {
-		//     throw new RuntimeException("Seu cadastro ainda está aguardando aprovação.");
+		// throw new RuntimeException("Seu cadastro ainda está aguardando aprovação.");
 		// }
 
 		System.out.println("Usuário encontrado: " + usuario.getNome());
-		
+
 		String token = jwtService.gerarToken(usuario);
 
-		return new LoginResponseDTO(token, usuario.getNome(), usuario.getPerfil().name());
+		Long empresaId = usuario.getEmpresa() != null ? usuario.getEmpresa().getId() : null;
+		String nomeEmpresa = usuario.getEmpresa() != null ? usuario.getEmpresa().getNome() : null;
+
+		return new LoginResponseDTO(token, usuario.getNome(), usuario.getEmail(), usuario.getPerfil().name(), empresaId,
+				nomeEmpresa);
+
 	}
 
 	// 🟢 NOVO ENDPOINT DE SOLICITAÇÃO DE CADASTRO PÚBLICO
 	@PostMapping("/solicitar-cadastro")
 	public ResponseEntity<?> solicitarCadastro(@RequestBody Usuario novoUsuario) {
-	    if (usuarioRepository.findByEmail(novoUsuario.getEmail()).isPresent()) {
-	        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("E-mail já cadastrado no sistema.");
-	    }
+		if (usuarioRepository.findByEmail(novoUsuario.getEmail()).isPresent()) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("E-mail já cadastrado no sistema.");
+		}
 
-	    // Criptografa a senha
-	    novoUsuario.setSenha(passwordEncoder.encode(novoUsuario.getSenha()));
-	    
-	    // 🟢 Regra de segurança: O novo usuário nasce inativo até que o Admin/Líder aprove
-	    novoUsuario.setAtivo(false);
-	    novoUsuario.setDisponibilidade(false);
-	    
-	    // 🟢 Define um perfil padrão para quem se cadastra sozinho (ex: VOLUNTARIO)
-	    if (novoUsuario.getPerfil() == null) {
-	        novoUsuario.setPerfil(PerfilUsuario.VOLUNTARIO);
-	    }
+		// Criptografa a senha
+		novoUsuario.setSenha(passwordEncoder.encode(novoUsuario.getSenha()));
 
-	    usuarioRepository.save(novoUsuario);
+		// 🟢 Regra de segurança: O novo usuário nasce inativo até que o Admin/Líder
+		// aprove
+		novoUsuario.setAtivo(false);
+		novoUsuario.setDisponibilidade(false);
 
-	    return ResponseEntity.status(HttpStatus.CREATED).body("Solicitação de cadastro enviada com sucesso!");
+		// 🟢 Define um perfil padrão para quem se cadastra sozinho (ex: VOLUNTARIO)
+		if (novoUsuario.getPerfil() == null) {
+			novoUsuario.setPerfil(PerfilUsuario.VOLUNTARIO);
+		}
+
+		usuarioRepository.save(novoUsuario);
+
+		return ResponseEntity.status(HttpStatus.CREATED).body("Solicitação de cadastro enviada com sucesso!");
 	}
 
 }

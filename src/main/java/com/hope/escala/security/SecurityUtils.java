@@ -59,6 +59,11 @@ public class SecurityUtils {
 	public boolean isBasico() {
 		return perfil() == PerfilUsuario.VOLUNTARIO;
 	}
+	
+	public Long empresaId() {
+		return usuarioLogado().getEmpresa().getId();
+	}
+
 
 	public Set<Long> departamentos() {
 		Set<Long> depts = usuarioLogado().getDepartamentos()

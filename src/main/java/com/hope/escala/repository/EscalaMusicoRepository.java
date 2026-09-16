@@ -35,6 +35,7 @@ public interface EscalaMusicoRepository
     );
     
     List<EscalaMusico> findByUsuarioId(Long usuarioId);
+    List<EscalaMusico> findByEmpresaId(Long empresaId);
     
     void deleteByEscalaId(Long escalaId);
 }

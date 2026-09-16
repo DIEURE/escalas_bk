@@ -2,19 +2,17 @@
 package com.hope.escala.entity;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.hope.escala.enums.PerfilUsuario;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -22,7 +20,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -49,6 +46,10 @@ public class Usuario {
 	@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
 	private String senha;
 	
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "empresa_id", nullable = false)
+	private Empresa empresa;
+	
 	@ManyToMany
 	@JoinTable(
 	        name = "usuario_departamentos",
@@ -57,7 +58,8 @@ public class Usuario {
 
 	        inverseJoinColumns = @JoinColumn(name = "departamento_id")
 	)
-
+ 
+	
 	private Set<Departamento> departamentos =
 	        new HashSet<>();
 
@@ -75,9 +77,7 @@ public class Usuario {
 
 	private LocalDateTime ultimoLogin;
 
- 
-
-	// Substitua o @OneToMany de instrumentos por este @ManyToMany:
+  
 
 	@ManyToMany
 	@JoinTable(
@@ -89,6 +89,14 @@ public class Usuario {
 
 	
 	 
+
+	public Empresa getEmpresa() {
+		return empresa;
+	}
+
+	public void setEmpresa(Empresa empresa) {
+		this.empresa = empresa;
+	}
 
 	public PerfilUsuario getPerfil() {
 		return perfil;

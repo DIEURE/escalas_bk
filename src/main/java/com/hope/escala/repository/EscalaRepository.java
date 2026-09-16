@@ -15,6 +15,8 @@ public interface EscalaRepository extends JpaRepository<Escala, Long> {
     List<Escala> findByAtivaTrue();
 
     List<Escala> findByAgendaMensalIdAndAtivaTrue(Long agendaMensalId);
+    
+    List<Escala> findByEmpresaId(Long empresaId);
 
     // Query customizada para verificar conflito de horário (manhã OU noite)
     @Query("SELECT COUNT(e) > 0 FROM Escala e WHERE e.dataEscala = :data " +

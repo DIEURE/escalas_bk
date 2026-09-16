@@ -38,14 +38,12 @@ public class UsuarioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.salvar(dto));
     }
 
-    @GetMapping
-    
+    @GetMapping    
     public ResponseEntity<List<UsuarioResponseDTO>> listar() {
         return ResponseEntity.ok(service.listar());
     }
 
-    @GetMapping("/{id}")
-     
+    @GetMapping("/{id}")     
     public ResponseEntity<UsuarioResponseDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(service.buscarPorId(id));
     }
