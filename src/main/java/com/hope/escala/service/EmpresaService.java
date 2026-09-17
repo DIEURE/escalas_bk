@@ -1,11 +1,19 @@
 package com.hope.escala.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import com.hope.escala.dto.response.EmpresaResponseDTO;
 import com.hope.escala.entity.Empresa;
 import com.hope.escala.repository.EmpresaRepository;
 import com.hope.escala.security.SecurityUtils;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class EmpresaService {
@@ -16,6 +24,20 @@ public class EmpresaService {
     public EmpresaService(EmpresaRepository empresaRepository, SecurityUtils securityUtils) {
         this.empresaRepository = empresaRepository;
         this.securityUtils = securityUtils;
+    }
+    
+    
+    @Transactional
+    public Empresa criarEmpresa(Empresa empresa) {
+        empresa.setAtiva(true);
+        empresa.setCriadoEm(LocalDateTime.now());
+        return empresaRepository.save(empresa);
+    }
+    
+    
+    @Transactional
+    public List<Empresa> listar() {
+        return empresaRepository.findAll();
     }
     
     public EmpresaResponseDTO buscarEmpresaLogadaDTO() {

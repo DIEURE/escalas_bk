@@ -17,14 +17,26 @@ public interface EscalaRepository extends JpaRepository<Escala, Long> {
     List<Escala> findByAgendaMensalIdAndAtivaTrue(Long agendaMensalId);
     
     List<Escala> findByEmpresaId(Long empresaId);
+    
+    // 🟢 Método padrão para listagem geral filtrada por empresa e ativas
+    List<Escala> findByEmpresaIdAndAtivaTrue(Long empresaId);
+
+    // 🟢 Método que estava faltando no repositório para a agenda mensal com multi-tenant
+    List<Escala> findByAgendaMensalIdAndEmpresaIdAndAtivaTrue(Long agendaMensalId, Long empresaId);
 
     // Query customizada para verificar conflito de horário (manhã OU noite)
     @Query("SELECT COUNT(e) > 0 FROM Escala e WHERE e.dataEscala = :data " +
-           "AND e.departamento.id = :deptId " +
-           "AND (e.horarioManha = :horaManha OR e.horarioNoite = :horaNoite)")
-    boolean existeConflitoHorario(
-        @Param("data") LocalDate data,
-        @Param("horaManha") LocalTime horaManha,
-        @Param("horaNoite") LocalTime horaNoite,
-        @Param("deptId") Long deptId);
+            "AND e.departamento.id = :deptId " +
+            "AND e.empresa.id = :empresaId " +
+            "AND (e.horarioManha = :horaManha OR e.horarioNoite = :horaNoite)")
+     boolean existeConflitoHorario(
+         @Param("data") LocalDate data,
+         @Param("horaManha") LocalTime horaManha,
+         @Param("horaNoite") LocalTime horaNoite,
+         @Param("deptId") Long deptId,
+         @Param("empresaId") Long empresaId);
+
+
+
+
 }

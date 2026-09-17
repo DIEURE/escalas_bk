@@ -1,7 +1,10 @@
 package com.hope.escala.service;
 
+import com.hope.escala.entity.Empresa;
 import com.hope.escala.entity.ExcecaoEscalaData;
+import com.hope.escala.exception.ResourceNotFoundException;
 import com.hope.escala.repository.ExcecaoEscalaDataRepository;
+import com.hope.escala.security.SecurityUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -12,26 +15,40 @@ import java.util.Optional;
 public class ExcecaoEscalaService {
 
     private final ExcecaoEscalaDataRepository repository;
+    private final SecurityUtils securityUtils;
 
-    public ExcecaoEscalaService(ExcecaoEscalaDataRepository repository) {
+    public ExcecaoEscalaService(ExcecaoEscalaDataRepository repository, SecurityUtils securityUtils) {
         this.repository = repository;
+        this.securityUtils = securityUtils;
     }
 
     public List<ExcecaoEscalaData> listarPorDepartamentoEData(Long departamentoId, LocalDate data) {
-        return repository.findByDepartamentoIdAndDataExcecao(departamentoId, data);
+        Long empresaIdLogada = securityUtils.empresaId();
+        // Certifique-se de ter o método correspondente no repository filtrando por empresaId
+        return repository.findByDepartamentoIdAndDataExcecaoAndEmpresaId(departamentoId, data, empresaIdLogada);
     }
 
     public List<ExcecaoEscalaData> listarPorPeriodo(Long departamentoId, LocalDate inicio, LocalDate fim) {
-        return repository.findByDepartamentoIdAndDataExcecaoBetween(departamentoId, inicio, fim);
+        Long empresaIdLogada = securityUtils.empresaId();
+        // Certifique-se de ter o método correspondente no repository filtrando por empresaId
+        return repository.findByDepartamentoIdAndDataExcecaoBetweenAndEmpresaId(departamentoId, inicio, fim, empresaIdLogada);
     }
 
     public ExcecaoEscalaData salvarOuAtualizar(ExcecaoEscalaData excecao) {
-        // Verifica se já existe exceção para a mesma data, departamento e instrumento
+        Long empresaIdLogada = securityUtils.empresaId();
+
+        // 🟢 Associa a empresa logada de forma segura
+        Empresa empresa = new Empresa();
+        empresa.setId(empresaIdLogada);
+        excecao.setEmpresa(empresa);
+
+        // Verifica se já existe exceção para a mesma data, departamento, instrumento e empresa
         Optional<ExcecaoEscalaData> existente = repository
-                .findByDepartamentoIdAndDataExcecaoAndInstrumentoId(
+                .findByDepartamentoIdAndDataExcecaoAndInstrumentoIdAndEmpresaId(
                         excecao.getDepartamentoId(),
                         excecao.getDataExcecao(),
-                        excecao.getInstrumentoId()
+                        excecao.getInstrumentoId(),
+                        empresaIdLogada
                 );
 
         if (existente.isPresent()) {
@@ -46,10 +63,20 @@ public class ExcecaoEscalaService {
     }
 
     public List<ExcecaoEscalaData> listarTodas() {
-        return repository.findAll();
+        Long empresaIdLogada = securityUtils.empresaId();
+        // Certifique-se de ter o método no repository, ex: findByEmpresaId(empresaId)
+        return repository.findByEmpresaId(empresaIdLogada);
     }
     
     public void deletar(Long id) {
-        repository.deleteById(id);
+        Long empresaIdLogada = securityUtils.empresaId();
+        ExcecaoEscalaData excecao = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Exceção não encontrada"));
+
+        if (!excecao.getEmpresa().getId().equals(empresaIdLogada)) {
+            throw new ResourceNotFoundException("Exceção não pertence à sua instituição");
+        }
+
+        repository.delete(excecao);
     }
 }

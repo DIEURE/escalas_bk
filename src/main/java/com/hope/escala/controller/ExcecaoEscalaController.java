@@ -1,6 +1,7 @@
 package com.hope.escala.controller;
 
 import com.hope.escala.entity.ExcecaoEscalaData;
+import com.hope.escala.security.annotation.AdminOuLider;
 import com.hope.escala.service.ExcecaoEscalaService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -30,20 +31,20 @@ public class ExcecaoEscalaController {
         return ResponseEntity.ok(lista);
     }
 
+    @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa cadastrar exceções
     @PostMapping
     public ResponseEntity<ExcecaoEscalaData> salvar(@RequestBody ExcecaoEscalaData excecao) {
         ExcecaoEscalaData salva = service.salvarOuAtualizar(excecao);
         return ResponseEntity.ok(salva);
     }
     
-    // Novo endpoint para listar todas as exceções (usado no Dashboard)
     @GetMapping("/todas")
     public ResponseEntity<List<ExcecaoEscalaData>> listarTodas() {
         List<ExcecaoEscalaData> lista = service.listarTodas();
         return ResponseEntity.ok(lista);
     }
 
-
+    @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa remover exceções
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         service.deletar(id);

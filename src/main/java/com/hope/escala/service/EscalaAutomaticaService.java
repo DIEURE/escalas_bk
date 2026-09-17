@@ -1,4 +1,3 @@
-
 package com.hope.escala.service;
 
 import java.time.LocalDate;
@@ -6,7 +5,6 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.hope.escala.entity.Departamento;
 import com.hope.escala.entity.Usuario;
 import com.hope.escala.repository.EmpresaRepository;
 import com.hope.escala.repository.EscalaMusicoRepository;
@@ -30,18 +28,19 @@ public class EscalaAutomaticaService {
 
 		this.usuarioRepository = usuarioRepository;
 		this.escalaMusicoRepository = escalaMusicoRepository;
-		this.securityUtils =securityUtils;
-		this.empresaRepository =empresaRepository;
-		
+		this.securityUtils = securityUtils;
+		this.empresaRepository = empresaRepository;
 	}
 	
-
-
 	public Usuario escolherMusicoRodizio(Long instrumentoId, Long departamentoId, Long escalaId) {
 
-		List<Usuario> usuarios = usuarioRepository.buscarMusicosDisponiveis(instrumentoId, departamentoId);
+		// 🟢 1. Obtém a empresa logada com segurança pelo Token JWT
+		Long empresaIdLogada = securityUtils.empresaId();
 
-		 
+		// 🟢 2. Busca os músicos disponíveis filtrando também pela empresa (Multi-Tenant)
+		// Nota: Certifique-se de que o seu método no repository aceite o empresaId: buscarMusicosDisponiveis(instrumentoId, departamentoId, empresaIdId)
+		List<Usuario> usuarios = usuarioRepository.buscarMusicosDisponiveisPorEmpresa(instrumentoId, departamentoId, empresaIdLogada);
+
 		List<Long> usuariosJaEscalados = escalaMusicoRepository.buscarUsuariosJaEscalados(escalaId);
 
 		usuarios = usuarios.stream().filter(usuario -> !usuariosJaEscalados.contains(usuario.getId())).toList();
@@ -58,7 +57,6 @@ public class EscalaAutomaticaService {
 		}
 
 		Usuario escolhido = null;
-
 		LocalDate dataMaisAntiga = null;
 
 		for (Usuario usuario : usuarios) {
@@ -76,9 +74,7 @@ public class EscalaAutomaticaService {
 			 * Está há mais tempo sem tocar
 			 */
 			if (dataMaisAntiga == null || ultimaEscala.isBefore(dataMaisAntiga)) {
-
 				dataMaisAntiga = ultimaEscala;
-
 				escolhido = usuario;
 			}
 		}

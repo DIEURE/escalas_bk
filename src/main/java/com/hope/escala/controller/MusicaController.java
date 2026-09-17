@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.hope.escala.dto.request.MusicaRequestDTO;
 import com.hope.escala.dto.response.MusicaResponseDTO;
-import com.hope.escala.security.annotation.PodeSerAdmin;
+import com.hope.escala.security.annotation.AdminOuLider; // 🟢 Import opcional para Admin ou Líder
 import com.hope.escala.service.MusicaService;
 
 import jakarta.validation.Valid;
@@ -31,7 +31,7 @@ public class MusicaController {
     }
 
     @PostMapping
-    @PodeSerAdmin  // ← Apenas ADMIN pode criar músicas
+    @AdminOuLider  // 🟢 Ajustado para Admin ou Líder (ou mantenha @PodeSerAdmin se preferir)
     public ResponseEntity<MusicaResponseDTO> salvar(
             @Valid @RequestBody MusicaRequestDTO dto) {
         MusicaResponseDTO musicaSalva = musicaService.salvar(dto);
@@ -39,7 +39,7 @@ public class MusicaController {
     }
 
     @PutMapping("/{id}")
-    @PodeSerAdmin  // ← Apenas ADMIN pode atualizar músicas
+    @AdminOuLider 
     public ResponseEntity<MusicaResponseDTO> atualizar(
             @PathVariable Long id,
             @Valid @RequestBody MusicaRequestDTO dto) {
@@ -61,8 +61,8 @@ public class MusicaController {
         return ResponseEntity.ok(musica);
     }
 
+    @AdminOuLider 
     @DeleteMapping("/{id}")
-    @PodeSerAdmin  // ← Apenas ADMIN pode deletar músicas
     public ResponseEntity<Void> desativar(@PathVariable Long id) {
         musicaService.desativar(id);
         return ResponseEntity.noContent().build();

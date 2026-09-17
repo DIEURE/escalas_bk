@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.hope.escala.dto.request.InstrumentoRequestDTO;
 import com.hope.escala.dto.response.InstrumentoResponse;
- 
+import com.hope.escala.security.annotation.AdminOuLider; // 🟢 Import da anotação de segurança
 import com.hope.escala.service.InstrumentoService;
 
 import jakarta.validation.Valid;
@@ -30,8 +30,8 @@ public class InstrumentoController {
         this.service = service;
     }
 
+    @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa criar instrumentos
     @PostMapping
-    
     public ResponseEntity<InstrumentoResponse> criar(
             @RequestBody @Valid InstrumentoRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.salvar(request));
@@ -49,16 +49,16 @@ public class InstrumentoController {
         return ResponseEntity.ok(service.buscarPorId(id));
     }
 
+    @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa atualizar instrumentos
     @PutMapping("/{id}")
-    
     public ResponseEntity<InstrumentoResponse> atualizar(
             @PathVariable Long id,
             @RequestBody @Valid InstrumentoRequestDTO request) {
         return ResponseEntity.ok(service.atualizar(id, request));
     }
 
+    @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa remover instrumentos
     @DeleteMapping("/{id}")
-   
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         service.deletar(id);
         return ResponseEntity.noContent().build();

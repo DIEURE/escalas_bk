@@ -1,8 +1,8 @@
 package com.hope.escala.controller;
 
 import com.hope.escala.entity.Categoria;
+import com.hope.escala.security.annotation.AdminOuLider;
 import com.hope.escala.service.CategoriaService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,11 +10,15 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/categorias")
-@CrossOrigin(origins = "*") // Ajuste conforme a URL do seu frontend Vite (ex: http://localhost:5173)
+@CrossOrigin(origins = "*") 
 public class CategoriaController {
 
-    @Autowired
-    private CategoriaService categoriaService;
+    private final CategoriaService categoriaService;
+
+    // 🟢 Injeção via construtor (substituindo o @Autowired)
+    public CategoriaController(CategoriaService categoriaService) {
+        this.categoriaService = categoriaService;
+    }
 
     @GetMapping
     public ResponseEntity<List<Categoria>> listarTodas() {
@@ -35,12 +39,14 @@ public class CategoriaController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @AdminOuLider // 🟢 Protege a criação para apenas Admin ou Líder
     @PostMapping
     public ResponseEntity<Categoria> criar(@RequestBody Categoria categoria) {
         Categoria novaCategoria = categoriaService.salvar(categoria);
         return ResponseEntity.ok(novaCategoria);
     }
 
+    @AdminOuLider // 🟢 Protege a atualização
     @PutMapping("/{id}")
     public ResponseEntity<Categoria> atualizar(@PathVariable Long id, @RequestBody Categoria categoria) {
         try {
@@ -51,6 +57,7 @@ public class CategoriaController {
         }
     }
 
+    @AdminOuLider // 🟢 Protege a exclusão
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         try {

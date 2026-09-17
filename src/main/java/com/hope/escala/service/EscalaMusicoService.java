@@ -39,24 +39,37 @@ public class EscalaMusicoService {
 
 	public EscalaMusicoResponseDTO salvar(EscalaMusicoRequestDTO dto) {
 
+		// 🟢 1. Obtém o ID da empresa logada com segurança pelo Token JWT
+		Long empresaIdLogada = securityUtils.empresaId();
+
+		// 🟢 2. Busca e valida se a escala pertence à empresa logada
 		Escala escala = escalaRepository.findById(dto.getEscalaId())
 				.orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada"));
+				
+		if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
+			throw new ResourceNotFoundException("Escala não pertence à sua instituição");
+		}
 
+		// 🟢 3. Busca e valida se o usuário pertence à empresa logada
 		Usuario usuario = usuarioRepository.findById(dto.getUsuarioId())
 				.orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+				
+		if (!usuario.getEmpresa().getId().equals(empresaIdLogada)) {
+			throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
+		}
 
 		EscalaMusico escalaMusico = new EscalaMusico();
 
 		escalaMusico.setEscala(escala);
 		escalaMusico.setUsuario(usuario);
 		escalaMusico.setObservacao(dto.getObservacao());
-
 		escalaMusico.setConfirmado(false);
 
 		EscalaMusico escalaMusicoSalvo = escalaMusicoRepository.save(escalaMusico);
 
 		return converterParaDTO(escalaMusicoSalvo);
 	}
+
 
 	public List<EscalaMusicoResponseDTO> listarPorEscala(Long escalaId) {
 

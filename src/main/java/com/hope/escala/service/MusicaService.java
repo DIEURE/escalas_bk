@@ -10,6 +10,7 @@ import com.hope.escala.dto.response.MusicaResponseDTO;
 import com.hope.escala.entity.Categoria;
 import com.hope.escala.entity.Empresa;
 import com.hope.escala.entity.Musica;
+import com.hope.escala.exception.ResourceNotFoundException;
 import com.hope.escala.repository.CategoriaRepository;
 import com.hope.escala.repository.EmpresaRepository;
 import com.hope.escala.repository.MusicaRepository;
@@ -24,12 +25,13 @@ public class MusicaService {
     private final CategoriaRepository categoriaRepository;
     private final EmpresaRepository empresaRepository;
     private final SecurityUtils securityUtils;
+
     public MusicaService(
     		MusicaRepository musicaRepository,
     		CategoriaRepository categoriaRepository,
     		EmpresaRepository empresaRepository,
     		SecurityUtils securityUtils
-    		) {
+    ) {
         this.musicaRepository = musicaRepository;
         this.categoriaRepository = categoriaRepository;
         this.empresaRepository = empresaRepository;
@@ -38,9 +40,10 @@ public class MusicaService {
 
     @Transactional
     public MusicaResponseDTO salvar(MusicaRequestDTO dto) {
-    	 Long empresaId = securityUtils.empresaId();
-         Empresa empresa = empresaRepository.findById(empresaId)
-                 .orElseThrow(() -> new RuntimeException("Empresa não encontrada"));
+        Long empresaId = securityUtils.empresaId();
+        Empresa empresa = empresaRepository.findById(empresaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada"));
+        
         Musica musica = new Musica();
 
         musica.setNome(dto.getNome());
@@ -56,7 +59,13 @@ public class MusicaService {
 
         if (dto.getCategoriaId() != null) {
             Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
-                    .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada"));
+            
+            // Opcional: Validar se a categoria pertence à mesma empresa
+            if (categoria.getEmpresa() != null && !categoria.getEmpresa().getId().equals(empresaId)) {
+                throw new ResourceNotFoundException("Categoria não pertence à sua instituição");
+            }
+
             musica.setCategoria(categoria);
         } else {
             musica.setCategoria(null);
@@ -68,8 +77,15 @@ public class MusicaService {
 
     @Transactional
     public MusicaResponseDTO atualizar(Long id, MusicaRequestDTO dto) {
+        Long empresaId = securityUtils.empresaId();
+
         Musica musica = musicaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Música não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Música não encontrada"));
+
+        // 🟢 Validação de segurança Multi-Tenant
+        if (musica.getEmpresa() == null || !musica.getEmpresa().getId().equals(empresaId)) {
+            throw new ResourceNotFoundException("Música não pertence à sua instituição");
+        }
 
         musica.setNome(dto.getNome());
         musica.setCantor(dto.getCantor());
@@ -83,7 +99,7 @@ public class MusicaService {
 
         if (dto.getCategoriaId() != null) {
             Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
-                    .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada"));
             musica.setCategoria(categoria);
         } else {
             musica.setCategoria(null);
@@ -94,22 +110,41 @@ public class MusicaService {
     }
 
     public List<MusicaResponseDTO> listarTodas() {
-        return musicaRepository.findAll()
+        Long empresaId = securityUtils.empresaId();
+        
+        // 🟢 Certifique-se de ter o método findByEmpresaId no MusicaRepository
+        return musicaRepository.findByEmpresaId(empresaId)
                 .stream()
                 .map(MusicaResponseDTO::new)
                 .collect(Collectors.toList());
     }
 
     public MusicaResponseDTO buscarPorId(Long id) {
+        Long empresaId = securityUtils.empresaId();
+
         Musica musica = musicaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Música não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Música não encontrada"));
+
+        // 🟢 Validação de segurança Multi-Tenant
+        if (musica.getEmpresa() == null || !musica.getEmpresa().getId().equals(empresaId)) {
+            throw new ResourceNotFoundException("Música não pertence à sua instituição");
+        }
+
         return new MusicaResponseDTO(musica);
     }
 
     @Transactional
     public void desativar(Long id) {
+        Long empresaId = securityUtils.empresaId();
+
         Musica musica = musicaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Música não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Música não encontrada"));
+
+        // 🟢 Validação de segurança Multi-Tenant
+        if (musica.getEmpresa() == null || !musica.getEmpresa().getId().equals(empresaId)) {
+            throw new ResourceNotFoundException("Música não pertence à sua instituição");
+        }
+
         musica.setAtiva(false);
         musicaRepository.save(musica);
     }

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.hope.escala.dto.request.InstrumentoRequestDTO;
 import com.hope.escala.dto.response.InstrumentoResponse;
+import com.hope.escala.entity.Empresa;
 import com.hope.escala.entity.Instrumento;
 import com.hope.escala.exception.ResourceNotFoundException;
 import com.hope.escala.repository.InstrumentoRepository;
@@ -24,18 +25,24 @@ public class InstrumentoService {
 
 	public InstrumentoResponse salvar(InstrumentoRequestDTO request) {
 		
-		// ← APENAS ADMIN pode criar departamentos
+		// APENAS ADMIN pode criar instrumentos
 	    if (!securityUtils.isAdmin()) {
-	        throw new RuntimeException("Apenas administradores podem criar departamentos.");
+	        throw new RuntimeException("Apenas administradores podem criar instrumentos.");
 	    }
 
-		Instrumento instrumento = new Instrumento();
+		Long empresaIdLogada = securityUtils.empresaId();
 
+		Instrumento instrumento = new Instrumento();
 		instrumento.setNome(request.nome());
 		instrumento.setTipo(request.tipo());
 		instrumento.setDescricao(request.descricao());
 		instrumento.setQuantidadeEscala(request.quantidade_escala());
 		instrumento.setAtivo(request.ativo());
+		
+		// 🟢 Associa a empresa logada ao instrumento (Multi-Tenant)
+		Empresa empresa = new Empresa();
+		empresa.setId(empresaIdLogada);
+		instrumento.setEmpresa(empresa);
 		
 		Instrumento salvo = repository.save(instrumento);
 
@@ -43,27 +50,39 @@ public class InstrumentoService {
 	}
 
 	public List<InstrumentoResponse> listar() {
-
-		return repository.findAll().stream().map(this::converterResponse).toList();
+		Long empresaIdLogada = securityUtils.empresaId();
+		// Certifique-se de ter o método findByEmpresaId no InstrumentoRepository
+		return repository.findByEmpresaId(empresaIdLogada).stream().map(this::converterResponse).toList();
 	}
 
 	public InstrumentoResponse buscarPorId(Long id) {
+		Long empresaIdLogada = securityUtils.empresaId();
 
 		Instrumento instrumento = repository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Instrumento não encontrado"));
+
+		// 🟢 Valida se o instrumento pertence à instituição logada
+		if (!instrumento.getEmpresa().getId().equals(empresaIdLogada)) {
+			throw new ResourceNotFoundException("Instrumento não pertence à sua instituição");
+		}
 
 		return converterResponse(instrumento);
 	}
 
 	public InstrumentoResponse atualizar(Long id, InstrumentoRequestDTO request) {
 		
-		// ← Validação de segurança
         if (!securityUtils.isAdmin()) {
             throw new RuntimeException("Apenas administradores podem atualizar instrumentos");
         }
 
+		Long empresaIdLogada = securityUtils.empresaId();
+
 		Instrumento instrumento = repository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Instrumento não encontrado"));
+
+		if (!instrumento.getEmpresa().getId().equals(empresaIdLogada)) {
+			throw new ResourceNotFoundException("Instrumento não pertence à sua instituição");
+		}
 
 		instrumento.setNome(request.nome());
 		instrumento.setTipo(request.tipo());
@@ -77,20 +96,23 @@ public class InstrumentoService {
 	}
 
 	public void deletar(Long id) {
-		
-		  // ← Validação de segurança
         if (!securityUtils.isAdmin()) {
             throw new RuntimeException("Apenas administradores podem deletar instrumentos");
         }
 
+		Long empresaIdLogada = securityUtils.empresaId();
+
 		Instrumento instrumento = repository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Instrumento não encontrado"));
+
+		if (!instrumento.getEmpresa().getId().equals(empresaIdLogada)) {
+			throw new ResourceNotFoundException("Instrumento não pertence à sua instituição");
+		}
 
 		repository.delete(instrumento);
 	}
 
 	private InstrumentoResponse converterResponse(Instrumento instrumento) {
-
 		return new InstrumentoResponse(instrumento.getId(), instrumento.getNome(), instrumento.getTipo(),
 				instrumento.getDescricao(), instrumento.getQuantidadeEscala(), instrumento.getAtivo());
 	}

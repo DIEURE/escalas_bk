@@ -1,62 +1,47 @@
 package com.hope.escala.dto.response;
 
+import com.hope.escala.entity.AgendaMensal;
 import com.hope.escala.enums.StatusAgendaMensal;
-
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 
 public class AgendaMensalResponseDTO {
 
     private Long id;
-
-    @NotNull(message = "Mês é obrigatório")
-    @Positive(message = "Mês deve ser entre 1 e 12")
     private Integer mes;
-
-    @NotNull(message = "Ano é obrigatório")
-    @Positive(message = "Ano deve ser positivo")
     private Integer ano;
-    
     private String descricao;
-    
-    @NotNull(message = "Departamento é obrigatório")
-    @Positive(message = "Departamento ID inválido")
     private Long departamentoId;
-
     private String departamentoNome;
-
     private StatusAgendaMensal status;
-
-
-    public String getDepartamentoNome() {
-		return departamentoNome;
-	}
-
-	public void setDepartamentoNome(String departamentoNome) {
-		this.departamentoNome = departamentoNome;
-	}
-
-	public StatusAgendaMensal getStatus() {
-		return status;
-	}
-
-	public void setStatus(StatusAgendaMensal status) {
-		this.status = status;
-	}
-
-	public Long getDepartamentoId() {
-		return departamentoId;
-	}
-
-	public void setDepartamentoId(Long departamentoId) {
-		this.departamentoId = departamentoId;
-	}
-
-	private Boolean ativa;
+    private Boolean ativa;
+    
+    // 🟢 No DTO, expomos apenas os dados necessários da empresa, não a Entidade JPA
+    private Long empresaId;
+    private String nomeEmpresa;
 
     public AgendaMensalResponseDTO() {
     }
 
+    // 🟢 Construtor útil para converter a Entidade direto em DTO com facilidade
+    public AgendaMensalResponseDTO(AgendaMensal agenda) {
+        this.id = agenda.getId();
+        this.mes = agenda.getMes();
+        this.ano = agenda.getAno();
+        this.descricao = agenda.getDescricao();
+        this.status = agenda.getStatus();
+        this.ativa = agenda.getAtiva();
+        
+        if (agenda.getDepartamento() != null) {
+            this.departamentoId = agenda.getDepartamento().getId();
+            this.departamentoNome = agenda.getDepartamento().getNome();
+        }
+
+        if (agenda.getEmpresa() != null) {
+            this.empresaId = agenda.getEmpresa().getId();
+            this.nomeEmpresa = agenda.getEmpresa().getNome();
+        }
+    }
+
+    // Getters e Setters
     public Long getId() {
         return id;
     }
@@ -89,11 +74,51 @@ public class AgendaMensalResponseDTO {
         this.descricao = descricao;
     }
 
+    public Long getDepartamentoId() {
+        return departamentoId;
+    }
+
+    public void setDepartamentoId(Long departamentoId) {
+        this.departamentoId = departamentoId;
+    }
+
+    public String getDepartamentoNome() {
+        return departamentoNome;
+    }
+
+    public void setDepartamentoNome(String departamentoNome) {
+        this.departamentoNome = departamentoNome;
+    }
+
+    public StatusAgendaMensal getStatus() {
+        return status;
+    }
+
+    public void setStatus(StatusAgendaMensal status) {
+        this.status = status;
+    }
+
     public Boolean getAtiva() {
         return ativa;
     }
 
     public void setAtiva(Boolean ativa) {
         this.ativa = ativa;
+    }
+
+    public Long getEmpresaId() {
+        return empresaId;
+    }
+
+    public void setEmpresaId(Long empresaId) {
+        this.empresaId = empresaId;
+    }
+
+    public String getNomeEmpresa() {
+        return nomeEmpresa;
+    }
+
+    public void setNomeEmpresa(String nomeEmpresa) {
+        this.nomeEmpresa = nomeEmpresa;
     }
 }

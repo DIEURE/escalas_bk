@@ -8,4 +8,5 @@ import com.hope.escala.entity.Instrumento;
 
 public interface InstrumentoRepository extends JpaRepository<Instrumento, Long> {
 	List<Instrumento> findByEmpresaId(Long empresaId);
+	
 }

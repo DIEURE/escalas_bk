@@ -12,44 +12,43 @@ import org.springframework.stereotype.Service;
 import com.hope.escala.dto.request.UsuarioRequestDTO;
 import com.hope.escala.dto.response.UsuarioResponseDTO;
 import com.hope.escala.entity.Departamento;
+import com.hope.escala.entity.Empresa;
 import com.hope.escala.entity.Instrumento;
 import com.hope.escala.entity.Usuario;
+import com.hope.escala.exception.ResourceNotFoundException;
 import com.hope.escala.repository.DepartamentoRepository;
 import com.hope.escala.repository.InstrumentoRepository;
 import com.hope.escala.repository.UsuarioRepository;
+import com.hope.escala.security.SecurityUtils;
 import com.hope.escala.security.annotation.PodeSerAdmin;
 
 @Service
 public class UsuarioService {
 
 	private final UsuarioRepository usuarioRepository;
-
 	private final InstrumentoRepository instrumentoRepository;
-
 	private final DepartamentoRepository departamentoRepository;
-	
 	private final PasswordEncoder passwordEncoder;
+	private final SecurityUtils securityUtils;
 
 	public UsuarioService(UsuarioRepository usuarioRepository, InstrumentoRepository instrumentoRepository,
-			DepartamentoRepository departamentoRepository, PasswordEncoder passwordEncoder) {
-
+			DepartamentoRepository departamentoRepository, PasswordEncoder passwordEncoder,
+			SecurityUtils securityUtils) {
 		this.usuarioRepository = usuarioRepository;
-
 		this.instrumentoRepository = instrumentoRepository;
-
 		this.departamentoRepository = departamentoRepository;
-		
 		this.passwordEncoder = passwordEncoder;
+		this.securityUtils = securityUtils;
 	}
 
 	@PodeSerAdmin
 	public UsuarioResponseDTO salvar(UsuarioRequestDTO dto) {
+		Long empresaIdLogada = securityUtils.empresaId();
 
 		if (usuarioRepository.existsByEmail(dto.getEmail())) {
 			throw new RuntimeException("Email já existe");
 		}
 
-		// Busca múltiplos instrumentos pelos IDs enviados
 		Set<Instrumento> instrumentosEncontrados = new HashSet<>();
 		if (dto.getInstrumentoIds() != null && !dto.getInstrumentoIds().isEmpty()) {
 		    instrumentosEncontrados = new HashSet<>(instrumentoRepository.findAllById(dto.getInstrumentoIds()));
@@ -58,7 +57,6 @@ public class UsuarioService {
 		Set<Departamento> departamentos = new HashSet<>(departamentoRepository.findAllById(dto.getDepartamentoIds()));
 
 		Usuario usuario = new Usuario();
-
 		usuario.setNome(dto.getNome());
 		usuario.setEmail(dto.getEmail());
 		usuario.setTelefone(dto.getTelefone());
@@ -69,43 +67,51 @@ public class UsuarioService {
 
 		usuario.setInstrumentos(instrumentosEncontrados);
 		usuario.setDepartamentos(departamentos);
-		usuario.setAtivo(true);
+		usuario.setAtivo(true); // Se cadastrado por admin, nasce ativo (ou ajuste conforme regra de negócio)
+
+		// 🟢 Associa a empresa logada (Multi-Tenant)
+		Empresa empresa = new Empresa();
+		empresa.setId(empresaIdLogada);
+		usuario.setEmpresa(empresa);
 
 		Usuario salvo = usuarioRepository.save(usuario);
 
 		return converterParaDTO(salvo);
 	}
 
-	// 🟢 1. Lista os usuários pendentes de aprovação (ativo = false)
+	// 🟢 1. Lista os usuários pendentes de aprovação filtrados por empresa
 	public List<UsuarioResponseDTO> listarPendentes() {
-		return usuarioRepository.findByAtivoFalse()
+		Long empresaIdLogada = securityUtils.empresaId();
+		return usuarioRepository.findByEmpresaIdAndAtivoFalse(empresaIdLogada)
 				.stream()
 				.map(this::converterParaDTO)
 				.collect(Collectors.toList());
 	}
 
-	// 🟢 2. Aprova o usuário pendente, ativando o cadastro e definindo perfil/instrumentos/departamentos
-	@PodeSerAdmin // Garante que apenas Admin ou Líder (conforme sua regra) possa aprovar
+	// 🟢 2. Aprova o usuário pendente da mesma empresa
+	@PodeSerAdmin 
 	public UsuarioResponseDTO aprovar(Long id, UsuarioRequestDTO dto) {
-		Usuario usuario = usuarioRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Usuário pendente não encontrado"));
+		Long empresaIdLogada = securityUtils.empresaId();
 
-		// Ativa o acesso do usuário no sistema
+		Usuario usuario = usuarioRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Usuário pendente não encontrado"));
+
+		if (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada)) {
+			throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
+		}
+
 		usuario.setAtivo(true);
 
-		// Atualiza o perfil definido pelo Admin (ex: MUSICO, VOLUNTARIO, LIDER)
 		if (dto.getPerfil() != null) {
 			usuario.setPerfil(dto.getPerfil());
 		}
 
-		// Associa os instrumentos selecionados pelo Admin na aprovação
 		Set<Instrumento> instrumentosEncontrados = new HashSet<>();
 		if (dto.getInstrumentoIds() != null && !dto.getInstrumentoIds().isEmpty()) {
 			instrumentosEncontrados = new HashSet<>(instrumentoRepository.findAllById(dto.getInstrumentoIds()));
 		}
 		usuario.setInstrumentos(instrumentosEncontrados);
 
-		// Associa os departamentos selecionados
 		if (dto.getDepartamentoIds() != null && !dto.getDepartamentoIds().isEmpty()) {
 			Set<Departamento> departamentos = new HashSet<>(departamentoRepository.findAllById(dto.getDepartamentoIds()));
 			usuario.setDepartamentos(departamentos);
@@ -116,35 +122,50 @@ public class UsuarioService {
 		return converterParaDTO(aprovado);
 	}
 
-	
 	public List<UsuarioResponseDTO> listar() {
-		return usuarioRepository.findByAtivoTrue().stream().map(this::converterParaDTO).collect(Collectors.toList());
+		Long empresaIdLogada = securityUtils.empresaId();
+		return usuarioRepository.findByEmpresaIdAndAtivoTrue(empresaIdLogada)
+				.stream()
+				.map(this::converterParaDTO)
+				.collect(Collectors.toList());
 	}
 
 	public UsuarioResponseDTO buscarPorId(Long id) {
+		Long empresaIdLogada = securityUtils.empresaId();
+
 		Usuario usuario = usuarioRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+				.orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+		if (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada)) {
+			throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
+		}
 
 		return converterParaDTO(usuario);
 	}
 	
 	public List<UsuarioResponseDTO> buscarPorDepartamento(Long departamentoId) {
-	    return usuarioRepository.findByDepartamentoIdAndAtivoTrue(departamentoId)
+	    Long empresaIdLogada = securityUtils.empresaId();
+	    return usuarioRepository.findByDepartamentosIdAndEmpresaIdAndAtivoTrue(departamentoId, empresaIdLogada)
 	            .stream()
 	            .map(this::converterParaDTO)
 	            .collect(Collectors.toList());
 	}
 
+
 	public UsuarioResponseDTO atualizar(Long id, UsuarioRequestDTO dto) {
+		Long empresaIdLogada = securityUtils.empresaId();
 
 		Usuario usuario = usuarioRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+				.orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+		if (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada)) {
+			throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
+		}
 
 		if (!usuario.getEmail().equals(dto.getEmail()) && usuarioRepository.existsByEmail(dto.getEmail())) {
 			throw new RuntimeException("Email já existe");
 		}
 
-		// Busca múltiplos instrumentos atualizados
 		Set<Instrumento> instrumentosEncontrados = new HashSet<>();
 		if (dto.getInstrumentoIds() != null && !dto.getInstrumentoIds().isEmpty()) {
 		    instrumentosEncontrados = new HashSet<>(instrumentoRepository.findAllById(dto.getInstrumentoIds()));
@@ -173,8 +194,14 @@ public class UsuarioService {
 
 	@PodeSerAdmin
 	public void inativar(Long id) {
+		Long empresaIdLogada = securityUtils.empresaId();
+
 		Usuario usuario = usuarioRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+				.orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+		if (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada)) {
+			throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
+		}
 
 		usuario.setAtivo(false);
 		usuario.setDataInativacao(LocalDateTime.now());
@@ -193,13 +220,11 @@ public class UsuarioService {
 		dto.setPerfil(usuario.getPerfil());
 		dto.setAtivo(usuario.getAtivo());
 
-		// Mapeia os múltiplos instrumentos para o DTO (ajuste o DTO de resposta se necessário para aceitar Set<String> ou List<String>)
 		if (usuario.getInstrumentos() != null) {
 			dto.setInstrumentoIds(
 				usuario.getInstrumentos().stream().map(Instrumento::getId).collect(Collectors.toSet())
 			);
 		}
-
 
 		dto.setDepartamentos(
 				usuario.getDepartamentos().stream().map(Departamento::getNome).collect(Collectors.toSet()));
@@ -208,8 +233,14 @@ public class UsuarioService {
 	}
 
 	public UsuarioResponseDTO atualizarDisponibilidade(Long id, Boolean disponibilidade) {
+		Long empresaIdLogada = securityUtils.empresaId();
+
 		Usuario usuario = usuarioRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+				.orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+		if (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada)) {
+			throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
+		}
 
 		usuario.setDisponibilidade(disponibilidade);
 

@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.hope.escala.enums.PerfilUsuario;
 
@@ -48,6 +49,7 @@ public class Usuario {
 	
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "empresa_id", nullable = false)
+	@JsonIgnore // 🟢 Evita loop infinito entre Empresa e Usuario
 	private Empresa empresa;
 	
 	@ManyToMany

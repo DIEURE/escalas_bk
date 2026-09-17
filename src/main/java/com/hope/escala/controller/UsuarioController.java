@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.hope.escala.dto.request.UsuarioDisponibilidadeDTO;
 import com.hope.escala.dto.request.UsuarioRequestDTO;
 import com.hope.escala.dto.response.UsuarioResponseDTO;
+import com.hope.escala.security.annotation.AdminOuLider; // 🟢 Import da anotação de segurança
 import com.hope.escala.service.UsuarioService;
 
 import jakarta.validation.Valid;
@@ -31,13 +32,14 @@ public class UsuarioController {
         this.service = service;
     }
 
+    @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa criar usuários diretamente
     @PostMapping
-    
     public ResponseEntity<UsuarioResponseDTO> salvar(
             @Valid @RequestBody UsuarioRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.salvar(dto));
     }
 
+    @AdminOuLider // 🟢 Listagem geral de usuários restrita a líderes e admins
     @GetMapping    
     public ResponseEntity<List<UsuarioResponseDTO>> listar() {
         return ResponseEntity.ok(service.listar());
@@ -48,22 +50,23 @@ public class UsuarioController {
         return ResponseEntity.ok(service.buscarPorId(id));
     }
 
+    @AdminOuLider // 🟢 Apenas Admin ou Líder pode atualizar dados de usuários
     @PutMapping("/{id}")
-    
     public ResponseEntity<UsuarioResponseDTO> atualizar(
             @PathVariable Long id,
             @Valid @RequestBody UsuarioRequestDTO dto) {
         return ResponseEntity.ok(service.atualizar(id, dto));
     }
 
-    // 🟢 Novo endpoint para listar usuários pendentes de aprovação
+    // 🟢 Endpoint para listar usuários pendentes de aprovação (Admin/Líder)
+    @AdminOuLider
     @GetMapping("/pendentes")
-    // Use aqui a sua anotação ou regra de segurança para Admin/Líder
     public ResponseEntity<List<UsuarioResponseDTO>> listarPendentes() {
         return ResponseEntity.ok(service.listarPendentes());
     }
 
-    // 🟢 Novo endpoint para aprovar e ativar o usuário
+    // 🟢 Endpoint para aprovar e ativar o usuário (Admin/Líder)
+    @AdminOuLider
     @PatchMapping("/{id}/aprovar")
     public ResponseEntity<UsuarioResponseDTO> aprovar(
             @PathVariable Long id,
@@ -71,9 +74,7 @@ public class UsuarioController {
         return ResponseEntity.ok(service.aprovar(id, dto));
     }
 
-    
     @PatchMapping("/{id}/disponibilidade")
-    
     public ResponseEntity<UsuarioResponseDTO> atualizarDisponibilidade(
             @PathVariable Long id,
             @Valid @RequestBody UsuarioDisponibilidadeDTO dto) {
@@ -85,8 +86,8 @@ public class UsuarioController {
         return ResponseEntity.ok(service.buscarPorDepartamento(departamentoId));
     }
 
+    @AdminOuLider // 🟢 Apenas Admin ou Líder pode inativar usuários
     @DeleteMapping("/{id}")
-      
     public ResponseEntity<String> inativar(@PathVariable Long id) {
         service.inativar(id);
         return ResponseEntity.ok("Usuário inativado");

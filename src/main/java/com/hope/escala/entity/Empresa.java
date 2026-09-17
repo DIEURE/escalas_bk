@@ -10,9 +10,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore; // Import necessário
 
 @Entity
 @Table(name = "empresas")
+
 public class Empresa {
     
     @Id
@@ -38,6 +40,7 @@ public class Empresa {
     private String endereco;
 
     @OneToMany(mappedBy = "empresa")
+    @JsonIgnore // 🟢 Evita loop infinito entre Empresa e Usuario
     private List<Usuario> usuarios;
     
     

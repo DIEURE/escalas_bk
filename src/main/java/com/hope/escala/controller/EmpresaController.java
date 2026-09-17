@@ -1,6 +1,9 @@
 package com.hope.escala.controller;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.hope.escala.entity.Empresa;
 import com.hope.escala.service.EmpresaService;
@@ -13,6 +16,22 @@ public class EmpresaController {
 
     public EmpresaController(EmpresaService empresaService) {
         this.empresaService = empresaService;
+    }
+    
+    
+ // Endpoint para criar uma nova empresa/igreja (usado no ModalEmpresaForm)
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Empresa> criar(@RequestBody Empresa empresa) {
+        Empresa novaEmpresa = empresaService.criarEmpresa(empresa);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(novaEmpresa);
+    }
+    
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Empresa>> listarTodas() {
+        List<Empresa> empresas = empresaService.listar(); // ou o método correspondente no seu service
+        return ResponseEntity.ok(empresas);
     }
 
     // Endpoint para buscar os dados da empresa do usuário logado (usado na EmpresaPage)

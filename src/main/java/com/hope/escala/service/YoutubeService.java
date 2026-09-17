@@ -2,8 +2,7 @@ package com.hope.escala.service;
 
 import java.util.List;
 import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
+ 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -14,27 +13,45 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import com.hope.escala.entity.Empresa;
 import com.hope.escala.entity.YoutubeConfig;
+import com.hope.escala.repository.EmpresaRepository;
 import com.hope.escala.repository.YoutubeConfigRepository;
+import com.hope.escala.security.SecurityUtils;
 
 @Service
 public class YoutubeService {
 
-	@Autowired
-	private YoutubeConfigRepository repository;
-	 
+	private final YoutubeConfigRepository repository;
+	private final SecurityUtils securityUtils; 
+	private final EmpresaRepository empresaRepository;
+	
 
-	public YoutubeConfig getConfig() {
-		// Pega o primeiro registro da tabela, independente do ID, ou cria um novo se
-		// estiver vazia
-		return repository.findAll().stream().findFirst().orElseGet(() -> {
-			YoutubeConfig novo = new YoutubeConfig();
-			return repository.save(novo);
-		});
+	public YoutubeService(YoutubeConfigRepository repository, SecurityUtils securityUtils, EmpresaRepository empresaRepository
+			) {
+	    this.repository = repository;
+	    this.securityUtils = securityUtils;
+	    this.empresaRepository = empresaRepository;
 	}
 
+	 
+    public YoutubeConfig getConfig() {
+        Long empresaId = securityUtils.empresaId(); // Pega a empresa da sessão JWT
+        
+        return repository.findByEmpresaId(empresaId).orElseGet(() -> {
+            YoutubeConfig novo = new YoutubeConfig();
+            
+            // Busca a entidade Empresa para associar corretamente na criação
+            Empresa empresa = empresaRepository.findById(empresaId)
+                .orElseThrow(() -> new RuntimeException("Empresa não encontrada para o ID: " + empresaId));
+            
+            novo.setEmpresa(empresa);
+            return repository.save(novo);
+        });
+    }
+
+
 	public YoutubeConfig salvarConfig(YoutubeConfig novaConfig) {
-		// Busca se já existe qualquer configuração salva na tabela
 		YoutubeConfig configAtual = repository.findAll().stream().findFirst().orElse(new YoutubeConfig());
 
 		if (novaConfig.getClientId() != null && !novaConfig.getClientId().trim().isEmpty()) {
@@ -53,11 +70,9 @@ public class YoutubeService {
 		    configAtual.setApiKey(novaConfig.getApiKey().trim());
 		}
 
-		// Salva sem forçar o ID manualmente, deixando o JPA gerenciar o registro único
 		return repository.save(configAtual);
 	}
 
-	// Dentro do seu método trocarCodePorRefreshToken:
 	public void trocarCodePorRefreshToken(String code) {
 		YoutubeConfig config = getConfig();
 		if (config.getClientId() == null || config.getClientSecret() == null || config.getRedirectUri() == null) {
@@ -68,8 +83,6 @@ public class YoutubeService {
 
 		RestTemplate restTemplate;
 		try {
-			// Cria um TrustManager que confia em qualquer certificado (ignora o erro SSL
-			// local)
 			javax.net.ssl.TrustManager[] trustAllCerts = new javax.net.ssl.TrustManager[] {
 					new javax.net.ssl.X509TrustManager() {
 						public java.security.cert.X509Certificate[] getAcceptedIssuers() {
@@ -123,14 +136,18 @@ public class YoutubeService {
 			throw new RuntimeException("Erro ao trocar o código de autorização pelo token: " + e.getMessage());
 		}
 	}
-	
-	public boolean isConfiguradoEConectado() {
-	    YoutubeConfig config = repository.findFirstByOrderByIdAsc();
-	    return config != null 
-	        && config.getClientId() != null && !config.getClientId().isBlank()
-	        && config.getClientSecret() != null && !config.getClientSecret().isBlank()
-	        && config.getRefreshToken() != null && !config.getRefreshToken().isBlank();
-	}
+	 public boolean isConfiguradoEConectado() {
+	        Long empresaId = securityUtils.empresaId();
+	        
+	        // 🟢 Busca usando o Optional de forma limpa
+	        YoutubeConfig config = repository.findByEmpresaId(empresaId).orElse(null);
+	        
+	        return config != null 
+	            && config.getClientId() != null && !config.getClientId().isBlank()
+	            && config.getClientSecret() != null && !config.getClientSecret().isBlank()
+	            && config.getRefreshToken() != null && !config.getRefreshToken().isBlank();
+	    }
+
 
 	public String gerarAuthUrl() {
 		YoutubeConfig config = getConfig();
@@ -144,10 +161,13 @@ public class YoutubeService {
 	}
 
 	public String criarPlaylistNoYoutube(String accessToken, String tituloPlaylist) {
-		// 💡 Substitua "SUA_API_KEY_DO_GOOGLE" pela chave de API do seu projeto no Google Cloud Console
-		String apiKey = getConfig().getClientSecret();//"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"; 
+		// 🟢 CORREÇÃO: Utiliza a API Key correta salva no banco de dados para chamadas autenticadas de API
+		String apiKey = getConfig().getApiKey();
+		if (apiKey == null || apiKey.isBlank()) {
+			throw new RuntimeException("A Chave da API do YouTube (API Key) não está configurada.");
+		}
 		
-		String url = "https://www.googleapis.com/youtube/v3/playlists?part=snippet,status&key=" + apiKey;
+		String url = "https://www.googleapis.com/youtube/v3/playlists?part=snippet,status&key=" + apiKey.trim();
 
 		RestTemplate restTemplate = new RestTemplate();
 		HttpHeaders headers = new HttpHeaders();
@@ -167,7 +187,7 @@ public class YoutubeService {
 			ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
 			if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
 				Map<String, Object> data = response.getBody();
-				return (String) data.get("id"); // Retorna o ID da playlist criada no YouTube
+				return (String) data.get("id");
 			}
 		} catch (Exception e) {
 			throw new RuntimeException("Erro ao criar playlist no YouTube: " + e.getMessage());
@@ -175,136 +195,126 @@ public class YoutubeService {
 		return null;
 	}
 	
-	
-	
-	 public String obterAccessToken() {
-	        YoutubeConfig config = getConfig();
-	        if (config.getRefreshToken() == null || config.getClientId() == null || config.getClientSecret() == null) {
-	            throw new RuntimeException("Configurações do YouTube (Client ID, Secret ou Refresh Token) ausentes.");
-	        }
+	public String obterAccessToken() {
+        YoutubeConfig config = getConfig();
+        if (config.getRefreshToken() == null || config.getClientId() == null || config.getClientSecret() == null) {
+            throw new RuntimeException("Configurações do YouTube (Client ID, Secret ou Refresh Token) ausentes.");
+        }
 
-	        String tokenUrl = "https://oauth2.googleapis.com/token";
-	        RestTemplate restTemplate = new RestTemplate();
+        String tokenUrl = "https://oauth2.googleapis.com/token";
+        RestTemplate restTemplate = new RestTemplate();
 
-	        HttpHeaders headers = new HttpHeaders();
-	        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-	        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-	        body.add("client_id", config.getClientId().trim());
-	        body.add("client_secret", config.getClientSecret().trim());
-	        body.add("refresh_token", config.getRefreshToken().trim());
-	        body.add("grant_type", "refresh_token");
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("client_id", config.getClientId().trim());
+        body.add("client_secret", config.getClientSecret().trim());
+        body.add("refresh_token", config.getRefreshToken().trim());
+        body.add("grant_type", "refresh_token");
 
-	        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
-	        try {
-	            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
-	            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-	                Map<String, Object> data = response.getBody();
-	                return (String) data.get("access_token");
-	            }
-	        } catch (Exception e) {
-	            throw new RuntimeException("Erro ao renovar o Access Token do YouTube: " + e.getMessage());
-	        }
-	        return null;
-	    }
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> data = response.getBody();
+                return (String) data.get("access_token");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao renovar o Access Token do YouTube: " + e.getMessage());
+        }
+        return null;
+    }
 	 
-	 public void adicionarVideoNaPlaylist(String accessToken, String playlistId, String youtubeVideoId) {
-			String url = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet";
+	public void adicionarVideoNaPlaylist(String accessToken, String playlistId, String youtubeVideoId) {
+		String url = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet";
 
-			RestTemplate restTemplate = new RestTemplate();
-			HttpHeaders headers = new HttpHeaders();
-			headers.setBearerAuth(accessToken);
-			headers.setContentType(MediaType.APPLICATION_JSON);
+		RestTemplate restTemplate = new RestTemplate();
+		HttpHeaders headers = new HttpHeaders();
+		headers.setBearerAuth(accessToken);
+		headers.setContentType(MediaType.APPLICATION_JSON);
 
-			// Monta o JSON exigido pela API do YouTube para adicionar itens à playlist
-			String requestBody = "{" +
-					"\"snippet\": {" +
-						"\"playlistId\": \"" + playlistId + "\"," +
-						"\"resourceId\": {" +
-							"\"kind\": \"youtube#video\"," +
-							"\"videoId\": \"" + youtubeVideoId + "\"" +
-						"}" +
+		String requestBody = "{" +
+				"\"snippet\": {" +
+					"\"playlistId\": \"" + playlistId + "\"," +
+					"\"resourceId\": {" +
+						"\"kind\": \"youtube#video\"," +
+						"\"videoId\": \"" + youtubeVideoId + "\"" +
 					"}" +
-				"}";
+				"}" +
+			"}";
 
-			HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+		HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
-			try {
-				restTemplate.postForEntity(url, entity, Map.class);
-			} catch (Exception e) {
-				// Apenas loga o erro caso um vídeo específico falhe, para não travar a lista inteira
-				System.err.println("Erro ao adicionar o vídeo " + youtubeVideoId + " na playlist: " + e.getMessage());
-			}
+		try {
+			restTemplate.postForEntity(url, entity, Map.class);
+		} catch (Exception e) {
+			System.err.println("Erro ao adicionar o vídeo " + youtubeVideoId + " na playlist: " + e.getMessage());
 		}
+	}
 	 
-	 /*Busca direta no youtube*/
-	 
-	 public List<Map<String, String>> pesquisarVideos(String query) {
-		    if (query == null || query.isBlank()) {
-		        return List.of();
-		    }
+	public List<Map<String, String>> pesquisarVideos(String query) {
+	    if (query == null || query.isBlank()) {
+	        return List.of();
+	    }
 
-		    // Pega a chave salva no banco de dados (mesma usada nas outras operações)
-		    String apiKey = getConfig().getApiKey();
-		    if (apiKey == null || apiKey.isBlank()) {
-		        throw new RuntimeException("Chave da API do YouTube não configurada.");
-		    }
+	    String apiKey = getConfig().getApiKey();
+	    if (apiKey == null || apiKey.isBlank()) {
+	        throw new RuntimeException("Chave da API do YouTube não configurada.");
+	    }
 
-		    String url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=45&q=" 
-		                 + java.net.URLEncoder.encode(query, java.nio.charset.StandardCharsets.UTF_8) 
-		                 + "&key=" + apiKey.trim();
+	    String url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=45&q=" 
+	                 + java.net.URLEncoder.encode(query, java.nio.charset.StandardCharsets.UTF_8) 
+	                 + "&key=" + apiKey.trim();
 
-		    RestTemplate restTemplate = new RestTemplate();
-		    List<Map<String, String>> listaResultados = new java.util.ArrayList<>();
+	    RestTemplate restTemplate = new RestTemplate();
+	    List<Map<String, String>> listaResultados = new java.util.ArrayList<>();
 
-		    try {
-		        ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
-		        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-		            Map<String, Object> body = response.getBody();
-		            java.util.List<Map<String, Object>> items = (java.util.List<Map<String, Object>>) body.get("items");
+	    try {
+	        ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+	        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+	            Map<String, Object> body = response.getBody();
+	            java.util.List<Map<String, Object>> items = (java.util.List<Map<String, Object>>) body.get("items");
 
-		            if (items != null) {
-		                for (Map<String, Object> item : items) {
-		                    Map<String, String> videoInfo = new java.util.HashMap<>();
-		                    
-		                    Map<String, Object> idMap = (Map<String, Object>) item.get("id");
-		                    if (idMap == null) continue;
-		                    
-		                    String videoId = (String) idMap.get("videoId");
-		                    if (videoId == null) continue;
+	            if (items != null) {
+	                for (Map<String, Object> item : items) {
+	                    Map<String, String> videoInfo = new java.util.HashMap<>();
+	                    
+	                    Map<String, Object> idMap = (Map<String, Object>) item.get("id");
+	                    if (idMap == null) continue;
+	                    
+	                    String videoId = (String) idMap.get("videoId");
+	                    if (videoId == null) continue;
 
-		                    Map<String, Object> snippet = (Map<String, Object>) item.get("snippet");
-		                    String title = snippet != null ? (String) snippet.get("title") : "";
-		                    String channelTitle = snippet != null ? (String) snippet.get("channelTitle") : "";
+	                    Map<String, Object> snippet = (Map<String, Object>) item.get("snippet");
+	                    String title = snippet != null ? (String) snippet.get("title") : "";
+	                    String channelTitle = snippet != null ? (String) snippet.get("channelTitle") : "";
 
-		                    String thumbnailUrl = "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg";
-		                    if (snippet != null && snippet.get("thumbnails") instanceof Map) {
-		                        Map<String, Object> thumbnails = (Map<String, Object>) snippet.get("thumbnails");
-		                        if (thumbnails.get("high") instanceof Map) {
-		                            Map<String, Object> high = (Map<String, Object>) thumbnails.get("high");
-		                            if (high.get("url") != null) {
-		                                thumbnailUrl = (String) high.get("url");
-		                            }
-		                        }
-		                    }
+	                    String thumbnailUrl = "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg";
+	                    if (snippet != null && snippet.get("thumbnails") instanceof Map) {
+	                        Map<String, Object> thumbnails = (Map<String, Object>) snippet.get("thumbnails");
+	                        if (thumbnails.get("high") instanceof Map) {
+	                            Map<String, Object> high = (Map<String, Object>) thumbnails.get("high");
+	                            if (high.get("url") != null) {
+	                                thumbnailUrl = (String) high.get("url");
+	                            }
+	                        }
+	                    }
 
-		                    videoInfo.put("id", videoId);
-		                    videoInfo.put("titulo", title);
-		                    videoInfo.put("canal", channelTitle);
-		                    videoInfo.put("thumbnail", thumbnailUrl);
+	                    videoInfo.put("id", videoId);
+	                    videoInfo.put("titulo", title);
+	                    videoInfo.put("canal", channelTitle);
+	                    videoInfo.put("thumbnail", thumbnailUrl);
 
-		                    listaResultados.add(videoInfo);
-		                }
-		            }
-		        }
-		    } catch (Exception e) {
-		        throw new RuntimeException("Erro ao pesquisar vídeos no YouTube: " + e.getMessage());
-		    }
+	                    listaResultados.add(videoInfo);
+	                }
+	            }
+	        }
+	    } catch (Exception e) {
+	        throw new RuntimeException("Erro ao pesquisar vídeos no YouTube: " + e.getMessage());
+	    }
 
-		    return listaResultados;
-		}
-
-	 
-	 
+	    return listaResultados;
+	}
 }

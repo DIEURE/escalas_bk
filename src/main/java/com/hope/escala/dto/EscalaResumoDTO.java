@@ -14,6 +14,7 @@ public class EscalaResumoDTO {
     private String tipo;
     private String status;
     private String observacoes;
+    
 
     public EscalaResumoDTO() {
     }

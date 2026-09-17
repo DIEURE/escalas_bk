@@ -27,6 +27,7 @@ import com.hope.escala.dto.response.EscalaMusicaResponseDTO;
 import com.hope.escala.dto.response.EscalaResponseDTO;
 import com.hope.escala.enums.StatusEscala;
 import com.hope.escala.repository.EscalaRepository;
+import com.hope.escala.security.SecurityUtils;
 import com.hope.escala.security.annotation.AdminOuLider;
 import com.hope.escala.service.EscalaService;
 import com.hope.escala.service.PdfEscalaService;
@@ -42,13 +43,15 @@ public class EscalaController {
 	private final YoutubePlaylistService youTubePlaylistService;
 	private final PdfEscalaService pdfEscalaService;
 	private final EscalaRepository escalaRepository;
+	private final SecurityUtils securityUtils; // 🟢 Injeção do SecurityUtils
 
 	public EscalaController(EscalaService escalaService, YoutubePlaylistService youTubePlaylistService,
-			PdfEscalaService pdfEscalaService, EscalaRepository escalaRepository) {
+			PdfEscalaService pdfEscalaService, EscalaRepository escalaRepository, SecurityUtils securityUtils) {
 		this.escalaService = escalaService;
 		this.youTubePlaylistService = youTubePlaylistService;
 		this.pdfEscalaService = pdfEscalaService;
 		this.escalaRepository = escalaRepository;
+		this.securityUtils = securityUtils;
 	}
 	@AdminOuLider
 	@PostMapping
@@ -71,7 +74,6 @@ public class EscalaController {
 			@Valid @RequestBody EscalaRequestDTO dto) {
 		return ResponseEntity.ok(escalaService.atualizar(id, dto));
 	}
-
 	@GetMapping("/verificar-conflito")
 	public ResponseEntity<Boolean> verificarConflito(@RequestParam String data, @RequestParam String horario,
 			@RequestParam Long departamentoId) {
@@ -81,7 +83,12 @@ public class EscalaController {
 		String horarioComSegundos = horario.length() == 5 ? horario + ":00" : horario;
 		LocalTime localTime = LocalTime.parse(horarioComSegundos);
 
-		boolean existe = escalaRepository.existeConflitoHorario(localDate, localTime, localTime, departamentoId);
+		// 🟢 Obtém a empresa logada para garantir o isolamento multi-tenant na verificação
+		Long empresaIdLogada = securityUtils.empresaId();
+
+		boolean existe = escalaRepository.existeConflitoHorario(
+				localDate, localTime, localTime, departamentoId, empresaIdLogada
+		);
 
 		return ResponseEntity.ok(existe);
 	}

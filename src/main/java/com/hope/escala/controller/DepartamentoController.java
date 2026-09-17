@@ -48,16 +48,16 @@ public class DepartamentoController {
         return ResponseEntity.ok(service.buscarPorId(id));
     }
 
+    @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa atualizar
     @PutMapping("/{id}")
-    
     public ResponseEntity<DepartamentoResponseDTO> atualizar(
             @PathVariable Long id,
             @Valid @RequestBody DepartamentoRequestDTO dto) {
         return ResponseEntity.ok(service.atualizar(id, dto));
     }
 
+    @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa inativar
     @DeleteMapping("/{id}")
-     
     public ResponseEntity<String> inativar(@PathVariable Long id) {
         service.inativar(id);
         return ResponseEntity.ok("Departamento inativado");
@@ -68,10 +68,10 @@ public class DepartamentoController {
         return ResponseEntity.ok(service.listarInativos());
     }
 
+    @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa ativar
     @PatchMapping("/{id}/ativar")
     public ResponseEntity<DepartamentoResponseDTO> ativar(
             @PathVariable Long id) {
-
         return ResponseEntity.ok(service.ativar(id));
     }
 }
