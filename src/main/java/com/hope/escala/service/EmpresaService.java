@@ -3,10 +3,7 @@ package com.hope.escala.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
 
 import com.hope.escala.dto.response.EmpresaResponseDTO;
 import com.hope.escala.entity.Empresa;
@@ -37,6 +34,12 @@ public class EmpresaService {
     
     @Transactional
     public List<Empresa> listar() {
+        return empresaRepository.findAll();
+    }
+    
+    @Transactional
+    public List<Empresa> listarEmpresasParaCadastro() {
+    
         return empresaRepository.findAll();
     }
     

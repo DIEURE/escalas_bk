@@ -17,7 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.hope.escala.dto.request.UsuarioDisponibilidadeDTO;
 import com.hope.escala.dto.request.UsuarioRequestDTO;
 import com.hope.escala.dto.response.UsuarioResponseDTO;
-import com.hope.escala.security.annotation.AdminOuLider; // 🟢 Import da anotação de segurança
+import com.hope.escala.security.SecurityUtils;
+import com.hope.escala.security.annotation.AdminOuLider;
 import com.hope.escala.service.UsuarioService;
 
 import jakarta.validation.Valid;
@@ -27,9 +28,10 @@ import jakarta.validation.Valid;
 public class UsuarioController {
 
     private final UsuarioService service;
-
-    public UsuarioController(UsuarioService service) {
+    private final SecurityUtils securityUtils;
+    public UsuarioController(UsuarioService service,SecurityUtils securityUtils) {
         this.service = service;
+        this.securityUtils = securityUtils;
     }
 
     @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa criar usuários diretamente
@@ -92,4 +94,17 @@ public class UsuarioController {
         service.inativar(id);
         return ResponseEntity.ok("Usuário inativado");
     }
+    
+    @GetMapping("/meu-perfil")
+    public ResponseEntity<UsuarioResponseDTO> buscarMeuPerfil() {
+        Long usuarioIdLogado = securityUtils.usuarioId(); // ou extraído do token
+        return ResponseEntity.ok(service.buscarPorId(usuarioIdLogado));
+    }
+
+    @PutMapping("/meu-perfil")
+    public ResponseEntity<UsuarioResponseDTO> atualizarMeuPerfil(@Valid @RequestBody UsuarioRequestDTO dto) {
+        Long usuarioIdLogado = securityUtils.usuarioId();
+        return ResponseEntity.ok(service.atualizar(usuarioIdLogado, dto));
+    }
+
 }

@@ -33,8 +33,8 @@ public class CategoriaService {
 		return categoriaRepository.findByEmpresaId(securityUtils.empresaId());
 	}
 
-	public List<Categoria> listarTodas() {
-		return categoriaRepository.findAll();
+	public List<Categoria> listarAtivasPorEmpresa() {
+		return categoriaRepository.findByEmpresaIdAndAtivoTrue(securityUtils.empresaId());
 	}
 
 	public List<Categoria> listarAtivas() {

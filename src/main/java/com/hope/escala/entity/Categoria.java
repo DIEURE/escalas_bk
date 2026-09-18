@@ -1,5 +1,8 @@
 package com.hope.escala.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -12,9 +15,9 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "categorias")
 public class Categoria {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
     private String nome;
     private Boolean ativo;
     
@@ -26,8 +29,9 @@ public class Categoria {
 	}
 	
 	@ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "empresa_id", nullable = false)
-    private Empresa empresa;
+	@JoinColumn(name = "empresa_id", nullable = false)
+	@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+	private Empresa empresa;
 	
 	
 	public Categoria(Long id, String nome, Boolean ativo) {

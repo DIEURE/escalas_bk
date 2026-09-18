@@ -28,6 +28,8 @@ public class UsuarioRequestDTO {
 
 
     private Set<Long> departamentoIds;
+    
+    private Long empresaId;
 
     public UsuarioRequestDTO() {
     }
@@ -92,7 +94,15 @@ public class UsuarioRequestDTO {
 
   
 
-    public Set<Long> getInstrumentoIds() {
+    public Long getEmpresaId() {
+		return empresaId;
+	}
+
+	public void setEmpresaId(Long empresaId) {
+		this.empresaId = empresaId;
+	}
+
+	public Set<Long> getInstrumentoIds() {
 		return instrumentoIds;
 	}
 

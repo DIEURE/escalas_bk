@@ -15,6 +15,7 @@ import com.hope.escala.entity.Departamento;
 import com.hope.escala.entity.Empresa;
 import com.hope.escala.entity.Instrumento;
 import com.hope.escala.entity.Usuario;
+import com.hope.escala.enums.PerfilUsuario;
 import com.hope.escala.exception.ResourceNotFoundException;
 import com.hope.escala.repository.DepartamentoRepository;
 import com.hope.escala.repository.InstrumentoRepository;
@@ -30,15 +31,17 @@ public class UsuarioService {
 	private final DepartamentoRepository departamentoRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final SecurityUtils securityUtils;
+	private final EmailService emailService;
 
 	public UsuarioService(UsuarioRepository usuarioRepository, InstrumentoRepository instrumentoRepository,
 			DepartamentoRepository departamentoRepository, PasswordEncoder passwordEncoder,
-			SecurityUtils securityUtils) {
+			SecurityUtils securityUtils,EmailService emailService ) {
 		this.usuarioRepository = usuarioRepository;
 		this.instrumentoRepository = instrumentoRepository;
 		this.departamentoRepository = departamentoRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.securityUtils = securityUtils;
+		this.emailService = emailService;
 	}
 
 	@PodeSerAdmin
@@ -79,6 +82,46 @@ public class UsuarioService {
 		return converterParaDTO(salvo);
 	}
 
+	// 🟢 Método exclusivo para o Cadastro Público (sem exigir usuário logado)
+	public UsuarioResponseDTO solicitarCadastroPublico(UsuarioRequestDTO dto) {
+		if (dto.getEmpresaId() == null) {
+			throw new RuntimeException("A instituição/empresa é obrigatória para o cadastro.");
+		}
+
+		if (usuarioRepository.existsByEmail(dto.getEmail())) {
+			throw new RuntimeException("Este e-mail já está cadastrado no sistema.");
+		}
+
+		// 1. Busca a empresa selecionada pelo usuário no formulário público
+		Empresa empresa = new Empresa();
+		empresa.setId(dto.getEmpresaId());
+
+		// 2. Trata instrumentos se houverem
+		Set<Instrumento> instrumentosEncontrados = new HashSet<>();
+		if (dto.getInstrumentoIds() != null && !dto.getInstrumentoIds().isEmpty()) {
+		    instrumentosEncontrados = new HashSet<>(instrumentoRepository.findAllById(dto.getInstrumentoIds()));
+		}
+
+		// 3. Monta a entidade do novo usuário
+		Usuario usuario = new Usuario();
+		usuario.setNome(dto.getNome());
+		usuario.setEmail(dto.getEmail());
+		usuario.setTelefone(dto.getTelefone());
+		usuario.setSenha(passwordEncoder.encode(dto.getSenha()));
+		usuario.setPerfil(PerfilUsuario.VOLUNTARIO); // Perfil inicial padrão para solicitação
+		usuario.setDisponibilidade(true);
+		
+		usuario.setInstrumentos(instrumentosEncontrados);
+		usuario.setAtivo(false); // REGRA DO PROJETO: Nasce inativo aguardando aprovação
+		usuario.setEmpresa(empresa); // 🟢 Associa a empresa escolhida no form público!
+
+		Usuario salvo = usuarioRepository.save(usuario);
+
+		return converterParaDTO(salvo);
+	}
+
+	
+	
 	// 🟢 1. Lista os usuários pendentes de aprovação filtrados por empresa
 	public List<UsuarioResponseDTO> listarPendentes() {
 		Long empresaIdLogada = securityUtils.empresaId();
@@ -119,8 +162,17 @@ public class UsuarioService {
 
 		Usuario aprovado = usuarioRepository.save(usuario);
 
+		// 🟢 DISPARO DO E-MAIL ELEGANTE DE APROVAÇÃO (Multi-Tenant)
+		try {
+			emailService.enviarEmailAprovacao(empresaIdLogada, aprovado.getEmail(), aprovado.getNome());
+		} catch (Exception e) {
+			// Loga o erro mas não impede a aprovação caso o SMTP da empresa esteja ausente/incorreto
+			System.err.println("Aviso: Usuário aprovado, mas falhou ao enviar o e-mail: " + e.getMessage());
+		}
+
 		return converterParaDTO(aprovado);
 	}
+
 
 	public List<UsuarioResponseDTO> listar() {
 		Long empresaIdLogada = securityUtils.empresaId();

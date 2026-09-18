@@ -5,6 +5,7 @@ import com.hope.escala.security.annotation.AdminOuLider;
 import com.hope.escala.service.CategoriaService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
 
@@ -21,14 +22,14 @@ public class CategoriaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Categoria>> listarTodas() {
-        List<Categoria> categorias = categoriaService.listarTodas();
+    public ResponseEntity<List<Categoria>> listarPorEmpresa() {
+        List<Categoria> categorias = categoriaService.listarPorEmpresa();
         return ResponseEntity.ok(categorias);
     }
 
     @GetMapping("/ativas")
     public ResponseEntity<List<Categoria>> listarAtivas() {
-        List<Categoria> categorias = categoriaService.listarAtivas();
+        List<Categoria> categorias = categoriaService.listarAtivasPorEmpresa();
         return ResponseEntity.ok(categorias);
     }
 

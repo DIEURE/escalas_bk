@@ -13,4 +13,5 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     // Lista apenas as categorias ativas, útil para preencher selects no frontend
     List<Categoria> findByAtivoTrue();
     List<Categoria> findByEmpresaId(Long empresaId);
+    List<Categoria> findByEmpresaIdAndAtivoTrue(Long empresaId);
 }

@@ -5,6 +5,8 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import com.hope.escala.dto.response.EmpresaResponseDTO;
 import com.hope.escala.entity.Empresa;
 import com.hope.escala.service.EmpresaService;
 
@@ -32,6 +34,13 @@ public class EmpresaController {
     public ResponseEntity<List<Empresa>> listarTodas() {
         List<Empresa> empresas = empresaService.listar(); // ou o método correspondente no seu service
         return ResponseEntity.ok(empresas);
+    }
+    
+    @GetMapping("/empresas-publicas")
+    public ResponseEntity<List<Empresa>> listarEmpresas() {
+    	  List<Empresa> empresas = empresaService.listarEmpresasParaCadastro(); 
+    	return ResponseEntity.ok(empresas);
+		 
     }
 
     // Endpoint para buscar os dados da empresa do usuário logado (usado na EmpresaPage)

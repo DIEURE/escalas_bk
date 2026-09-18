@@ -32,8 +32,18 @@ public class UsuarioResponseDTO {
     private Set<String> departamentos;
     
     private Integer quantidade_Escala;
+    
+    private Long empresaId;
 
-    public UsuarioResponseDTO() {
+    public Long getEmpresaId() {
+		return empresaId;
+	}
+
+	public void setEmpresaId(Long empresaId) {
+		this.empresaId = empresaId;
+	}
+
+	public UsuarioResponseDTO() {
     }
 
 	public Long getId() {
