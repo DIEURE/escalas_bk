@@ -1,4 +1,4 @@
-package com.hope.escala.security.jwt.JwtService;
+package com.hope.escala.security.jwt;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;

@@ -1,5 +1,7 @@
 package com.hope.escala.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -12,6 +14,7 @@ public class EmailConfig {
 
     @OneToOne
     @JoinColumn(name = "empresa_id", nullable = false, unique = true)
+    @JsonIgnore
     private Empresa empresa;
 
     @Column(nullable = false)

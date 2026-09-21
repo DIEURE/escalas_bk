@@ -3,11 +3,15 @@ package com.hope.escala.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.hope.escala.dto.response.EmpresaResponseDTO;
 import com.hope.escala.entity.Empresa;
+import com.hope.escala.entity.Usuario;
 import com.hope.escala.repository.EmpresaRepository;
+import com.hope.escala.repository.UsuarioRepository;
 import com.hope.escala.security.SecurityUtils;
 
 import jakarta.transaction.Transactional;
@@ -17,10 +21,12 @@ public class EmpresaService {
 
     private final EmpresaRepository empresaRepository;
     private final SecurityUtils securityUtils;
+    private final UsuarioRepository usuarioRepository;
 
-    public EmpresaService(EmpresaRepository empresaRepository, SecurityUtils securityUtils) {
+    public EmpresaService(EmpresaRepository empresaRepository, SecurityUtils securityUtils,UsuarioRepository usuarioRepository) {
         this.empresaRepository = empresaRepository;
         this.securityUtils = securityUtils;
+        this.usuarioRepository = usuarioRepository;
     }
     
     
@@ -33,7 +39,7 @@ public class EmpresaService {
     
     
     @Transactional
-    public List<Empresa> listar() {
+    public List<Empresa> listarTodas() {
         return empresaRepository.findAll();
     }
     
@@ -44,7 +50,21 @@ public class EmpresaService {
     }
     
     public EmpresaResponseDTO buscarEmpresaLogadaDTO() {
-        Empresa empresa = buscarEmpresaLogada();
+        // 1. Obtém a autenticação atual
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+
+        // 2. Busca o usuário pelo e-mail do token
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
+
+        // 3. Pega a empresa vinculada a esse usuário
+        Empresa empresa = usuario.getEmpresa();
+        if (empresa == null) {
+            throw new RuntimeException("Usuário não possui instituição vinculada.");
+        }
+
+        // 4. Retorna o DTO da empresa DELE (empresa_id = 2)
         return new EmpresaResponseDTO(empresa);
     }
 

@@ -52,12 +52,11 @@ public class Usuario {
 	@JsonIgnore // 🟢 Evita loop infinito entre Empresa e Usuario
 	private Empresa empresa;
 	
+	@JsonIgnore
 	@ManyToMany
 	@JoinTable(
 	        name = "usuario_departamentos",
-
 	        joinColumns = @JoinColumn(name = "usuario_id"),
-
 	        inverseJoinColumns = @JoinColumn(name = "departamento_id")
 	)
  

@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "musicas")
 public class Musica {
@@ -22,6 +24,7 @@ public class Musica {
 	
 	@ManyToOne
 	@JoinColumn(name = "categoria_id")
+	@JsonIgnore
 	private Categoria categoria;
 
 	@Column(name = "vezes_escalada")

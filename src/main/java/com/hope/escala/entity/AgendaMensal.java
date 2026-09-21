@@ -1,5 +1,6 @@
 package com.hope.escala.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.hope.escala.enums.StatusAgendaMensal;
 
 import jakarta.persistence.Entity;
@@ -31,10 +32,12 @@ public class AgendaMensal {
 	
 	@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
+	@JsonIgnore
     private Empresa empresa;
 	
 	@ManyToOne
     @JoinColumn(name = "departamento_id", nullable = false)
+	@JsonIgnore
     private Departamento departamento;
 
 	@Enumerated(EnumType.STRING)

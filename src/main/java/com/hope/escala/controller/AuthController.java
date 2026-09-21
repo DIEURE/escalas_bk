@@ -18,7 +18,7 @@ import com.hope.escala.repository.EmpresaRepository; // 🟢 Import necessário
 import com.hope.escala.repository.UsuarioRepository;
 import com.hope.escala.security.dto.LoginRequestDTO.LoginRequestDTO;
 import com.hope.escala.security.dto.LoginResponseDTO.LoginResponseDTO;
-import com.hope.escala.security.jwt.JwtService.JwtService;
+import com.hope.escala.security.jwt.JwtService;
 
 import jakarta.validation.Valid;
 

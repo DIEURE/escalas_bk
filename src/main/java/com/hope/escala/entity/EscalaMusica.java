@@ -1,5 +1,7 @@
 package com.hope.escala.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -50,6 +52,7 @@ public class EscalaMusica {
 	
 	@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
+	@JsonIgnore
     private Empresa empresa;
 
 	public EscalaMusica() {

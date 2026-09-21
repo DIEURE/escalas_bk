@@ -1,4 +1,4 @@
-package com.hope.escala.security.jwt.JwtAuthenticationFilter;
+package com.hope.escala.security.jwt;
 
 import java.io.IOException;
 
@@ -10,8 +10,6 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-
-import com.hope.escala.security.jwt.JwtService.JwtService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -41,6 +39,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		if (token != null && jwtService.tokenValido(token)) {
 
 			String email = jwtService.extrairEmail(token);
+			
 			UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
 			System.out.println("Email: " + email);

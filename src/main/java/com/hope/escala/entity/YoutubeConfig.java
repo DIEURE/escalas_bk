@@ -1,6 +1,8 @@
 package com.hope.escala.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
  
 
@@ -27,6 +29,7 @@ public class YoutubeConfig {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
+    @JsonIgnore
     private Empresa empresa;
     
     

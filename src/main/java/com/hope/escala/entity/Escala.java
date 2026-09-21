@@ -6,6 +6,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.hope.escala.enums.StatusEscala;
 import com.hope.escala.enums.TipoEscala;
 
@@ -57,6 +58,7 @@ public class Escala {
 	
 	@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
+	@JsonIgnore
     private Empresa empresa;
 
 	// Getters e Setters
