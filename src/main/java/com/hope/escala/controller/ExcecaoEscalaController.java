@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -21,30 +22,35 @@ public class ExcecaoEscalaController {
         this.service = service;
     }
 
+    @AdminOuLider
     @GetMapping
     public ResponseEntity<List<ExcecaoEscalaData>> listar(
-            @RequestParam Long departamentoId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim
+            @RequestParam(required = false) Long departamentoId,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate inicio,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate fim
     ) {
         List<ExcecaoEscalaData> lista = service.listarPorPeriodo(departamentoId, inicio, fim);
         return ResponseEntity.ok(lista);
     }
 
-    @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa cadastrar exceções
+    @AdminOuLider
     @PostMapping
     public ResponseEntity<ExcecaoEscalaData> salvar(@RequestBody ExcecaoEscalaData excecao) {
         ExcecaoEscalaData salva = service.salvarOuAtualizar(excecao);
         return ResponseEntity.ok(salva);
     }
     
+    
+    @AdminOuLider
     @GetMapping("/todas")
     public ResponseEntity<List<ExcecaoEscalaData>> listarTodas() {
-        List<ExcecaoEscalaData> lista = service.listarTodas();
+        List<ExcecaoEscalaData> lista = service.listarTodasPorEmpresa();
         return ResponseEntity.ok(lista);
     }
 
-    @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa remover exceções
+ 
+
+    @AdminOuLider
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         service.deletar(id);

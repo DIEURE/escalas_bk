@@ -32,4 +32,10 @@ public interface ExcecaoEscalaDataRepository extends JpaRepository<ExcecaoEscala
 			LocalDate dataExcecao, Long instrumentoId, Long empresaId);
 
 	List<ExcecaoEscalaData> findByEmpresaId(Long empresaId);
+
+	// 🟢 Busca por empresa e período usando o nome correto do atributo (dataExcecao)
+    List<ExcecaoEscalaData> findByEmpresaIdAndDataExcecaoBetween(Long empresaId, LocalDate inicio, LocalDate fim);
+
+    // 🟢 Busca por empresa, departamento e período
+    List<ExcecaoEscalaData> findByEmpresaIdAndDepartamentoIdAndDataExcecaoBetween(Long empresaId, Long departamentoId, LocalDate inicio, LocalDate fim);
 }

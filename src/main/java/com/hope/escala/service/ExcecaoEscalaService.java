@@ -29,10 +29,26 @@ public class ExcecaoEscalaService {
     }
 
     public List<ExcecaoEscalaData> listarPorPeriodo(Long departamentoId, LocalDate inicio, LocalDate fim) {
-        Long empresaIdLogada = securityUtils.empresaId();
-        // Certifique-se de ter o método correspondente no repository filtrando por empresaId
-        return repository.findByDepartamentoIdAndDataExcecaoBetweenAndEmpresaId(departamentoId, inicio, fim, empresaIdLogada);
+        Long empresaId = securityUtils.empresaId(); // 🟢 Pega a empresa do tenant logado
+        
+        if (departamentoId != null) {
+            return repository.findByEmpresaIdAndDepartamentoIdAndDataExcecaoBetween(empresaId, departamentoId, inicio, fim);
+        } else {
+            // Se não passar o departamento, traz todas as exceções do mês daquela empresa/igreja
+            return repository.findByEmpresaIdAndDataExcecaoBetween(empresaId, inicio, fim);
+        }
     }
+
+    public List<ExcecaoEscalaData> listarPorEmpresaLogada() {
+        Long empresaId = securityUtils.empresaId(); // ou a sua forma de pegar a empresa logada
+        return repository.findByEmpresaId(empresaId);
+    }
+
+
+    public List<ExcecaoEscalaData> listarTodasPorEmpresa() {
+        return repository.findByEmpresaId(securityUtils.empresaId());
+    }
+
 
     public ExcecaoEscalaData salvarOuAtualizar(ExcecaoEscalaData excecao) {
         Long empresaIdLogada = securityUtils.empresaId();

@@ -1,6 +1,5 @@
 package com.hope.escala.security.jwt.JwtAuthenticationFilter;
 
-
 import java.io.IOException;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,71 +21,66 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
+	private final JwtService jwtService;
+	private final UserDetailsService userDetailsService;
 
-    public JwtAuthenticationFilter(
-            JwtService jwtService,
-            UserDetailsService userDetailsService) {
+	public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService) {
 
-        this.jwtService = jwtService;
-        this.userDetailsService = userDetailsService;
-    }
+		this.jwtService = jwtService;
+		this.userDetailsService = userDetailsService;
+	}
 
-    @Override
-    protected void doFilterInternal(
-    		
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain)
-            throws ServletException, IOException {
+	@Override
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+			throws ServletException, IOException {
 
-        String token = recuperarToken(request);
+		String token = recuperarToken(request);
 
-        System.out.println(">>> JwtAuthenticationFilter");
-        
-        if (token != null && jwtService.tokenValido(token)) {
+		System.out.println(">>> JwtAuthenticationFilter");
 
-            String email = jwtService.extrairEmail(token);
+		if (token != null && jwtService.tokenValido(token)) {
 
-            UserDetails userDetails =
-                    userDetailsService.loadUserByUsername(email);
+			String email = jwtService.extrairEmail(token);
+			UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+			System.out.println("Email: " + email);
+
+            // 🟢 Extrai o perfil diretamente do token JWT (ex: "ADMIN")
+            String perfil = jwtService.extrairPerfil(token); 
             
-            System.out.println("Email: " + email);
+            // Cria as authorities garantindo compatibilidade com hasAnyAuthority e hasAnyRole
+            java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities = 
+                java.util.Arrays.asList(
+                    new org.springframework.security.core.authority.SimpleGrantedAuthority(perfil), // Ex: "ADMIN"
+                    new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + perfil) // Ex: "ROLE_ADMIN"
+                );
 
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities());
-            
-            System.out.println("Authorities: " + userDetails.getAuthorities());
+            System.out.println("Authorities injetadas: " + authorities);
 
-            authentication.setDetails(
-                    new WebAuthenticationDetailsSource()
-                            .buildDetails(request));
 
-            SecurityContextHolder
-                    .getContext()
-                    .setAuthentication(authentication);
-        }
-        
-        System.out.println("Usuário autenticado com sucesso");
+			// Passa as authorities corrigidas para o token de autenticação
+			UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails,
+					null, authorities);
 
-        filterChain.doFilter(request, response);
-    }
+			authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-    private String recuperarToken(HttpServletRequest request) {
+			SecurityContextHolder.getContext().setAuthentication(authentication);
+		}
 
-        String bearer = request.getHeader("Authorization");
+		System.out.println("Usuário autenticado com sucesso");
 
-        if (StringUtils.hasText(bearer)
-                && bearer.startsWith("Bearer ")) {
+		filterChain.doFilter(request, response);
+	}
 
-            return bearer.substring(7);
-        }
+	private String recuperarToken(HttpServletRequest request) {
 
-        return null;
-    }
+		String bearer = request.getHeader("Authorization");
+
+		if (StringUtils.hasText(bearer) && bearer.startsWith("Bearer ")) {
+
+			return bearer.substring(7);
+		}
+
+		return null;
+	}
 }
-

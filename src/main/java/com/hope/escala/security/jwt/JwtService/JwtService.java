@@ -50,6 +50,12 @@ public class JwtService {
 
 				.compact();
 	}
+	
+	
+	public String extrairPerfil(String token) {
+	    Claims claims = extrairClaims(token); // 🟢 Alterado para o método correto que já existe na classe
+	    return claims.get("perfil", String.class);
+	}
 
 	public String extrairEmail(String token) {
 
