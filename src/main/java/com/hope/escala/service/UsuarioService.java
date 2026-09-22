@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ import com.hope.escala.repository.InstrumentoRepository;
 import com.hope.escala.repository.UsuarioRepository;
 import com.hope.escala.security.SecurityUtils;
 import com.hope.escala.security.annotation.PodeSerAdmin;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class UsuarioService {
@@ -54,6 +56,33 @@ public class UsuarioService {
         return usuarioRepository.listarComFiltros(empresaIdLogada, busca, perfil, ativo, pageable)
                 .map(this::converterParaDTO);
     }
+    
+    public List<UsuarioResponseDTO> listar(Long empresaFiltroId) {
+        Usuario usuarioLogado = securityUtils.usuarioLogado();
+        List<Usuario> usuarios;
+
+        // 1. Se for SUPER_ADMIN:
+        if (securityUtils.isSuperAdmin()) {
+            if (empresaFiltroId != null) {
+                usuarios = usuarioRepository.findByEmpresaIdOrderByNomeAsc(empresaFiltroId);
+            } else {
+                usuarios = usuarioRepository.findAllByOrderByNomeAsc();
+            }
+        } else {
+            // 2. Se for ADMIN ou LÍDER comum: apenas da congregação dele
+            Long empresaId = securityUtils.empresaId();
+            if (empresaId == null) {
+                return List.of();
+            }
+            usuarios = usuarioRepository.findByEmpresaIdOrderByNomeAsc(empresaId);
+        }
+
+        // Converte para DTO
+        return usuarios.stream()
+                .map(UsuarioResponseDTO::new)
+                .toList();
+    }
+
 
     @PodeSerAdmin
     public UsuarioResponseDTO salvar(UsuarioRequestDTO dto) {
@@ -127,12 +156,33 @@ public class UsuarioService {
         return converterParaDTO(salvo);
     }
 
-    public List<UsuarioResponseDTO> listarPendentes() {
-        Long empresaIdLogada = securityUtils.empresaId();
-        return usuarioRepository.findByEmpresaIdAndAtivoFalse(empresaIdLogada)
-                .stream()
-                .map(this::converterParaDTO)
-                .collect(Collectors.toList());
+    public List<UsuarioResponseDTO> listarPendentes(Long empresaFiltroId) {
+        Long usuarioLogadoId = securityUtils.usuarioId();
+        Usuario usuarioLogado = usuarioRepository.findById(usuarioLogadoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não encontrado"));
+
+        List<Usuario> pendentes;
+
+        // 1. Regra para SUPER_ADMIN
+        if (usuarioLogado.getPerfil() == PerfilUsuario.SUPER_ADMIN) {
+            if (empresaFiltroId != null) {
+                pendentes = usuarioRepository.findByAtivoFalseAndEmpresaIdOrderByNomeAsc(empresaFiltroId);
+            } else {
+                pendentes = usuarioRepository.findByAtivoFalseOrderByNomeAsc();
+            }
+        } else {
+            // 2. Regra para ADMIN ou LÍDER comum (apenas da sua empresa)
+            Long empresaId = (usuarioLogado.getEmpresa() != null) ? usuarioLogado.getEmpresa().getId() : null;
+            
+            if (empresaId == null) {
+                return List.of();
+            }
+            pendentes = usuarioRepository.findByAtivoFalseAndEmpresaIdOrderByNomeAsc(empresaId);
+        }
+
+        return pendentes.stream()
+                .map(UsuarioResponseDTO::new)
+                .toList();
     }
 
     @PodeSerAdmin 
@@ -335,4 +385,22 @@ public class UsuarioService {
         Usuario atualizado = usuarioRepository.save(usuario);
         return converterParaDTO(atualizado);
     }
+    
+    public List<Usuario> listarPendentesPorUsuarioLogado(Usuario usuarioLogado, Long empresaFiltroId) {
+        // 1. Se for Super Admin global
+        if (usuarioLogado.getPerfil() == PerfilUsuario.SUPER_ADMIN) {
+            if (empresaFiltroId != null) {
+                return usuarioRepository.findByAtivoFalseAndEmpresaIdOrderByNomeAsc(empresaFiltroId);
+            }
+            return usuarioRepository.findByAtivoFalseOrderByNomeAsc();
+        }
+
+        // 2. Se for Admin ou Líder local
+        if (usuarioLogado.getEmpresa() == null) {
+            return List.of();
+        }
+
+        return usuarioRepository.findByAtivoFalseAndEmpresaIdOrderByNomeAsc(usuarioLogado.getEmpresa().getId());
+    }
+
 }

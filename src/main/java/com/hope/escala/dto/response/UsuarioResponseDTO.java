@@ -8,34 +8,33 @@ import com.hope.escala.enums.PerfilUsuario;
 
 public class UsuarioResponseDTO {
 
-    private Long id;
+	private Long id;
 
-    private String nome;
+	private String nome;
 
-    private String email;
+	private String email;
 
-    private String telefone;
+	private String telefone;
 
-    private Boolean disponibilidade;
+	private Boolean disponibilidade;
 
-    private Boolean ativo;
+	private Boolean ativo;
 
-    private PerfilUsuario perfil;
+	private PerfilUsuario perfil;
 
- // Substitua o antigo Long instrumentoId por:
-    private Set<Long> instrumentoIds = new HashSet<>();
-    // ou List<Long> instrumentoIds = new ArrayList<>();
+	// Substitua o antigo Long instrumentoId por:
+	private Set<Long> instrumentoIds = new HashSet<>();
+	// ou List<Long> instrumentoIds = new ArrayList<>();
 
+	private String nomeInstrumento;
 
-    private String nomeInstrumento;
+	private Set<String> departamentos;
 
-    private Set<String> departamentos;
-    
-    private Integer quantidade_Escala;
-    
-    private Long empresaId;
+	private Integer quantidade_Escala;
 
-    public Long getEmpresaId() {
+	private Long empresaId;
+
+	public Long getEmpresaId() {
 		return empresaId;
 	}
 
@@ -44,6 +43,39 @@ public class UsuarioResponseDTO {
 	}
 
 	public UsuarioResponseDTO() {
+	}
+	
+	
+
+	// 🟢 Novo construtor a partir da entidade Usuario
+    public UsuarioResponseDTO(com.hope.escala.entity.Usuario usuario) {
+        if (usuario != null) {
+            this.id = usuario.getId();
+            this.nome = usuario.getNome();
+            this.email = usuario.getEmail();
+            this.telefone = usuario.getTelefone();
+            this.disponibilidade = usuario.getDisponibilidade();
+            this.ativo = usuario.getAtivo();
+            this.perfil = usuario.getPerfil();
+            
+            if (usuario.getEmpresa() != null) {
+                this.empresaId = usuario.getEmpresa().getId();
+            }
+
+            // Mapeia os IDs dos instrumentos (se houver a coleção na entidade)
+            if (usuario.getInstrumentos() != null) {
+                this.instrumentoIds = usuario.getInstrumentos().stream()
+                        .map(inst -> inst.getId())
+                        .collect(java.util.stream.Collectors.toSet());
+            }
+
+            // Mapeia os nomes dos departamentos (se houver a coleção na entidade)
+            if (usuario.getDepartamentos() != null) {
+                this.departamentos = usuario.getDepartamentos().stream()
+                        .map(dep -> dep.getNome())
+                        .collect(java.util.stream.Collectors.toSet());
+            }
+        }
     }
 
 	public Long getId() {
@@ -102,8 +134,6 @@ public class UsuarioResponseDTO {
 		this.perfil = perfil;
 	}
 
-	 
-
 	public Set<Long> getInstrumentoIds() {
 		return instrumentoIds;
 	}
@@ -136,7 +166,4 @@ public class UsuarioResponseDTO {
 		this.quantidade_Escala = quantidade_Escala;
 	}
 
-      
-    
 }
-

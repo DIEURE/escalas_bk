@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -12,11 +13,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hope.escala.dto.request.UsuarioDisponibilidadeDTO;
 import com.hope.escala.dto.request.UsuarioRequestDTO;
 import com.hope.escala.dto.response.UsuarioResponseDTO;
+import com.hope.escala.entity.Usuario;
+import com.hope.escala.repository.UsuarioRepository;
 import com.hope.escala.security.SecurityUtils;
 import com.hope.escala.security.annotation.AdminOuLider;
 import com.hope.escala.service.UsuarioService;
@@ -28,10 +32,12 @@ import jakarta.validation.Valid;
 public class UsuarioController {
 
     private final UsuarioService service;
+    private final UsuarioRepository usuarioRepository;
     private final SecurityUtils securityUtils;
-    public UsuarioController(UsuarioService service,SecurityUtils securityUtils) {
+    public UsuarioController(UsuarioService service,SecurityUtils securityUtils, UsuarioRepository usuarioRepository) {
         this.service = service;
         this.securityUtils = securityUtils;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa criar usuários diretamente
@@ -41,11 +47,13 @@ public class UsuarioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.salvar(dto));
     }
 
-    @AdminOuLider // 🟢 Listagem geral de usuários restrita a líderes e admins
+    @AdminOuLider
     @GetMapping    
-    public ResponseEntity<List<UsuarioResponseDTO>> listar() {
-        return ResponseEntity.ok(service.listar());
+    public ResponseEntity<List<UsuarioResponseDTO>> listar(
+            @RequestParam(name = "empresaId", required = false) Long empresaId) {
+        return ResponseEntity.ok(service.listar(empresaId));
     }
+
 
     @GetMapping("/{id}")     
     public ResponseEntity<UsuarioResponseDTO> buscarPorId(@PathVariable Long id) {
@@ -61,10 +69,13 @@ public class UsuarioController {
     }
 
     // 🟢 Endpoint para listar usuários pendentes de aprovação (Admin/Líder)
-    @AdminOuLider
+ // 🟢 Endpoint para listar usuários pendentes de aprovação (Admin/Líder)
     @GetMapping("/pendentes")
-    public ResponseEntity<List<UsuarioResponseDTO>> listarPendentes() {
-        return ResponseEntity.ok(service.listarPendentes());
+    @AdminOuLider
+    public ResponseEntity<List<UsuarioResponseDTO>> listarPendentes(
+            @RequestParam(name = "empresaId", required = false) Long empresaId) {
+
+        return ResponseEntity.ok(service.listarPendentes(empresaId));
     }
 
     // 🟢 Endpoint para aprovar e ativar o usuário (Admin/Líder)

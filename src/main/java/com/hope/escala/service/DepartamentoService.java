@@ -2,6 +2,7 @@ package com.hope.escala.service;
  
 import com.hope.escala.entity.Departamento;
 import com.hope.escala.entity.Usuario;
+import com.hope.escala.enums.PerfilUsuario;
 import com.hope.escala.repository.DepartamentoRepository;
 import com.hope.escala.repository.UsuarioRepository;
  
@@ -84,4 +85,26 @@ public class DepartamentoService {
         dep.setAtivo(!dep.getAtivo());
         departamentoRepository.save(dep);
     }
+    
+    public List<Departamento> listarPorUsuarioLogado(Usuario usuarioLogado, Long empresaFiltroId) {
+        // 1. Se for SUPER_ADMIN
+        if (usuarioLogado.getPerfil() == PerfilUsuario.SUPER_ADMIN) {
+            // Se ele selecionou uma empresa específica no painel:
+            if (empresaFiltroId != null) {
+                return departamentoRepository.findByEmpresaIdOrderByNomeAsc(empresaFiltroId);
+            }
+            // Se não selecionou nada, retorna todos os departamentos do SaaS:
+            return departamentoRepository.findAllByOrderByNomeAsc();
+        }
+
+        // 2. Se for ADMIN ou LÍDER local
+        Long empresaId = (usuarioLogado.getEmpresa() != null) ? usuarioLogado.getEmpresa().getId() : null;
+        
+        if (empresaId == null) {
+            return List.of();
+        }
+
+        return departamentoRepository.findByEmpresaIdOrderByNomeAsc(empresaId);
+    }
+    
 }

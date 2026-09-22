@@ -8,6 +8,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-@PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'LIDER', 'ROLE_LIDER', 'SUPER_ADMIN', 'ROLE_SUPER_ADMIN')")
+@PreAuthorize("hasAnyAuthority('SUPER_ADMIN', 'ROLE_SUPER_ADMIN','ADMIN', 'ROLE_ADMIN', 'LIDER', 'ROLE_LIDER')")
 public @interface AdminOuLider {
 }

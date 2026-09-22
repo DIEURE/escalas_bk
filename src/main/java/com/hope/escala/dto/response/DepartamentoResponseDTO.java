@@ -1,5 +1,8 @@
 package com.hope.escala.dto.response;
-  
+
+import com.hope.escala.entity.Departamento;
+import com.hope.escala.entity.Empresa;
+
 public class DepartamentoResponseDTO {
 
     private Long id;
@@ -9,9 +12,17 @@ public class DepartamentoResponseDTO {
     private Boolean ativo;
 
     public DepartamentoResponseDTO() {
-    }
+    }     
 
-    public Long getId() {
+    public DepartamentoResponseDTO(Departamento departamento) {
+		 
+		this.id = departamento.getId();
+		this.nome = departamento.getNome();
+		this.ativo = departamento.getAtivo();
+	}  
+
+
+	public Long getId() {
         return id;
     }
 

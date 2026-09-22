@@ -10,15 +10,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface PodeGerenciarDepartamento {
     
-    /**
-     * Nome do parâmetro da URL (@PathVariable)
-     * Exemplo: "id" para extrair de /{id}
-     */
-    String parametro() default "id";
-    
-    /**
-     * Tipo de recurso a validar
-     * Exemplo: "agendaMensal", "escala", "departamento"
-     */
+     
+    String parametro() default "id"; 
     String tipo() default "agendaMensal";
 }
