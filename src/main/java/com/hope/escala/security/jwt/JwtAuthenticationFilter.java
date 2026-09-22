@@ -1,8 +1,12 @@
 package com.hope.escala.security.jwt;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -19,67 +23,63 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-	private final JwtService jwtService;
-	private final UserDetailsService userDetailsService;
+    private final JwtService jwtService;
+    private final UserDetailsService userDetailsService;
 
-	public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService) {
+        this.jwtService = jwtService;
+        this.userDetailsService = userDetailsService;
+    }
 
-		this.jwtService = jwtService;
-		this.userDetailsService = userDetailsService;
-	}
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
-	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-			throws ServletException, IOException {
+        String token = recuperarToken(request);
 
-		String token = recuperarToken(request);
+        if (token != null && jwtService.tokenValido(token)) {
+            String email = jwtService.extrairEmail(token);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-		System.out.println(">>> JwtAuthenticationFilter");
+         // Dentro de doFilterInternal, após carregar o userDetails:
+            List<GrantedAuthority> authorities = new ArrayList<>();
 
-		if (token != null && jwtService.tokenValido(token)) {
+            if (userDetails != null && userDetails.getAuthorities() != null) {
+                for (GrantedAuthority auth : userDetails.getAuthorities()) {
+                    String role = auth.getAuthority();
+                    if (role != null && !role.isBlank()) {
+                        if (role.startsWith("ROLE_")) {
+                            authorities.add(new SimpleGrantedAuthority(role));                  // Mantém ROLE_ADMIN
+                            authorities.add(new SimpleGrantedAuthority(role.substring(5)));     // Adiciona ADMIN limpo
+                        } else {
+                            authorities.add(new SimpleGrantedAuthority(role));                  // Mantém ADMIN
+                            authorities.add(new SimpleGrantedAuthority("ROLE_" + role));        // Adiciona ROLE_ADMIN
+                        }
+                    }
+                }
+            }
 
-			String email = jwtService.extrairEmail(token);
-			
-			UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+            // Imprime para conferência:
+            System.out.println(">>> Autenticado: " + email + " | Authorities finais: " + authorities);
 
-			System.out.println("Email: " + email);
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    userDetails,
+                    null,
+                    authorities // 👈 Aqui agora vai conter [ROLE_ADMIN, ADMIN]
+            );
 
-            // 🟢 Extrai o perfil diretamente do token JWT (ex: "ADMIN")
-            String perfil = jwtService.extrairPerfil(token); 
-            
-            // Cria as authorities garantindo compatibilidade com hasAnyAuthority e hasAnyRole
-            java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities = 
-                java.util.Arrays.asList(
-                    new org.springframework.security.core.authority.SimpleGrantedAuthority(perfil), // Ex: "ADMIN"
-                    new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + perfil) // Ex: "ROLE_ADMIN"
-                );
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
 
-            System.out.println("Authorities injetadas: " + authorities);
+        filterChain.doFilter(request, response);
+    }
 
-
-			// Passa as authorities corrigidas para o token de autenticação
-			UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails,
-					null, authorities);
-
-			authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-			SecurityContextHolder.getContext().setAuthentication(authentication);
-		}
-
-		System.out.println("Usuário autenticado com sucesso");
-
-		filterChain.doFilter(request, response);
-	}
-
-	private String recuperarToken(HttpServletRequest request) {
-
-		String bearer = request.getHeader("Authorization");
-
-		if (StringUtils.hasText(bearer) && bearer.startsWith("Bearer ")) {
-
-			return bearer.substring(7);
-		}
-
-		return null;
-	}
+    private String recuperarToken(HttpServletRequest request) {
+        String bearer = request.getHeader("Authorization");
+        if (StringUtils.hasText(bearer) && bearer.startsWith("Bearer ")) {
+            return bearer.substring(7);
+        }
+        return null;
+    }
 }

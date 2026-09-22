@@ -92,4 +92,35 @@ public class EmpresaService {
 
         return empresaRepository.save(empresa);
     }
+    
+    @Transactional
+    public EmpresaResponseDTO atualizarEmpresaLogada(Empresa dados) {
+        // 1. Pega o e-mail do usuário autenticado
+        String email = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication().getName();
+
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
+
+        Empresa empresa = usuario.getEmpresa();
+        if (empresa == null) {
+            throw new RuntimeException("Usuário não possui instituição vinculada.");
+        }
+
+        // 2. Atualiza apenas os campos cadastrais permitidos para o Admin local
+        if (dados.getNome() != null && !dados.getNome().isBlank()) {
+            empresa.setNome(dados.getNome().trim());
+        }
+        empresa.setCnpj(dados.getCnpj());
+        empresa.setTelefone(dados.getTelefone());
+        empresa.setEmail(dados.getEmail());
+        empresa.setEndereco(dados.getEndereco());
+        
+        // Obs: 'ativa' NÃO é alterado pelo admin comum, somente pelo Super Admin
+
+        Empresa salva = empresaRepository.save(empresa);
+        return new EmpresaResponseDTO(salva);
+    }
+
+    
 }

@@ -1,9 +1,14 @@
-
 package com.hope.escala.entity;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -29,211 +34,249 @@ import jakarta.validation.constraints.NotBlank;
 
 @Entity
 @Table(name = "usuarios")
-public class Usuario {
+public class Usuario implements UserDetails {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@NotBlank
-	private String nome;
+    @NotBlank
+    private String nome;
 
-	@Column(unique = true)
-	@Email
-	private String email;
+    @Column(unique = true)
+    @Email
+    private String email;
 
-	private String telefone;
+    private String telefone;
 
-	@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-	private String senha;
-	
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "empresa_id", nullable = false)
-	@JsonIgnore // 🟢 Evita loop infinito entre Empresa e Usuario
-	private Empresa empresa;
-	
-	@JsonIgnore
-	@ManyToMany
-	@JoinTable(
-	        name = "usuario_departamentos",
-	        joinColumns = @JoinColumn(name = "usuario_id"),
-	        inverseJoinColumns = @JoinColumn(name = "departamento_id")
-	)
- 
-	
-	private Set<Departamento> departamentos =
-	        new HashSet<>();
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String senha;
 
-	private Boolean disponibilidade;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "empresa_id", nullable = false)
+    @JsonIgnore // Evita loop infinito de serialização
+    private Empresa empresa;
 
-	private Boolean ativo = true;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PerfilUsuario perfil;
 
-	private String observacao;
+    @JsonIgnore
+    @ManyToMany
+    @JoinTable(
+        name = "usuario_departamentos",
+        joinColumns = @JoinColumn(name = "usuario_id"),
+        inverseJoinColumns = @JoinColumn(name = "departamento_id")
+    )
+    private Set<Departamento> departamentos = new HashSet<>();
 
-	private LocalDateTime dataCadastro;
+    @ManyToMany
+    @JoinTable(
+        name = "usuario_instrumentos",
+        joinColumns = @JoinColumn(name = "usuario_id"),
+        inverseJoinColumns = @JoinColumn(name = "instrumento_id")
+    )
+    private Set<Instrumento> instrumentos = new HashSet<>();
 
-	private LocalDateTime dataAtualizacao;
+    private Boolean disponibilidade;
 
-	private LocalDateTime dataInativacao;
+    private Boolean ativo = true;
 
-	private LocalDateTime ultimoLogin;
+    private String observacao;
 
-  
+    private LocalDateTime dataCadastro;
 
-	@ManyToMany
-	@JoinTable(
-	    name = "usuario_instrumentos",
-	    joinColumns = @JoinColumn(name = "usuario_id"),
-	    inverseJoinColumns = @JoinColumn(name = "instrumento_id")
-	)
-	private Set<Instrumento> instrumentos = new HashSet<>();
+    private LocalDateTime dataAtualizacao;
 
-	
-	 
+    private LocalDateTime dataInativacao;
 
-	public Empresa getEmpresa() {
-		return empresa;
-	}
+    private LocalDateTime ultimoLogin;
 
-	public void setEmpresa(Empresa empresa) {
-		this.empresa = empresa;
-	}
+    public Usuario() {
+    }
 
-	public PerfilUsuario getPerfil() {
-		return perfil;
-	}
+    @PrePersist
+    public void prePersist() {
+        this.dataCadastro = LocalDateTime.now();
+    }
 
-	public void setPerfil(PerfilUsuario perfil) {
-		this.perfil = perfil;
-	}
+    @PreUpdate
+    public void preUpdate() {
+        this.dataAtualizacao = LocalDateTime.now();
+    }
 
-	@Enumerated(EnumType.STRING) private PerfilUsuario perfil;
+    // ==========================================
+    // Métodos da Interface UserDetails (Spring Security)
+    // ==========================================
 
-	public Usuario() {
-	}
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        if (this.perfil == null) {
+            return List.of();
+        }
+        // Retorna a autoridade com o nome exato do Enum (hasAnyAuthority)
+        return List.of(new SimpleGrantedAuthority(this.perfil.name()));
+    }
 
-	@PrePersist
-	public void prePersist() {
-		this.dataCadastro = LocalDateTime.now();
-	}
+    @Override
+    public String getPassword() {
+        return this.senha;
+    }
 
-	@PreUpdate
-	public void preUpdate() {
-		this.dataAtualizacao = LocalDateTime.now();
-	}
+    @Override
+    public String getUsername() {
+        return this.email;
+    }
 
-	public Long getId() {
-		return id;
-	}
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
 
-	public String getNome() {
-		return nome;
-	}
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
 
-	public void setNome(String nome) {
-		this.nome = nome;
-	}
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
 
-	public String getEmail() {
-		return email;
-	}
+    @Override
+    public boolean isEnabled() {
+        return Boolean.TRUE.equals(this.ativo);
+    }
 
-	public void setEmail(String email) {
-		this.email = email;
-	}
+    // ==========================================
+    // Getters e Setters (Java Puro)
+    // ==========================================
 
-	public String getTelefone() {
-		return telefone;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	public void setTelefone(String telefone) {
-		this.telefone = telefone;
-	}
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-	public String getSenha() {
-		return senha;
-	}
+    public String getNome() {
+        return nome;
+    }
 
-	public void setSenha(String senha) {
-		this.senha = senha;
-	}
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
 
-	public Boolean getDisponibilidade() {
-		return disponibilidade;
-	}
+    public String getEmail() {
+        return email;
+    }
 
-	public void setDisponibilidade(Boolean disponibilidade) {
-		this.disponibilidade = disponibilidade;
-	}
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-	public Boolean getAtivo() {
-		return ativo;
-	}
+    public String getTelefone() {
+        return telefone;
+    }
 
-	public void setAtivo(Boolean ativo) {
-		this.ativo = ativo;
-	}
+    public void setTelefone(String telefone) {
+        this.telefone = telefone;
+    }
 
-	public String getObservacao() {
-		return observacao;
-	}
+    public String getSenha() {
+        return senha;
+    }
 
-	public void setObservacao(String observacao) {
-		this.observacao = observacao;
-	}
+    public void setSenha(String senha) {
+        this.senha = senha;
+    }
 
-	public LocalDateTime getDataCadastro() {
-		return dataCadastro;
-	}
+    public Empresa getEmpresa() {
+        return empresa;
+    }
 
-	public LocalDateTime getDataAtualizacao() {
-		return dataAtualizacao;
-	}
+    public void setEmpresa(Empresa empresa) {
+        this.empresa = empresa;
+    }
 
-	public void setDataAtualizacao(LocalDateTime dataAtualizacao) {
-		this.dataAtualizacao = dataAtualizacao;
-	}
+    public PerfilUsuario getPerfil() {
+        return perfil;
+    }
 
-	public LocalDateTime getDataInativacao() {
-		return dataInativacao;
-	}
+    public void setPerfil(PerfilUsuario perfil) {
+        this.perfil = perfil;
+    }
 
-	public void setDataInativacao(LocalDateTime dataInativacao) {
-		this.dataInativacao = dataInativacao;
-	}
+    public Set<Departamento> getDepartamentos() {
+        return departamentos;
+    }
 
-	public LocalDateTime getUltimoLogin() {
-		return ultimoLogin;
-	}
+    public void setDepartamentos(Set<Departamento> departamentos) {
+        this.departamentos = departamentos;
+    }
 
-	public void setUltimoLogin(LocalDateTime ultimoLogin) {
-		this.ultimoLogin = ultimoLogin;
-	}
- 
- 
-	public Set<Instrumento> getInstrumentos() {
-		return instrumentos;
-	}
+    public Set<Instrumento> getInstrumentos() {
+        return instrumentos;
+    }
 
-	public void setInstrumentos(Set<Instrumento> instrumentos) {
-		this.instrumentos = instrumentos;
-	}
+    public void setInstrumentos(Set<Instrumento> instrumentos) {
+        this.instrumentos = instrumentos;
+    }
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    public Boolean getDisponibilidade() {
+        return disponibilidade;
+    }
 
-	public void setDataCadastro(LocalDateTime dataCadastro) {
-		this.dataCadastro = dataCadastro;
-	}
+    public void setDisponibilidade(Boolean disponibilidade) {
+        this.disponibilidade = disponibilidade;
+    }
 
-	public Set<Departamento> getDepartamentos() {
-	    return departamentos;
-	}
+    public Boolean getAtivo() {
+        return ativo;
+    }
 
-	public void setDepartamentos(
-	        Set<Departamento> departamentos
-	) {
-	    this.departamentos = departamentos;
-	}
+    public void setAtivo(Boolean ativo) {
+        this.ativo = ativo;
+    }
+
+    public String getObservacao() {
+        return observacao;
+    }
+
+    public void setObservacao(String observacao) {
+        this.observacao = observacao;
+    }
+
+    public LocalDateTime getDataCadastro() {
+        return dataCadastro;
+    }
+
+    public void setDataCadastro(LocalDateTime dataCadastro) {
+        this.dataCadastro = dataCadastro;
+    }
+
+    public LocalDateTime getDataAtualizacao() {
+        return dataAtualizacao;
+    }
+
+    public void setDataAtualizacao(LocalDateTime dataAtualizacao) {
+        this.dataAtualizacao = dataAtualizacao;
+    }
+
+    public LocalDateTime getDataInativacao() {
+        return dataInativacao;
+    }
+
+    public void setDataInativacao(LocalDateTime dataInativacao) {
+        this.dataInativacao = dataInativacao;
+    }
+
+    public LocalDateTime getUltimoLogin() {
+        return ultimoLogin;
+    }
+
+    public void setUltimoLogin(LocalDateTime ultimoLogin) {
+        this.ultimoLogin = ultimoLogin;
+    }
 }

@@ -1,123 +1,87 @@
 package com.hope.escala.service;
+ 
+import com.hope.escala.entity.Departamento;
+import com.hope.escala.entity.Usuario;
+import com.hope.escala.repository.DepartamentoRepository;
+import com.hope.escala.repository.UsuarioRepository;
+ 
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-
-import com.hope.escala.dto.request.DepartamentoRequestDTO;
-import com.hope.escala.dto.response.DepartamentoResponseDTO;
-import com.hope.escala.entity.Departamento;
-import com.hope.escala.entity.Empresa;
-import com.hope.escala.repository.DepartamentoRepository;
-import com.hope.escala.repository.EmpresaRepository;
-import com.hope.escala.security.SecurityUtils;
 
 @Service
 public class DepartamentoService {
 
-	private final DepartamentoRepository departamentoRepository;
-	private final EmpresaRepository empresaRepository;
-	private final SecurityUtils securityUtils;
+    private final DepartamentoRepository departamentoRepository;
+    private final UsuarioRepository usuarioRepository;
 
-	public DepartamentoService(DepartamentoRepository departamentoRepository, EmpresaRepository empresaRepository,
-			SecurityUtils securityUtils) {
-		this.departamentoRepository = departamentoRepository;
-		this.empresaRepository = empresaRepository;
-		this.securityUtils = securityUtils;
-	}
+    public DepartamentoService(DepartamentoRepository departamentoRepository, UsuarioRepository usuarioRepository) {
+        this.departamentoRepository = departamentoRepository;
+        this.usuarioRepository = usuarioRepository;
+    }
 
-	public DepartamentoResponseDTO salvar(DepartamentoRequestDTO dto) {
+    private Usuario getUsuarioLogado() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuário autenticado não encontrado."));
+    }
 
-		// ← APENAS ADMIN pode criar departamentos
-		if (!securityUtils.isAdmin()) {
-			throw new RuntimeException("Apenas administradores podem criar departamentos.");
-		}
+    public List<Departamento> listarPorEmpresaLogada() {
+        Usuario usuario = getUsuarioLogado();
+        return departamentoRepository.findByEmpresaIdOrderByNomeAsc(usuario.getEmpresa().getId());
+    }
 
-		Empresa empresa = empresaRepository.findById(securityUtils.empresaId())
-				.orElseThrow(() -> new RuntimeException("Empresa não encontrada"));
+    public List<Departamento> listarAtivosPorEmpresaLogada() {
+        Usuario usuario = getUsuarioLogado();
+        return departamentoRepository.findByEmpresaIdAndAtivoTrueOrderByNomeAsc(usuario.getEmpresa().getId());
+    }
 
-		Departamento departamento = new Departamento();
+    @Transactional
+    public Departamento salvar(Departamento dados) {
+        Usuario usuario = getUsuarioLogado();
+        Long empresaId = usuario.getEmpresa().getId();
 
-		departamento.setNome(dto.getNome());
-		departamento.setAtivo(true); // ← Ativo por padrão
-		departamento.setEmpresa(empresa);
+        if (departamentoRepository.existsByNomeIgnoreCaseAndEmpresaId(dados.getNome().trim(), empresaId)) {
+            throw new RuntimeException("Já existe um departamento com este nome na congregação.");
+        }
 
-		Departamento salvo = departamentoRepository.save(departamento);
+        Departamento dep = new Departamento();
+        dep.setNome(dados.getNome().trim());
+        dep.setEmpresa(usuario.getEmpresa());
+        dep.setAtivo(true);
 
-		return converterParaDTO(salvo);
-	}
+        return departamentoRepository.save(dep);
+    }
 
-	public List<DepartamentoResponseDTO> listar() {
+    @Transactional
+    public Departamento atualizar(Long id, Departamento dados) {
+        Usuario usuario = getUsuarioLogado();
+        Long empresaId = usuario.getEmpresa().getId();
 
-		return departamentoRepository.findByAtivoTrue().stream().map(this::converterParaDTO)
-				.collect(Collectors.toList());
-	}
+        Departamento dep = departamentoRepository.findByIdAndEmpresaId(id, empresaId)
+                .orElseThrow(() -> new RuntimeException("Departamento não encontrado ou sem permissão de acesso."));
 
-	public List<Departamento> listarPorEmpresa() {
-		return departamentoRepository.findByEmpresaId(securityUtils.empresaId());
-	}
+        if (departamentoRepository.existsByNomeIgnoreCaseAndEmpresaIdAndIdNot(dados.getNome().trim(), empresaId, id)) {
+            throw new RuntimeException("Já existe outro departamento com este nome.");
+        }
 
-	public DepartamentoResponseDTO buscarPorId(Long id) {
+        dep.setNome(dados.getNome().trim());
+        if (dados.getAtivo() != null) {
+            dep.setAtivo(dados.getAtivo());
+        }
 
-		Departamento departamento = departamentoRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Departamento não encontrado"));
+        return departamentoRepository.save(dep);
+    }
 
-		return converterParaDTO(departamento);
-	}
+    @Transactional
+    public void alternarStatus(Long id) {
+        Usuario usuario = getUsuarioLogado();
+        Departamento dep = departamentoRepository.findByIdAndEmpresaId(id, usuario.getEmpresa().getId())
+                .orElseThrow(() -> new RuntimeException("Departamento não encontrado ou sem permissão de acesso."));
 
-	public DepartamentoResponseDTO atualizar(Long id, DepartamentoRequestDTO dto) {
-
-		Departamento departamento = departamentoRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Departamento não encontrado"));
-
-		departamento.setNome(dto.getNome());
-
-		Departamento atualizado = departamentoRepository.save(departamento);
-
-		return converterParaDTO(atualizado);
-	}
-
-	public void inativar(Long id) {
-
-		Departamento departamento = departamentoRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Departamento não encontrado"));
-
-		departamento.setAtivo(false);
-
-		departamentoRepository.save(departamento);
-	}
-
-	public List<DepartamentoResponseDTO> listarInativos() {
-		return departamentoRepository.findByAtivoFalse().stream().map(this::converterParaDTO)
-				.collect(Collectors.toList());
-	}
-
-	public DepartamentoResponseDTO ativar(Long id) {
-		if (!securityUtils.isAdmin()) {
-			throw new RuntimeException("Apenas administradores podem ativar departamentos.");
-		}
-
-		Departamento departamento = departamentoRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Departamento não encontrado"));
-
-		departamento.setAtivo(true);
-
-		Departamento atualizado = departamentoRepository.save(departamento);
-
-		return converterParaDTO(atualizado);
-	}
-
-	private DepartamentoResponseDTO converterParaDTO(Departamento departamento) {
-
-		DepartamentoResponseDTO dto = new DepartamentoResponseDTO();
-
-		dto.setId(departamento.getId());
-
-		dto.setNome(departamento.getNome());
-
-		dto.setAtivo(departamento.getAtivo());
-
-		return dto;
-	}
+        dep.setAtivo(!dep.getAtivo());
+        departamentoRepository.save(dep);
+    }
 }

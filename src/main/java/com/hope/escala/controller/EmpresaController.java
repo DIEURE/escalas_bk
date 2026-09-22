@@ -22,7 +22,7 @@ public class EmpresaController {
         this.empresaService = empresaService;
     }
 
-    // 🟢 1. Listar TODAS as empresas para a tabela (Apenas Super Admin)
+ 
     @GetMapping
     @SomenteSuperAdmin
     public ResponseEntity<List<Empresa>> listarTodas() {
@@ -30,7 +30,7 @@ public class EmpresaController {
         return ResponseEntity.ok(empresas);
     }
 
-    // 🟢 2. Criar nova empresa no SaaS (Apenas Super Admin)
+    
     @PostMapping
     @SomenteSuperAdmin
     public ResponseEntity<Empresa> criar(@RequestBody Empresa empresa) {
@@ -38,14 +38,28 @@ public class EmpresaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(novaEmpresa);
     }
 
-    // 🌐 3. Listagem pública para a tela de primeiro cadastro de voluntários
+  
+    @PutMapping("/minha-empresa")
+    @AdminOuLider
+    public ResponseEntity<EmpresaResponseDTO> atualizarMinhaEmpresa(@RequestBody Empresa dados) {
+        EmpresaResponseDTO dto = empresaService.atualizarEmpresaLogada(dados);
+        return ResponseEntity.ok(dto);
+    }
+
+    @PutMapping("/{id}")
+    @SomenteSuperAdmin
+    public ResponseEntity<Empresa> atualizar(@PathVariable Long id, @RequestBody Empresa empresaDados) {
+        Empresa empresaAtualizada = empresaService.atualizarEmpresa(id, empresaDados);
+        return ResponseEntity.ok(empresaAtualizada);
+    }
+     
     @GetMapping("/empresas-publicas")
     public ResponseEntity<List<Empresa>> listarEmpresasPublicas() {
         List<Empresa> empresas = empresaService.listarEmpresasParaCadastro(); 
         return ResponseEntity.ok(empresas);
     }
 
-    // 🟡 4. Buscar os dados da congregação do usuário logado (Admin local / Líder)
+     
     @GetMapping("/minha-empresa")
     @AdminOuLider
     public ResponseEntity<EmpresaResponseDTO> buscarMinhaEmpresa() {
@@ -53,7 +67,7 @@ public class EmpresaController {
         return ResponseEntity.ok(dto);
     }
 
-    // 🟢 5. Buscar por ID (Super Admin para manutenção de qualquer tenant)
+     
     @GetMapping("/{id}")
     @SomenteSuperAdmin
     public ResponseEntity<Empresa> buscarPorId(@PathVariable Long id) {
@@ -61,11 +75,6 @@ public class EmpresaController {
         return ResponseEntity.ok(empresa);
     }
 
-    // 🟢 6. Atualizar os dados de qualquer empresa por ID (Super Admin)
-    @PutMapping("/{id}")
-    @SomenteSuperAdmin
-    public ResponseEntity<Empresa> atualizar(@PathVariable Long id, @RequestBody Empresa empresaDados) {
-        Empresa empresaAtualizada = empresaService.atualizarEmpresa(id, empresaDados);
-        return ResponseEntity.ok(empresaAtualizada);
-    }
+   
+
 }

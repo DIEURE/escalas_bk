@@ -1,12 +1,11 @@
 package com.hope.escala.security.annotation;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
+@Inherited
+@PreAuthorize("hasAnyAuthority('ADMIN', 'SUPER_ADMIN')") // 🟢 usa hasAnyAuthority
 public @interface PodeSerAdmin {
-    // Apenas ADMIN pode acessar
 }
