@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hope.escala.dto.request.InstrumentoRequestDTO;
@@ -38,9 +39,9 @@ public class InstrumentoController {
     }
 
     @GetMapping
-    // ✅ Público - todos podem listar
-    public ResponseEntity<List<InstrumentoResponse>> listar() {
-        return ResponseEntity.ok(service.listar());
+    public ResponseEntity<List<InstrumentoResponse>> listar(
+            @RequestParam(name = "empresaId", required = false) Long empresaId) {
+        return ResponseEntity.ok(service.listar(empresaId));
     }
 
     @GetMapping("/{id}")

@@ -54,7 +54,7 @@ public class Usuario implements UserDetails {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
-    @JsonIgnore // Evita loop infinito de serialização
+    @JsonIgnore // Evita loop infinito e lazy loading proxy no JSON
     private Empresa empresa;
 
     @Enumerated(EnumType.STRING)
@@ -114,7 +114,6 @@ public class Usuario implements UserDetails {
         if (this.perfil == null) {
             return List.of();
         }
-        // Retorna a autoridade com o nome exato do Enum (hasAnyAuthority)
         return List.of(new SimpleGrantedAuthority(this.perfil.name()));
     }
 
@@ -198,6 +197,18 @@ public class Usuario implements UserDetails {
 
     public void setEmpresa(Empresa empresa) {
         this.empresa = empresa;
+    }
+
+    // 🟢 AUXILIARES MULTI-TENANT: Expõe o ID e Nome da empresa no JSON
+    // sem carregar a entidade Empresa inteira (evitando LazyInitializationException)
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    public Long getEmpresaId() {
+        return this.empresa != null ? this.empresa.getId() : null;
+    }
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    public String getEmpresaNome() {
+        return this.empresa != null ? this.empresa.getNome() : null;
     }
 
     public PerfilUsuario getPerfil() {

@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.hope.escala.dto.request.UsuarioRequestDTO;
 import com.hope.escala.dto.response.UsuarioResponseDTO;
@@ -26,7 +27,6 @@ import com.hope.escala.repository.InstrumentoRepository;
 import com.hope.escala.repository.UsuarioRepository;
 import com.hope.escala.security.SecurityUtils;
 import com.hope.escala.security.annotation.PodeSerAdmin;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class UsuarioService {
@@ -49,16 +49,15 @@ public class UsuarioService {
         this.emailService = emailService;
     }
 
-    // 🟢 Novo: alimenta a Data Table do frontend com paginação, busca e filtros combinados
+    // 🟢 Alimenta a Data Table do frontend com paginação, busca e filtros combinados
     @Transactional(readOnly = true)
     public Page<UsuarioResponseDTO> listarPaginado(String busca, PerfilUsuario perfil, Boolean ativo, Pageable pageable) {
         Long empresaIdLogada = securityUtils.empresaId();
         return usuarioRepository.listarComFiltros(empresaIdLogada, busca, perfil, ativo, pageable)
                 .map(this::converterParaDTO);
     }
-    
+
     public List<UsuarioResponseDTO> listar(Long empresaFiltroId) {
-        Usuario usuarioLogado = securityUtils.usuarioLogado();
         List<Usuario> usuarios;
 
         // 1. Se for SUPER_ADMIN:
@@ -77,19 +76,25 @@ public class UsuarioService {
             usuarios = usuarioRepository.findByEmpresaIdOrderByNomeAsc(empresaId);
         }
 
-        // Converte para DTO
         return usuarios.stream()
-                .map(UsuarioResponseDTO::new)
+                .map(this::converterParaDTO)
                 .toList();
     }
 
-
     @PodeSerAdmin
     public UsuarioResponseDTO salvar(UsuarioRequestDTO dto) {
-        Long empresaIdLogada = securityUtils.empresaId();
-
         if (usuarioRepository.existsByEmail(dto.getEmail())) {
             throw new RuntimeException("Email já existe");
+        }
+
+        // 🟢 Multi-tenant: se for Super Admin e escolheu a congregação no modal, usa o dto.getEmpresaId()
+        Long empresaIdDestino = securityUtils.empresaId();
+        if (securityUtils.isSuperAdmin() && dto.getEmpresaId() != null) {
+            empresaIdDestino = dto.getEmpresaId();
+        }
+
+        if (empresaIdDestino == null) {
+            throw new RuntimeException("A congregação (empresa) é obrigatória para cadastrar um usuário.");
         }
 
         Set<Instrumento> instrumentosEncontrados = new HashSet<>();
@@ -115,8 +120,9 @@ public class UsuarioService {
         usuario.setDepartamentos(departamentos);
         usuario.setAtivo(true);
 
+        // Vínculo da congregação
         Empresa empresa = new Empresa();
-        empresa.setId(empresaIdLogada);
+        empresa.setId(empresaIdDestino);
         usuario.setEmpresa(empresa);
 
         Usuario salvo = usuarioRepository.save(usuario);
@@ -149,7 +155,7 @@ public class UsuarioService {
         usuario.setDisponibilidade(true);
         
         usuario.setInstrumentos(instrumentosEncontrados);
-        usuario.setAtivo(false); // REGRA DO PROJETO: Inativo até admin/líder liberar
+        usuario.setAtivo(false); // REGRA: Inativo até admin/líder liberar
         usuario.setEmpresa(empresa);
 
         Usuario salvo = usuarioRepository.save(usuario);
@@ -163,17 +169,14 @@ public class UsuarioService {
 
         List<Usuario> pendentes;
 
-        // 1. Regra para SUPER_ADMIN
-        if (usuarioLogado.getPerfil() == PerfilUsuario.SUPER_ADMIN) {
+        if (securityUtils.isSuperAdmin()) {
             if (empresaFiltroId != null) {
                 pendentes = usuarioRepository.findByAtivoFalseAndEmpresaIdOrderByNomeAsc(empresaFiltroId);
             } else {
                 pendentes = usuarioRepository.findByAtivoFalseOrderByNomeAsc();
             }
         } else {
-            // 2. Regra para ADMIN ou LÍDER comum (apenas da sua empresa)
             Long empresaId = (usuarioLogado.getEmpresa() != null) ? usuarioLogado.getEmpresa().getId() : null;
-            
             if (empresaId == null) {
                 return List.of();
             }
@@ -181,7 +184,7 @@ public class UsuarioService {
         }
 
         return pendentes.stream()
-                .map(UsuarioResponseDTO::new)
+                .map(this::converterParaDTO)
                 .toList();
     }
 
@@ -192,7 +195,7 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário pendente não encontrado"));
 
-        if (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada)) {
+        if (!securityUtils.isSuperAdmin() && (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada))) {
             throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
         }
 
@@ -216,7 +219,8 @@ public class UsuarioService {
         Usuario aprovado = usuarioRepository.save(usuario);
 
         try {
-            emailService.enviarEmailAprovacao(empresaIdLogada, aprovado.getEmail(), aprovado.getNome());
+            Long empresaDestino = aprovado.getEmpresa() != null ? aprovado.getEmpresa().getId() : empresaIdLogada;
+            emailService.enviarEmailAprovacao(empresaDestino, aprovado.getEmail(), aprovado.getNome());
         } catch (Exception e) {
             System.err.println("Aviso: Usuário aprovado, mas falhou ao enviar o e-mail: " + e.getMessage());
         }
@@ -224,7 +228,6 @@ public class UsuarioService {
         return converterParaDTO(aprovado);
     }
 
-    // 🟢 Novo: Alternar status rápido com um clique direto na tabela
     @PodeSerAdmin
     public UsuarioResponseDTO alternarStatus(Long id) {
         Long empresaIdLogada = securityUtils.empresaId();
@@ -232,7 +235,7 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        if (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada)) {
+        if (!securityUtils.isSuperAdmin() && (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada))) {
             throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
         }
 
@@ -243,9 +246,9 @@ public class UsuarioService {
             usuario.setDataInativacao(LocalDateTime.now());
         } else {
             usuario.setDataInativacao(null);
-            // Dispara e-mail se foi liberado agora
             try {
-                emailService.enviarEmailAprovacao(empresaIdLogada, usuario.getEmail(), usuario.getNome());
+                Long empresaDestino = usuario.getEmpresa() != null ? usuario.getEmpresa().getId() : empresaIdLogada;
+                emailService.enviarEmailAprovacao(empresaDestino, usuario.getEmail(), usuario.getNome());
             } catch (Exception e) {
                 System.err.println("Aviso: Status ativado, mas falhou envio de e-mail: " + e.getMessage());
             }
@@ -257,8 +260,11 @@ public class UsuarioService {
 
     public List<UsuarioResponseDTO> listar() {
         Long empresaIdLogada = securityUtils.empresaId();
-        return usuarioRepository.findByEmpresaIdAndAtivoTrue(empresaIdLogada)
-                .stream()
+        List<Usuario> usuarios = securityUtils.isSuperAdmin() 
+                ? usuarioRepository.findAllByOrderByNomeAsc()
+                : usuarioRepository.findByEmpresaIdOrderByNomeAsc(empresaIdLogada);
+
+        return usuarios.stream()
                 .map(this::converterParaDTO)
                 .collect(Collectors.toList());
     }
@@ -269,7 +275,7 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        if (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada)) {
+        if (!securityUtils.isSuperAdmin() && (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada))) {
             throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
         }
 
@@ -284,18 +290,27 @@ public class UsuarioService {
                 .collect(Collectors.toList());
     }
 
+    @PodeSerAdmin
     public UsuarioResponseDTO atualizar(Long id, UsuarioRequestDTO dto) {
         Long empresaIdLogada = securityUtils.empresaId();
 
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        if (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada)) {
+        // Se não for Super Admin, só altera da própria igreja
+        if (!securityUtils.isSuperAdmin() && (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada))) {
             throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
         }
 
         if (!usuario.getEmail().equals(dto.getEmail()) && usuarioRepository.existsByEmail(dto.getEmail())) {
             throw new RuntimeException("Email já existe");
+        }
+
+        // 🟢 Se for Super Admin e escolheu trocar a congregação no modal
+        if (securityUtils.isSuperAdmin() && dto.getEmpresaId() != null) {
+            Empresa novaEmpresa = new Empresa();
+            novaEmpresa.setId(dto.getEmpresaId());
+            usuario.setEmpresa(novaEmpresa);
         }
 
         Set<Instrumento> instrumentosEncontrados = new HashSet<>();
@@ -333,7 +348,7 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        if (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada)) {
+        if (!securityUtils.isSuperAdmin() && (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada))) {
             throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
         }
 
@@ -343,6 +358,23 @@ public class UsuarioService {
         usuarioRepository.save(usuario);
     }
 
+    @PodeSerAdmin
+    public UsuarioResponseDTO atualizarDisponibilidade(Long id, Boolean disponibilidade) {
+        Long empresaIdLogada = securityUtils.empresaId();
+
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+        if (!securityUtils.isSuperAdmin() && (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada))) {
+            throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
+        }
+
+        usuario.setDisponibilidade(disponibilidade);
+        Usuario atualizado = usuarioRepository.save(usuario);
+        return converterParaDTO(atualizado);
+    }
+
+    // 🟢 Conversor preenchendo empresaId e empresaNome
     private UsuarioResponseDTO converterParaDTO(Usuario usuario) {
         UsuarioResponseDTO dto = new UsuarioResponseDTO();
 
@@ -354,12 +386,16 @@ public class UsuarioService {
         dto.setPerfil(usuario.getPerfil());
         dto.setAtivo(usuario.getAtivo());
 
+        // 🟢 Preenche a congregação no DTO
+        if (usuario.getEmpresa() != null) {
+            dto.setEmpresaId(usuario.getEmpresa().getId());
+            dto.setEmpresaNome(usuario.getEmpresa().getNome());
+        }
+
         if (usuario.getInstrumentos() != null) {
             dto.setInstrumentoIds(
                 usuario.getInstrumentos().stream().map(Instrumento::getId).collect(Collectors.toSet())
             );
-            // Dica: se o seu DTO tiver um campo para nomes ou objetos dos instrumentos:
-            // dto.setInstrumentos(usuario.getInstrumentos().stream().map(Instrumento::getNome).collect(Collectors.toList()));
         }
 
         if (usuario.getDepartamentos() != null) {
@@ -370,24 +406,8 @@ public class UsuarioService {
 
         return dto;
     }
-
-    public UsuarioResponseDTO atualizarDisponibilidade(Long id, Boolean disponibilidade) {
-        Long empresaIdLogada = securityUtils.empresaId();
-
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-
-        if (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada)) {
-			throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
-        }
-
-        usuario.setDisponibilidade(disponibilidade);
-        Usuario atualizado = usuarioRepository.save(usuario);
-        return converterParaDTO(atualizado);
-    }
     
     public List<Usuario> listarPendentesPorUsuarioLogado(Usuario usuarioLogado, Long empresaFiltroId) {
-        // 1. Se for Super Admin global
         if (usuarioLogado.getPerfil() == PerfilUsuario.SUPER_ADMIN) {
             if (empresaFiltroId != null) {
                 return usuarioRepository.findByAtivoFalseAndEmpresaIdOrderByNomeAsc(empresaFiltroId);
@@ -395,12 +415,10 @@ public class UsuarioService {
             return usuarioRepository.findByAtivoFalseOrderByNomeAsc();
         }
 
-        // 2. Se for Admin ou Líder local
         if (usuarioLogado.getEmpresa() == null) {
             return List.of();
         }
 
         return usuarioRepository.findByAtivoFalseAndEmpresaIdOrderByNomeAsc(usuarioLogado.getEmpresa().getId());
     }
-
 }

@@ -1,5 +1,6 @@
 package com.hope.escala.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -23,15 +24,50 @@ public class ResourceExceptionHandler {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
 	}
 
-	@ExceptionHandler(DataIntegrityViolationException.class)
-	public ResponseEntity<StandardError> dataIntegrityViolationException(DataIntegrityViolationException ex,
-			HttpServletRequest request) {
+	// 🟢 Captura violações de chave única do banco e de transações
+	@ExceptionHandler({DataIntegrityViolationException.class, org.hibernate.exception.ConstraintViolationException.class})
+	public ResponseEntity<StandardError> dataIntegrityViolationException(Exception ex, HttpServletRequest request) {
 
-		StandardError error = new StandardError(System.currentTimeMillis(), HttpStatus.BAD_REQUEST.value(),
-				"Violação de dados", ex.getMessage(), request.getRequestURI());
+		String mensagem = "Violação de integridade nos dados.";
+		
+		// Concatena a mensagem principal com a causa para garantir que a constraint seja encontrada
+		String mensagemCompleta = ex.getMessage() != null ? ex.getMessage() : "";
+		if (ex.getCause() != null && ex.getCause().getMessage() != null) {
+			mensagemCompleta += " " + ex.getCause().getMessage();
+		}
 
+		if (mensagemCompleta.contains("uk_instrumento_nome_empresa")) {
+			mensagem = "Já existe um instrumento cadastrado com este nome nesta congregação.";
+		} else if (mensagemCompleta.contains("uk_departamento_nome_empresa")) {
+			mensagem = "Já existe um departamento cadastrado com este nome nesta congregação.";
+		} else if (mensagemCompleta.contains("usuarios_email_key") || mensagemCompleta.contains("email")) {
+			mensagem = "Já existe um usuário cadastrado com este e-mail.";
+		}
+
+		StandardError error = new StandardError(
+				System.currentTimeMillis(), 
+				HttpStatus.CONFLICT.value(),
+				"Conflito de dados", 
+				mensagem, 
+				request.getRequestURI()
+		);
+
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+	}
+
+	// 🟢 Captura regras de negócio lançadas com throw new RuntimeException("...")
+	@ExceptionHandler(RuntimeException.class)
+	public ResponseEntity<StandardError> runtimeException(RuntimeException ex, HttpServletRequest request) {
+		StandardError error = new StandardError(
+				System.currentTimeMillis(),
+				HttpStatus.BAD_REQUEST.value(),
+				"Regra de Negócio",
+				ex.getMessage(),
+				request.getRequestURI()
+		);
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
 	}
+
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<StandardError> validationErrors(MethodArgumentNotValidException ex,
@@ -52,8 +88,6 @@ public class ResourceExceptionHandler {
 	        AccessDeniedException ex,
 	        HttpServletRequest request) {
 
-	    System.out.println(">>> HANDLER ACCESS DENIED EXECUTADO");
-
 	    StandardError error = new StandardError(
 	            System.currentTimeMillis(),
 	            HttpStatus.FORBIDDEN.value(),
@@ -62,8 +96,6 @@ public class ResourceExceptionHandler {
 	            request.getRequestURI()
 	    );
 
-	    return ResponseEntity
-	            .status(HttpStatus.FORBIDDEN)
-	            .body(error);
+	    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
 	}
 }

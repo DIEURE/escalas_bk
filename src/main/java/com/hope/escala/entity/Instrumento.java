@@ -6,7 +6,15 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "instrumentos")
+@Table(
+	    name = "instrumentos", // Certifique-se de que é o mesmo nome da sua tabela
+	    uniqueConstraints = {
+	        @UniqueConstraint(
+	            name = "uk_instrumento_nome_empresa", 
+	            columnNames = {"nome", "empresa_id"} // Nomes exatos das colunas no banco
+	        )
+	    }
+	)
 public class Instrumento {
 
 	@Id
@@ -22,7 +30,7 @@ public class Instrumento {
 	
 	@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
-	@JsonIgnore
+	 
     private Empresa empresa;
 
 	public Empresa getEmpresa() {
