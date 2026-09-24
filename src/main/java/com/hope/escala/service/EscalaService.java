@@ -195,7 +195,8 @@ public class EscalaService {
 							: "Geral"); 
 					novo.setConfirmado(false);
 					novo.setSubstituido(false);
-
+					// 🟢 ADICIONE AQUI:
+					novo.setEmpresa(escala.getEmpresa());
 					escala.getMusicos().add(novo);
 					escalaMusicoRepository.save(novo);
 				}
@@ -299,9 +300,12 @@ public class EscalaService {
 	}
 	
 	private void gerarMusicosAutomaticamente(Escala escala) {
-	    List<Instrumento> instrumentos = instrumentoRepository.findAll();
+	    // 🟢 Dica: se tiver o método no repository, filtre os instrumentos da empresa
+		List<Instrumento> instrumentos = instrumentoRepository.findByEmpresaIdAndAtivoTrue(escala.getEmpresa().getId());
+
 	    Long departamentoId = escala.getDepartamento().getId();
 	    LocalDate dataEscala = escala.getDataEscala();
+	    Long empresaId = escala.getEmpresa().getId();
 
 	    for (Instrumento instrumento : instrumentos) {
 	        int quantidadeFinal = instrumento.getQuantidadeEscala();
@@ -323,7 +327,7 @@ public class EscalaService {
 
 	        for (int i = 0; i < quantidadeFinal; i++) {
 	            Usuario usuario = escalaAutomaticaService.escolherMusicoRodizio(
-	                    instrumento.getId(), departamentoId, escala.getId()
+	                    instrumento.getId(), departamentoId, escala.getId(), empresaId
 	            );
 
 	            if (usuario == null) {
@@ -335,10 +339,14 @@ public class EscalaService {
 	            escalaMusico.setUsuario(usuario);
 	            escalaMusico.setInstrumento(instrumento.getNome()); 
 	            escalaMusico.setConfirmado(false);
+	            // 🟢 CORREÇÃO DO ERRO AQUI:
+	            escalaMusico.setEmpresa(escala.getEmpresa()); 
+	            
 	            escalaMusicoRepository.save(escalaMusico);
 	        }
 	    }
 	}
+
 
 	public EscalaDetalhesResponseDTO buscarDetalhesEscala(Long escalaId) {
 		Long empresaIdLogada = securityUtils.empresaId();
@@ -494,6 +502,8 @@ public class EscalaService {
 			novo.setUsuario(usuario);
 			novo.setConfirmado(false);
 			novo.setSubstituido(false);
+			// 🟢 ADICIONE AQUI:
+			novo.setEmpresa(escala.getEmpresa());
 			escalaMusicoRepository.save(novo);
 		}
 	}
