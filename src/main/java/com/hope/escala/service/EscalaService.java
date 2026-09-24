@@ -57,7 +57,7 @@ public class EscalaService {
 	private final SecurityUtils securityUtils;
 	private final MusicaRepository musicaRepository;
 	private final ExcecaoEscalaDataRepository excecaoEscalaDataRepository;
-	
+
 	@Autowired
 	private YoutubeService youtubeService;
 
@@ -66,7 +66,7 @@ public class EscalaService {
 			DepartamentoRepository departamentoRepository, EscalaAutomaticaService escalaAutomaticaService,
 			InstrumentoRepository instrumentoRepository, SecurityUtils securityUtils,
 			UsuarioRepository usuarioRepository, MusicaRepository musicaRepository,
-			ExcecaoEscalaDataRepository excecaoEscalaDataRepository) {  
+			ExcecaoEscalaDataRepository excecaoEscalaDataRepository) {
 		this.escalaRepository = escalaRepository;
 		this.agendaMensalRepository = agendaMensalRepository;
 		this.escalaMusicoRepository = escalaMusicoRepository;
@@ -76,14 +76,14 @@ public class EscalaService {
 		this.instrumentoRepository = instrumentoRepository;
 		this.usuarioRepository = usuarioRepository;
 		this.securityUtils = securityUtils;
-		this.musicaRepository = musicaRepository; 
+		this.musicaRepository = musicaRepository;
 		this.excecaoEscalaDataRepository = excecaoEscalaDataRepository;
 	}
 
 	@Transactional
 	public EscalaResponseDTO salvar(EscalaRequestDTO dto) {
 		Long empresaIdLogada = securityUtils.empresaId();
-		
+
 		AgendaMensal agendaMensal = agendaMensalRepository.findById(dto.getAgendaMensalId())
 				.orElseThrow(() -> new RuntimeException("Agenda mensal não encontrada"));
 
@@ -126,35 +126,33 @@ public class EscalaService {
 
 	public List<EscalaResponseDTO> listar() {
 		Long empresaIdLogada = securityUtils.empresaId();
-		return escalaRepository.findByEmpresaIdAndAtivaTrue(empresaIdLogada)
-				.stream().map(this::converterParaDTO).collect(Collectors.toList());
+		return escalaRepository.findByEmpresaIdAndAtivaTrue(empresaIdLogada).stream().map(this::converterParaDTO)
+				.collect(Collectors.toList());
 	}
 
 	public List<EscalaResponseDTO> listarPorAgendaMensal(Long agendaMensalId) {
 		Long empresaIdLogada = securityUtils.empresaId();
-		return escalaRepository.findByAgendaMensalIdAndEmpresaIdAndAtivaTrue(agendaMensalId, empresaIdLogada)
-				.stream().map(this::converterParaDTO).collect(Collectors.toList());
+		return escalaRepository.findByAgendaMensalIdAndEmpresaIdAndAtivaTrue(agendaMensalId, empresaIdLogada).stream()
+				.map(this::converterParaDTO).collect(Collectors.toList());
 	}
 
 	public EscalaResponseDTO buscarPorId(Long id) {
 		Long empresaIdLogada = securityUtils.empresaId();
-		Escala escala = escalaRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Escala não encontrada"));
-				
+		Escala escala = escalaRepository.findById(id).orElseThrow(() -> new RuntimeException("Escala não encontrada"));
+
 		if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
 			throw new ResourceNotFoundException("Escala não pertence à sua instituição");
 		}
-		
+
 		return converterParaDTO(escala);
 	}
 
 	@Transactional
 	public EscalaResponseDTO atualizar(Long id, EscalaRequestDTO dto) {
 		Long empresaIdLogada = securityUtils.empresaId();
-		
-		Escala escala = escalaRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Escala não encontrada"));
-				
+
+		Escala escala = escalaRepository.findById(id).orElseThrow(() -> new RuntimeException("Escala não encontrada"));
+
 		if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
 			throw new ResourceNotFoundException("Escala não pertence à sua instituição");
 		}
@@ -190,13 +188,12 @@ public class EscalaService {
 					EscalaMusico novo = new EscalaMusico();
 					novo.setEscala(escala);
 					novo.setUsuario(usuario);
-					novo.setInstrumento(mDto.getInstrumento() != null && !mDto.getInstrumento().isBlank() 
-							? mDto.getInstrumento() 
-							: "Geral"); 
+					novo.setInstrumento(
+							mDto.getInstrumento() != null && !mDto.getInstrumento().isBlank() ? mDto.getInstrumento()
+									: "Geral");
 					novo.setConfirmado(false);
 					novo.setSubstituido(false);
-					// 🟢 ADICIONE AQUI:
-					novo.setEmpresa(escala.getEmpresa());
+					novo.setEmpresa(escala.getEmpresa()); // 🟢 multi-tenant
 					escala.getMusicos().add(novo);
 					escalaMusicoRepository.save(novo);
 				}
@@ -209,9 +206,15 @@ public class EscalaService {
 				EscalaMusico novo = new EscalaMusico();
 				novo.setEscala(escala);
 				novo.setUsuario(usuario);
-				novo.setInstrumento("Geral"); 
+
+				String nomeInstrumento = (usuario.getInstrumentos() != null && !usuario.getInstrumentos().isEmpty())
+						? usuario.getInstrumentos().iterator().next().getNome()
+						: "Geral";
+				novo.setInstrumento(nomeInstrumento);
+
 				novo.setConfirmado(false);
 				novo.setSubstituido(false);
+				novo.setEmpresa(escala.getEmpresa()); // 🟢 CORRIGIDO: Adicionado o empresa_id aqui!
 
 				escala.getMusicos().add(novo);
 				escalaMusicoRepository.save(novo);
@@ -225,13 +228,12 @@ public class EscalaService {
 
 	public void inativar(Long id) {
 		Long empresaIdLogada = securityUtils.empresaId();
-		Escala escala = escalaRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Escala não encontrada"));
-				
+		Escala escala = escalaRepository.findById(id).orElseThrow(() -> new RuntimeException("Escala não encontrada"));
+
 		if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
 			throw new ResourceNotFoundException("Escala não pertence à sua instituição");
 		}
-		
+
 		escala.setAtiva(false);
 		escalaRepository.save(escala);
 	}
@@ -298,61 +300,58 @@ public class EscalaService {
 
 		return escalasCriadas.stream().map(this::converterParaDTO).toList();
 	}
-	
+
 	private void gerarMusicosAutomaticamente(Escala escala) {
-	    // 🟢 Dica: se tiver o método no repository, filtre os instrumentos da empresa
+		// 🟢 Dica: se tiver o método no repository, filtre os instrumentos da empresa
 		List<Instrumento> instrumentos = instrumentoRepository.findByEmpresaIdAndAtivoTrue(escala.getEmpresa().getId());
 
-	    Long departamentoId = escala.getDepartamento().getId();
-	    LocalDate dataEscala = escala.getDataEscala();
-	    Long empresaId = escala.getEmpresa().getId();
+		Long departamentoId = escala.getDepartamento().getId();
+		LocalDate dataEscala = escala.getDataEscala();
+		Long empresaId = escala.getEmpresa().getId();
 
-	    for (Instrumento instrumento : instrumentos) {
-	        int quantidadeFinal = instrumento.getQuantidadeEscala();
+		for (Instrumento instrumento : instrumentos) {
+			int quantidadeFinal = instrumento.getQuantidadeEscala();
 
-	        java.util.Optional<com.hope.escala.entity.ExcecaoEscalaData> excecaoOpt = 
-	                excecaoEscalaDataRepository.findByDepartamentoIdAndDataExcecaoAndInstrumentoId(
-	                        departamentoId, dataEscala, instrumento.getId()
-	                );
+			java.util.Optional<com.hope.escala.entity.ExcecaoEscalaData> excecaoOpt = excecaoEscalaDataRepository
+					.findByDepartamentoIdAndDataExcecaoAndInstrumentoId(departamentoId, dataEscala,
+							instrumento.getId());
 
-	        if (excecaoOpt.isPresent()) {
-	            com.hope.escala.entity.ExcecaoEscalaData excecao = excecaoOpt.get();
+			if (excecaoOpt.isPresent()) {
+				com.hope.escala.entity.ExcecaoEscalaData excecao = excecaoOpt.get();
 
-	            if (Boolean.TRUE.equals(excecao.getBloqueado())) {
-	                quantidadeFinal = 0;
-	            } else if (excecao.getLimiteVagas() != null) {
-	                quantidadeFinal = excecao.getLimiteVagas();
-	            }
-	        }
+				if (Boolean.TRUE.equals(excecao.getBloqueado())) {
+					quantidadeFinal = 0;
+				} else if (excecao.getLimiteVagas() != null) {
+					quantidadeFinal = excecao.getLimiteVagas();
+				}
+			}
 
-	        for (int i = 0; i < quantidadeFinal; i++) {
-	            Usuario usuario = escalaAutomaticaService.escolherMusicoRodizio(
-	                    instrumento.getId(), departamentoId, escala.getId(), empresaId
-	            );
+			for (int i = 0; i < quantidadeFinal; i++) {
+				Usuario usuario = escalaAutomaticaService.escolherMusicoRodizio(instrumento.getId(), departamentoId,
+						escala.getId(), empresaId);
 
-	            if (usuario == null) {
-	                continue;
-	            }
+				if (usuario == null) {
+					continue;
+				}
 
-	            EscalaMusico escalaMusico = new EscalaMusico();
-	            escalaMusico.setEscala(escala);
-	            escalaMusico.setUsuario(usuario);
-	            escalaMusico.setInstrumento(instrumento.getNome()); 
-	            escalaMusico.setConfirmado(false);
-	            // 🟢 CORREÇÃO DO ERRO AQUI:
-	            escalaMusico.setEmpresa(escala.getEmpresa()); 
-	            
-	            escalaMusicoRepository.save(escalaMusico);
-	        }
-	    }
+				EscalaMusico escalaMusico = new EscalaMusico();
+				escalaMusico.setEscala(escala);
+				escalaMusico.setUsuario(usuario);
+				escalaMusico.setInstrumento(instrumento.getNome());
+				escalaMusico.setConfirmado(false);
+				// 🟢 CORREÇÃO DO ERRO AQUI:
+				escalaMusico.setEmpresa(escala.getEmpresa());
+
+				escalaMusicoRepository.save(escalaMusico);
+			}
+		}
 	}
-
 
 	public EscalaDetalhesResponseDTO buscarDetalhesEscala(Long escalaId) {
 		Long empresaIdLogada = securityUtils.empresaId();
 		Escala escala = escalaRepository.findById(escalaId)
 				.orElseThrow(() -> new RuntimeException("Escala não encontrada"));
-				
+
 		if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
 			throw new ResourceNotFoundException("Escala não pertence à sua instituição");
 		}
@@ -400,23 +399,23 @@ public class EscalaService {
 	}
 
 	private EscalaMusicoResponseDTO converterMusicoDTO(EscalaMusico escalaMusico) {
-	    EscalaMusicoResponseDTO dto = new EscalaMusicoResponseDTO();
-	    dto.setId(escalaMusico.getId());
-	    dto.setEscalaId(escalaMusico.getEscala().getId());
-	    dto.setNomeCultoManha(escalaMusico.getEscala().getNomeCultoManha());
-	    dto.setNomeCultoNoite(escalaMusico.getEscala().getNomeCultoNoite());
+		EscalaMusicoResponseDTO dto = new EscalaMusicoResponseDTO();
+		dto.setId(escalaMusico.getId());
+		dto.setEscalaId(escalaMusico.getEscala().getId());
+		dto.setNomeCultoManha(escalaMusico.getEscala().getNomeCultoManha());
+		dto.setNomeCultoNoite(escalaMusico.getEscala().getNomeCultoNoite());
 
-	    dto.setDataEscala(escalaMusico.getEscala().getDataEscala());
-	    dto.setHorarioManha(escalaMusico.getEscala().getHorarioManha());
-	    dto.setHorarioNoite(escalaMusico.getEscala().getHorarioNoite());
+		dto.setDataEscala(escalaMusico.getEscala().getDataEscala());
+		dto.setHorarioManha(escalaMusico.getEscala().getHorarioManha());
+		dto.setHorarioNoite(escalaMusico.getEscala().getHorarioNoite());
 
-	    dto.setUsuarioId(escalaMusico.getUsuario().getId());
-	    dto.setNomeUsuario(escalaMusico.getUsuario().getNome());
-	    dto.setInstrumento(escalaMusico.getInstrumento() != null ? escalaMusico.getInstrumento() : "Sem Instrumento");
+		dto.setUsuarioId(escalaMusico.getUsuario().getId());
+		dto.setNomeUsuario(escalaMusico.getUsuario().getNome());
+		dto.setInstrumento(escalaMusico.getInstrumento() != null ? escalaMusico.getInstrumento() : "Sem Instrumento");
 
-	    dto.setConfirmado(escalaMusico.getConfirmado());
-	    dto.setObservacao(escalaMusico.getObservacao());
-	    return dto;
+		dto.setConfirmado(escalaMusico.getConfirmado());
+		dto.setObservacao(escalaMusico.getObservacao());
+		return dto;
 	}
 
 	private EscalaMusicaResponseDTO converterMusicaDTO(EscalaMusica escalaMusica) {
@@ -441,7 +440,8 @@ public class EscalaService {
 
 	public void atualizarStatusAgendaMensal(Long agendaMensalId) {
 		Long empresaIdLogada = securityUtils.empresaId();
-		List<Escala> escalas = escalaRepository.findByAgendaMensalIdAndEmpresaIdAndAtivaTrue(agendaMensalId, empresaIdLogada);
+		List<Escala> escalas = escalaRepository.findByAgendaMensalIdAndEmpresaIdAndAtivaTrue(agendaMensalId,
+				empresaIdLogada);
 		AgendaMensal agenda = agendaMensalRepository.findById(agendaMensalId)
 				.orElseThrow(() -> new RuntimeException("Agenda mensal não encontrada"));
 
@@ -464,7 +464,7 @@ public class EscalaService {
 
 	public void fecharEscala(Long escalaId) {
 		Long empresaIdLogada = securityUtils.empresaId();
-		Escala escala = escalaRepository.findById( escalaId )
+		Escala escala = escalaRepository.findById(escalaId)
 				.orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada"));
 
 		if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
@@ -500,20 +500,26 @@ public class EscalaService {
 			EscalaMusico novo = new EscalaMusico();
 			novo.setEscala(escala);
 			novo.setUsuario(usuario);
+
+			String nomeInstrumento = (usuario.getInstrumentos() != null && !usuario.getInstrumentos().isEmpty())
+					? usuario.getInstrumentos().iterator().next().getNome()
+					: "Geral";
+			novo.setInstrumento(nomeInstrumento); // 🟢 Garante instrumento preenchido
+
 			novo.setConfirmado(false);
 			novo.setSubstituido(false);
-			// 🟢 ADICIONE AQUI:
-			novo.setEmpresa(escala.getEmpresa());
+			novo.setEmpresa(escala.getEmpresa()); // 🟢 Garante empresa preenchida
+			
 			escalaMusicoRepository.save(novo);
 		}
 	}
 
+
 	@Transactional
 	public EscalaResponseDTO alterarStatus(Long id, StatusEscala novoStatus) {
 		Long empresaIdLogada = securityUtils.empresaId();
-		Escala escala = escalaRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Escala não encontrada"));
-				
+		Escala escala = escalaRepository.findById(id).orElseThrow(() -> new RuntimeException("Escala não encontrada"));
+
 		if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
 			throw new ResourceNotFoundException("Escala não pertence à sua instituição");
 		}
@@ -531,7 +537,7 @@ public class EscalaService {
 			throw new RuntimeException(
 					"A conta do YouTube não está configurada ou conectada. Vá em Configurações para autenticar.");
 		}
-		
+
 		Escala escala = escalaRepository.findById(escalaId)
 				.orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + escalaId));
 
@@ -608,7 +614,7 @@ public class EscalaService {
 		List<EscalaMusica> lista = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);
 		return lista.stream().map(this::converterMusicaDTO).collect(Collectors.toList());
 	}
-	
+
 	@Transactional
 	public void desvincularPlaylist(Long escalaId) {
 		Long empresaIdLogada = securityUtils.empresaId();
@@ -621,9 +627,9 @@ public class EscalaService {
 
 		escala.setLinkPlaylistManual(null);
 		escala.setTituloPlaylistManual(null);
-		
+
 		List<EscalaMusica> musicasEscala = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);
-		
+
 		for (EscalaMusica em : musicasEscala) {
 			Musica musica = em.getMusica();
 			if (musica.getVezesEscalada() != null && musica.getVezesEscalada() > 0) {
