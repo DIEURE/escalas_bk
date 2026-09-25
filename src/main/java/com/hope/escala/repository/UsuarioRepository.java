@@ -1,5 +1,6 @@
 package com.hope.escala.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.hope.escala.dto.DistribuicaoPerfilDTO;
 import com.hope.escala.entity.Usuario;
 import com.hope.escala.enums.PerfilUsuario;
 
@@ -76,4 +78,22 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
                                   @Param("perfil") PerfilUsuario perfil,
                                   @Param("ativo") Boolean ativo,
                                   Pageable pageable);
+    
+    
+    long countByAtivoTrue();
+
+    long countByAtivoFalse();
+
+    @Query("SELECT COUNT(u) FROM Usuario u WHERE u.empresa.id = :empresaId AND u.ativo = true")
+    long countByEmpresaIdAndAtivoTrue(@Param("empresaId") Long empresaId);
+
+    @Query("SELECT COUNT(u) FROM Usuario u WHERE u.empresa.id = :empresaId AND u.ativo = false")
+    long countByEmpresaIdAndAtivoFalse(@Param("empresaId") Long empresaId);
+
+    long countByDataCadastroBetween(LocalDateTime inicio, LocalDateTime fim);
+
+    // 🟢 A anotação @Query é obrigatória aqui para o Spring não tentar deduzir pelas propriedades da entidade
+    @Query("SELECT u.perfil, COUNT(u) FROM Usuario u GROUP BY u.perfil")
+    List<Object[]> contarUsuariosPorPerfilRaw();
+    
 }
