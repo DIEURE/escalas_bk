@@ -41,7 +41,8 @@ import com.hope.escala.repository.MusicaRepository;
 import com.hope.escala.repository.UsuarioRepository;
 import com.hope.escala.security.SecurityUtils;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
+
 
 @Service
 public class EscalaService {
@@ -545,6 +546,7 @@ public class EscalaService {
 			throw new ResourceNotFoundException("Escala não pertence à sua instituição");
 		}
 
+		// 1. Limpa as músicas antigas da escala e decrementa o contador
 		List<EscalaMusica> antigas = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);
 		for (EscalaMusica antiga : antigas) {
 			Musica musicaAntiga = antiga.getMusica();
@@ -559,6 +561,7 @@ public class EscalaService {
 		escalaMusicaRepository.deleteAll(antigas);
 		escalaMusicaRepository.flush();
 
+		// 2. Salva as novas músicas já com empresa_id preenchido (Multi-tenant)
 		List<EscalaMusica> novas = new ArrayList<>();
 		int ordem = 1;
 		for (Long musicaId : musicasIds) {
@@ -573,15 +576,22 @@ public class EscalaService {
 			em.setEscala(escala);
 			em.setMusica(musica);
 			em.setOrdem(ordem++);
+			em.setSubstituida(false);
+			
+			// 🟢 CORREÇÃO CRÍTICA: Define a empresa para não quebrar a constraint NOT NULL
+			em.setEmpresa(escala.getEmpresa());
+
 			escalaMusicaRepository.save(em);
 			novas.add(em);
 		}
 
-		String tituloFinal = (tituloPersonalizado != null && !tituloPersonalizado.isBlank()) ? tituloPersonalizado
-				: ("" + escala.getDataEscala());
+		String tituloFinal = (tituloPersonalizado != null && !tituloPersonalizado.isBlank()) 
+				? tituloPersonalizado
+				: ("Escala - " + escala.getDataEscala());
 
 		String urlPlaylist = "";
 
+		// 3. Cria a playlist no YouTube e adiciona os vídeos
 		try {
 			String accessToken = youtubeService.obterAccessToken();
 			String youtubePlaylistId = youtubeService.criarPlaylistNoYoutube(accessToken, tituloFinal);
@@ -597,6 +607,7 @@ public class EscalaService {
 				}
 			}
 
+			// Monta a URL completa com o ID retornado pelo Google
 			urlPlaylist = "https://www.youtube.com/playlist?list=" + youtubePlaylistId;
 
 		} catch (Exception e) {
@@ -610,10 +621,27 @@ public class EscalaService {
 		return urlPlaylist;
 	}
 
+
+	 
+
+	@Transactional(readOnly = true)
 	public List<EscalaMusicaResponseDTO> listarMusicasDaPlaylistManual(Long escalaId) {
-		List<EscalaMusica> lista = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);
-		return lista.stream().map(this::converterMusicaDTO).collect(Collectors.toList());
+	    Long empresaIdLogada = securityUtils.empresaId();
+
+	    Escala escala = escalaRepository.findById(escalaId)
+	            .orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + escalaId));
+
+	    // Se o usuário não for Super Admin e a congregação for diferente
+	    if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
+	        throw new ResourceNotFoundException("Escala não pertence à sua congregação");
+	    }
+
+	    List<EscalaMusica> musicas = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);
+	    return musicas.stream().map(this::converterMusicaDTO).toList();
 	}
+
+
+
 
 	@Transactional
 	public void desvincularPlaylist(Long escalaId) {

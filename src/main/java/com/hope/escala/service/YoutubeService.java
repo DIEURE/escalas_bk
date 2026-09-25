@@ -52,7 +52,8 @@ public class YoutubeService {
 
 
 	public YoutubeConfig salvarConfig(YoutubeConfig novaConfig) {
-		YoutubeConfig configAtual = repository.findAll().stream().findFirst().orElse(new YoutubeConfig());
+		// 🟢 CORREÇÃO: Utiliza o getConfig() para garantir que pertence à empresa logada
+		YoutubeConfig configAtual = getConfig();
 
 		if (novaConfig.getClientId() != null && !novaConfig.getClientId().trim().isEmpty()) {
 			configAtual.setClientId(novaConfig.getClientId().trim());
@@ -72,6 +73,7 @@ public class YoutubeService {
 
 		return repository.save(configAtual);
 	}
+
 
 	public void trocarCodePorRefreshToken(String code) {
 		YoutubeConfig config = getConfig();

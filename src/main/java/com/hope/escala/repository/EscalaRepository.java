@@ -3,6 +3,7 @@ package com.hope.escala.repository;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -37,6 +38,8 @@ public interface EscalaRepository extends JpaRepository<Escala, Long> {
          @Param("empresaId") Long empresaId);
 
 
+ // EscalaRepository.java
+    Optional<Escala> findByIdAndEmpresaId(Long id, Long empresaId);
 
 
 }
