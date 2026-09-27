@@ -124,6 +124,38 @@ public class EscalaService {
 
 		return converterParaDTO(salva);
 	}
+	
+	@Transactional
+	public EscalaDetalhesResponseDTO regenerarEscalaAutomatica(Long escalaId) {
+		Long empresaIdLogada = securityUtils.empresaId();
+
+		// 1. Busca a escala e valida o isolamento multi-tenant
+		Escala escala = escalaRepository.findById(escalaId)
+				.orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + escalaId));
+
+		if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
+			throw new ResourceNotFoundException("Escala não pertence à sua instituição");
+		}
+
+		// 2. Apaga todos os músicos vinculados anteriormente a essa escala
+		escala.getMusicos().clear();
+		escalaMusicoRepository.deleteByEscalaId(escala.getId());
+		escalaRepository.flush();
+
+		// 3. Garante que o tipo da escala seja AUTOMATICA e ajusta status para aguardando confirmação
+		escala.setTipoEscala(TipoEscala.AUTOMATICA);
+		escala.setStatus(StatusEscala.AGUARDANDO_CONFIRMACAO);
+		
+		// 4. Executa novamente o algoritmo de sorteio/rodízio automático
+		gerarMusicosAutomaticamente(escala);
+
+		// 5. Salva e sincroniza
+		escalaRepository.saveAndFlush(escala);
+
+		// 6. Retorna os detalhes completos da escala já atualizada
+		return buscarDetalhesEscala(escalaId);
+	}
+
 
 	public List<EscalaResponseDTO> listar() {
 		Long empresaIdLogada = securityUtils.empresaId();

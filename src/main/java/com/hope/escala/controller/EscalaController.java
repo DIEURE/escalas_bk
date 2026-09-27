@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -29,6 +30,8 @@ import com.hope.escala.enums.StatusEscala;
 import com.hope.escala.repository.EscalaRepository;
 import com.hope.escala.security.SecurityUtils;
 import com.hope.escala.security.annotation.AdminOuLider;
+import com.hope.escala.security.annotation.PodeGerenciarDepartamento;
+import com.hope.escala.service.EscalaRelatorioService;
 import com.hope.escala.service.EscalaService;
 import com.hope.escala.service.PdfEscalaService;
 import com.hope.escala.service.YoutubePlaylistService;
@@ -42,14 +45,16 @@ public class EscalaController {
 	private final EscalaService escalaService;
 	private final YoutubePlaylistService youTubePlaylistService;
 	private final PdfEscalaService pdfEscalaService;
+	private final EscalaRelatorioService escalaRelatorioService; 
 	private final EscalaRepository escalaRepository;
 	private final SecurityUtils securityUtils; // 🟢 Injeção do SecurityUtils
 
 	public EscalaController(EscalaService escalaService, YoutubePlaylistService youTubePlaylistService,
-			PdfEscalaService pdfEscalaService, EscalaRepository escalaRepository, SecurityUtils securityUtils) {
+			PdfEscalaService pdfEscalaService, EscalaRepository escalaRepository,EscalaRelatorioService escalaRelatorioService, SecurityUtils securityUtils) {
 		this.escalaService = escalaService;
 		this.youTubePlaylistService = youTubePlaylistService;
 		this.pdfEscalaService = pdfEscalaService;
+		this.escalaRelatorioService = escalaRelatorioService;
 		this.escalaRepository = escalaRepository;
 		this.securityUtils = securityUtils;
 	}
@@ -131,13 +136,34 @@ public class EscalaController {
 	    return ResponseEntity.ok(musicas);
 	}
 
-	@PreAuthorize("hasAnyRole('ADMIN', 'LIDER')") // Garante que Admin e Líder podem acessar
 	@GetMapping("/{id}/pdf")
 	public ResponseEntity<byte[]> gerarPdf(@PathVariable Long id) {
 		byte[] pdf = pdfEscalaService.gerarPdfEscala(id);
 		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=escala.pdf")
 				.contentType(MediaType.APPLICATION_PDF).body(pdf);
 	}
+	 
+	
+	@GetMapping("/relatorio-mensal")
+	@PodeGerenciarDepartamento
+	public ResponseEntity<byte[]> gerarRelatorioMensal(
+	        @RequestParam Long agendaMensalId,
+	        @RequestParam(required = false) Long departamentoId) {
+
+	    byte[] pdfBytes = escalaRelatorioService.gerarRelatorioMensalPdf(agendaMensalId, departamentoId);
+
+	    HttpHeaders headers = new HttpHeaders();
+	    headers.setContentType(MediaType.APPLICATION_PDF);
+	    // "inline" tenta abrir em nova aba; use "attachment; filename=..." se preferir forçar download
+	    headers.setContentDisposition(ContentDisposition.inline().filename("relatorio-escalas-mes.pdf").build());
+	    headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+
+	    return ResponseEntity.ok()
+	            .headers(headers)
+	            .body(pdfBytes);
+	}
+
+	
 	@AdminOuLider
 	@PostMapping("/agenda/{agendaMensalId}/gerar-automaticas")
 	public ResponseEntity<List<EscalaResponseDTO>> gerarEscalasAutomaticas(@PathVariable Long agendaMensalId,
@@ -150,6 +176,12 @@ public class EscalaController {
 		escalaService.adicionarMusicos(id, musicosIds);
 		return ResponseEntity.ok().build();
 	}
+	
+    @PutMapping("/{id}/regenerar-automatica")
+    public ResponseEntity<EscalaDetalhesResponseDTO> regenerarEscalaAutomatica(@PathVariable Long id) {
+        return ResponseEntity.ok(escalaService.regenerarEscalaAutomatica(id));
+    }
+
 
 	@PatchMapping("/{id}/status")
 	public ResponseEntity<EscalaResponseDTO> alterarStatus(@PathVariable Long id, @RequestBody StatusEscala status) {
