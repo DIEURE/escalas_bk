@@ -63,12 +63,7 @@
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
 		</dependency>
-		<!-- H2 -->
-		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
-		</dependency>
+ 
 		<!-- Source: https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-mail -->
 <dependency>
     <groupId>org.springframework.boot</groupId>
@@ -86,28 +81,7 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-			<dependency>
-			<groupId>net.sf.jasperreports</groupId>
-			<artifactId>jasperreports</artifactId>
-			<version>6.2.2</version>
-			<exclusions>
-				<exclusion>
-					<groupId>com.lowagie</groupId>
-		    		<artifactId>itext</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.olap4j</groupId>
-			    	<artifactId>olap4j</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-
-		<dependency>
-			<groupId>net.sf.jasperreports</groupId>
-			<artifactId>jasperreports-fonts</artifactId>
-			<version>6.0.0</version>
-		</dependency>
-		
+  
 			
 		<dependency>
 		    <groupId>org.olap4j</groupId>
