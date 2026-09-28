@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.hope.escala.entity.Categoria;
 import com.hope.escala.entity.Empresa;
@@ -29,14 +30,17 @@ public class CategoriaService {
 		this.securityUtils = securityUtils;
 	}
 
+	@Transactional(readOnly = true)
 	public List<Categoria> listarPorEmpresa() {
 		return categoriaRepository.findByEmpresaId(securityUtils.empresaId());
 	}
 
+	@Transactional(readOnly = true)
 	public List<Categoria> listarAtivasPorEmpresa() {
 		return categoriaRepository.findByEmpresaIdAndAtivoTrue(securityUtils.empresaId());
 	}
 
+	@Transactional(readOnly = true)
 	public List<Categoria> listarAtivas() {
 		return categoriaRepository.findByAtivoTrue();
 	}

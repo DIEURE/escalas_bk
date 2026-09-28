@@ -56,7 +56,7 @@ public class UsuarioService {
         return usuarioRepository.listarComFiltros(empresaIdLogada, busca, perfil, ativo, pageable)
                 .map(this::converterParaDTO);
     }
-
+    @Transactional(readOnly = true)
     public List<UsuarioResponseDTO> listar(Long empresaFiltroId) {
         List<Usuario> usuarios;
 
@@ -162,6 +162,7 @@ public class UsuarioService {
         return converterParaDTO(salvo);
     }
 
+    @Transactional(readOnly = true)
     public List<UsuarioResponseDTO> listarPendentes(Long empresaFiltroId) {
         Long usuarioLogadoId = securityUtils.usuarioId();
         Usuario usuarioLogado = usuarioRepository.findById(usuarioLogadoId)
@@ -258,6 +259,7 @@ public class UsuarioService {
         return converterParaDTO(atualizado);
     }
 
+    @Transactional(readOnly = true)
     public List<UsuarioResponseDTO> listar() {
         Long empresaIdLogada = securityUtils.empresaId();
         List<Usuario> usuarios = securityUtils.isSuperAdmin() 
@@ -269,6 +271,7 @@ public class UsuarioService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public UsuarioResponseDTO buscarPorId(Long id) {
         Long empresaIdLogada = securityUtils.empresaId();
 
@@ -282,6 +285,7 @@ public class UsuarioService {
         return converterParaDTO(usuario);
     }
 
+    @Transactional(readOnly = true)
     public List<UsuarioResponseDTO> buscarPorDepartamento(Long departamentoId) {
         Long empresaIdLogada = securityUtils.empresaId();
         return usuarioRepository.findByDepartamentosIdAndEmpresaIdAndAtivoTrue(departamentoId, empresaIdLogada)
