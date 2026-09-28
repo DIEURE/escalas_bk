@@ -62,8 +62,9 @@ public class DepartamentoController {
 
     @PostMapping
     @AdminOuLider
-    public ResponseEntity<Departamento> criar(@RequestBody Departamento dep) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(departamentoService.salvar(dep));
+    public ResponseEntity<DepartamentoResponseDTO> criar(@RequestBody Departamento dep) {
+        Departamento criado = departamentoService.salvar(dep);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new DepartamentoResponseDTO(criado));
     }
 
     @PutMapping("/{id}")

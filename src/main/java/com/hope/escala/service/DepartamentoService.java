@@ -60,35 +60,38 @@ public class DepartamentoService {
         Usuario usuario = getUsuarioLogado();
         boolean isSuperAdmin = usuario.getPerfil() == PerfilUsuario.SUPER_ADMIN;
 
-        // 🟢 Lê o empresaId que o frontend mandou no payload
+        // 1. Determina o ID da empresa de destino
         Long empresaIdDestino = dados.getEmpresaId() != null
                 ? dados.getEmpresaId()
                 : (dados.getEmpresa() != null ? dados.getEmpresa().getId() : null);
 
-        Empresa empresaDestino;
-
-        // Se for SUPER_ADMIN e selecionou uma empresa (ex: 2), busca ela no banco:
+        Long empresaIdFinal;
         if (isSuperAdmin && empresaIdDestino != null) {
-            empresaDestino = empresaRepository.findById(empresaIdDestino)
-                    .orElseThrow(() -> new RuntimeException("Congregação de destino não encontrada: " + empresaIdDestino));
+            empresaIdFinal = empresaIdDestino;
         } else {
-            // Admin ou líder local vincula à sua própria empresa
-            empresaDestino = usuario.getEmpresa();
+            if (usuario.getEmpresa() == null) {
+                throw new RuntimeException("Usuário não possui instituição vinculada.");
+            }
+            empresaIdFinal = usuario.getEmpresa().getId();
         }
 
-        Long empresaIdFinal = empresaDestino.getId();
+        // 2. Busca a entidade Empresa real e gerenciada no banco (evita proxy Lazy)
+        Empresa empresaDestino = empresaRepository.findById(empresaIdFinal)
+                .orElseThrow(() -> new RuntimeException("Congregação não encontrada com ID: " + empresaIdFinal));
 
+        // 3. Validação de duplicidade
         if (departamentoRepository.existsByNomeIgnoreCaseAndEmpresaId(dados.getNome().trim(), empresaIdFinal)) {
             throw new RuntimeException("Já existe um departamento com este nome na congregação.");
         }
 
         Departamento dep = new Departamento();
         dep.setNome(dados.getNome().trim());
-        dep.setEmpresa(empresaDestino); // 🟢 Agora grava a Empresa 2!
+        dep.setEmpresa(empresaDestino);
         dep.setAtivo(dados.getAtivo() != null ? dados.getAtivo() : true);
 
         return departamentoRepository.save(dep);
     }
+
 
     @Transactional
     public Departamento atualizar(Long id, Departamento dados) {
