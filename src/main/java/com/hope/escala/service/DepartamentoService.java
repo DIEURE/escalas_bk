@@ -7,7 +7,8 @@ import com.hope.escala.enums.PerfilUsuario;
 import com.hope.escala.repository.DepartamentoRepository;
 import com.hope.escala.repository.EmpresaRepository;
 import com.hope.escala.repository.UsuarioRepository;
- 
+import com.hope.escala.security.SecurityUtils;
+
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,13 +21,15 @@ public class DepartamentoService {
     private final DepartamentoRepository departamentoRepository;
     private final UsuarioRepository usuarioRepository;
     private final EmpresaRepository empresaRepository;
+    private final SecurityUtils securityUtils;
 
     public DepartamentoService(DepartamentoRepository departamentoRepository,
                                UsuarioRepository usuarioRepository,
-                               EmpresaRepository empresaRepository) {
+                               EmpresaRepository empresaRepository, SecurityUtils securityUtils) {
         this.departamentoRepository = departamentoRepository;
         this.usuarioRepository = usuarioRepository;
         this.empresaRepository = empresaRepository;
+        this.securityUtils = securityUtils;
     }
 
     private Usuario getUsuarioLogado() {
@@ -35,11 +38,18 @@ public class DepartamentoService {
                 .orElseThrow(() -> new RuntimeException("Usuário autenticado não encontrado."));
     }
 
+    @Transactional(readOnly = true)
     public List<Departamento> listarPorEmpresaLogada() {
-        Usuario usuario = getUsuarioLogado();
-        return departamentoRepository.findByEmpresaIdOrderByNomeAsc(usuario.getEmpresa().getId());
+        Long empresaId = securityUtils.empresaId();
+        
+        // Se for ADMIN comum, filtra pela empresa dele; se for SUPER_ADMIN sem empresa, traz todos
+        if (empresaId != null) {
+            return departamentoRepository.findByEmpresaIdComEmpresa(empresaId);
+        }
+        return departamentoRepository.findAllComEmpresa();
     }
 
+    @Transactional(readOnly = true)
     public List<Departamento> listarAtivosPorEmpresaLogada() {
         Usuario usuario = getUsuarioLogado();
         return departamentoRepository.findByEmpresaIdAndAtivoTrueOrderByNomeAsc(usuario.getEmpresa().getId());
@@ -138,6 +148,7 @@ public class DepartamentoService {
         departamentoRepository.save(dep);
     }
     
+    @Transactional(readOnly = true)
     public List<Departamento> listarPorUsuarioLogado(Usuario usuarioLogado, Long empresaFiltroId) {
         // 1. Se for SUPER_ADMIN
         if (usuarioLogado.getPerfil() == PerfilUsuario.SUPER_ADMIN) {

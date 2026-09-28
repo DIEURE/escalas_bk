@@ -13,26 +13,33 @@ import com.hope.escala.entity.Departamento;
 @Repository
 public interface DepartamentoRepository extends JpaRepository<Departamento, Long> {
     
-    // NOVO: Usado pelo SUPER_ADMIN para listar tudo sem filtro
+    // 🟢 SUPER_ADMIN: Lista tudo com a Empresa já carregada
+    @Query("SELECT d FROM Departamento d LEFT JOIN FETCH d.empresa ORDER BY d.nome ASC")
     List<Departamento> findAllByOrderByNomeAsc();
 
-    // Lista todos os departamentos da empresa
-    @Query("SELECT d FROM Departamento d WHERE d.empresa.id = :empresaId ORDER BY d.nome ASC")
+    // 🟢 ADMIN / LÍDER: Lista da empresa trazendo a Empresa no mesmo SELECT
+    @Query("SELECT d FROM Departamento d LEFT JOIN FETCH d.empresa WHERE d.empresa.id = :empresaId ORDER BY d.nome ASC")
     List<Departamento> findByEmpresaIdOrderByNomeAsc(@Param("empresaId") Long empresaId);
     
-    // Lista apenas ativos da empresa (usado para selects/escalas)
-    @Query("SELECT d FROM Departamento d WHERE d.empresa.id = :empresaId AND d.ativo = true ORDER BY d.nome ASC")
+    // 🟢 Lista ativos trazendo a Empresa
+    @Query("SELECT d FROM Departamento d LEFT JOIN FETCH d.empresa WHERE d.empresa.id = :empresaId AND d.ativo = true ORDER BY d.nome ASC")
     List<Departamento> findByEmpresaIdAndAtivoTrueOrderByNomeAsc(@Param("empresaId") Long empresaId);
     
-    // Busca por ID garantindo que pertence à empresa
-    @Query("SELECT d FROM Departamento d WHERE d.id = :id AND d.empresa.id = :empresaId")
+    @Query("SELECT d FROM Departamento d LEFT JOIN FETCH d.empresa WHERE d.id = :id AND d.empresa.id = :empresaId")
     Optional<Departamento> findByIdAndEmpresaId(@Param("id") Long id, @Param("empresaId") Long empresaId);
     
-    // Validação para evitar nomes duplicados na mesma empresa
     @Query("SELECT COUNT(d) > 0 FROM Departamento d WHERE LOWER(d.nome) = LOWER(:nome) AND d.empresa.id = :empresaId")
     boolean existsByNomeIgnoreCaseAndEmpresaId(@Param("nome") String nome, @Param("empresaId") Long empresaId);
 
-    // Validação para edição (ignora o próprio ID)
     @Query("SELECT COUNT(d) > 0 FROM Departamento d WHERE LOWER(d.nome) = LOWER(:nome) AND d.empresa.id = :empresaId AND d.id <> :id")
     boolean existsByNomeIgnoreCaseAndEmpresaIdAndIdNot(@Param("nome") String nome, @Param("empresaId") Long empresaId, @Param("id") Long id);
+
+    @Query("SELECT d FROM Departamento d LEFT JOIN FETCH d.empresa WHERE d.empresa.id = :empresaId")
+    List<Departamento> findByEmpresaIdComEmpresa(@Param("empresaId") Long empresaId);
+
+    @Query("SELECT d FROM Departamento d LEFT JOIN FETCH d.empresa")
+    List<Departamento> findAllComEmpresa();
+
+    @Query("SELECT d FROM Departamento d LEFT JOIN FETCH d.empresa WHERE d.id = :id")
+    Optional<Departamento> findByIdComEmpresa(@Param("id") Long id);
 }

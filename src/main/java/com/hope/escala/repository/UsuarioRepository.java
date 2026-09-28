@@ -43,7 +43,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
             @Param("empresaId") Long empresaId);
 
     // Listagem por congregação/empresa
-    @Query("SELECT u FROM Usuario u WHERE u.empresa.id = :empresaId ORDER BY u.nome ASC")
+    @Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.empresa.id = :empresaId ORDER BY u.nome ASC")
     List<Usuario> findByEmpresaIdOrderByNomeAsc(@Param("empresaId") Long empresaId);
 
     // Listagem apenas de ativos por empresa
