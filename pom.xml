@@ -139,14 +139,18 @@
 	<build>
 		<plugins>
 			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-				<configuration>
-					<excludes>
-
-					</excludes>
-				</configuration>
-			</plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-resources-plugin</artifactId>
+    <version>3.3.1</version>
+    <configuration>
+        <encoding>UTF-8</encoding>
+        <nonFilteredFileExtensions>
+            <nonFilteredFileExtension>pdf</nonFilteredFileExtension>
+            <nonFilteredFileExtension>p12</nonFilteredFileExtension>
+            <nonFilteredFileExtension>ico</nonFilteredFileExtension>
+        </nonFilteredFileExtensions>
+    </configuration>
+</plugin>
 
 		</plugins>
 	</build>
