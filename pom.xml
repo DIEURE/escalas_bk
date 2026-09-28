@@ -23,6 +23,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
 
+
 	<dependencies>
 		<!-- Spring Boot Starters Principais -->
 		<dependency>
@@ -47,7 +48,8 @@
 		</dependency>
 
 		<!-- Starter Mail gerenciado pela versao do parent (sem conflito) -->
-		<!-- Ref: https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-mail -->
+		<!-- Ref:
+		https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-mail -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>

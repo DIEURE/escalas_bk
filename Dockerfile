@@ -1,8 +1,7 @@
-# ETAPA 1: Compilação com Maven e Java 21
+# 1. Compilação
 FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /app
 
-# Instala dos2unix para higienizar arquivos de texto
 RUN apk add --no-cache dos2unix
 
 COPY .mvn/ .mvn/
@@ -10,14 +9,11 @@ COPY mvnw pom.xml ./
 RUN chmod +x mvnw
 
 COPY src ./src
-
-# Remove BOM e converte quebras de linha CRLF para LF
 RUN find src/main/resources -name "*.properties" -exec dos2unix {} +
 
-# Compila ignorando testes
 RUN ./mvnw clean package -DskipTests
 
-# ETAPA 2: Imagem final de execução
+# 2. Execução leve
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
