@@ -9,9 +9,12 @@ COPY mvnw pom.xml ./
 RUN chmod +x mvnw
 
 COPY src ./src
-RUN find src/main/resources -name "*.properties" -exec dos2unix {} +
 
-RUN ./mvnw clean package -DskipTests
+# Normaliza finais de linha e remove caracteres corrompidos
+RUN find src/main/resources -type f -name "*.properties" -exec dos2unix {} +
+
+# Executa o build forçando UTF-8 na JVM
+RUN ./mvnw clean package -DskipTests -Dfile.encoding=UTF-8
 
 # 2. Execução leve
 FROM eclipse-temurin:21-jre-alpine

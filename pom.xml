@@ -125,13 +125,12 @@
 				<version>3.3.1</version>
 				<configuration>
 					<encoding>UTF-8</encoding>
-					<nonFilteredFileExtensions>
-						<nonFilteredFileExtension>pdf</nonFilteredFileExtension>
-						<nonFilteredFileExtension>p12</nonFilteredFileExtension>
-						<nonFilteredFileExtension>ico</nonFilteredFileExtension>
-					</nonFilteredFileExtensions>
+					<!-- Desativa o filtro que corrompe bytes em arquivos de
+					propriedades -->
+					<propertiesEncoding>ISO-8859-1</propertiesEncoding>
 				</configuration>
 			</plugin>
+
 		</plugins>
 	</build>
 </project>
