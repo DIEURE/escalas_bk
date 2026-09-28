@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // 🟢 Usar a anotação do Spring
 
 import com.hope.escala.dto.response.EmpresaResponseDTO;
 import com.hope.escala.entity.Empresa;
@@ -14,8 +15,6 @@ import com.hope.escala.repository.EmpresaRepository;
 import com.hope.escala.repository.UsuarioRepository;
 import com.hope.escala.security.SecurityUtils;
 
-import jakarta.transaction.Transactional;
-
 @Service
 public class EmpresaService {
 
@@ -23,64 +22,66 @@ public class EmpresaService {
     private final SecurityUtils securityUtils;
     private final UsuarioRepository usuarioRepository;
 
-    public EmpresaService(EmpresaRepository empresaRepository, SecurityUtils securityUtils,UsuarioRepository usuarioRepository) {
+    public EmpresaService(EmpresaRepository empresaRepository, SecurityUtils securityUtils, UsuarioRepository usuarioRepository) {
         this.empresaRepository = empresaRepository;
         this.securityUtils = securityUtils;
         this.usuarioRepository = usuarioRepository;
     }
-    
-    
+
     @Transactional
     public Empresa criarEmpresa(Empresa empresa) {
         empresa.setAtiva(true);
         empresa.setCriadoEm(LocalDateTime.now());
         return empresaRepository.save(empresa);
     }
-    
-    
-    @Transactional
+
+    @Transactional(readOnly = true)
     public List<Empresa> listarTodas() {
         return empresaRepository.findAll();
     }
-    
-    @Transactional
+
+    @Transactional(readOnly = true)
     public List<Empresa> listarEmpresasParaCadastro() {
-    
         return empresaRepository.findAll();
     }
-    
+
+    // 🟢 CORREÇÃO: Transacional e buscando a entidade direto pelo ID no repository
+    @Transactional(readOnly = true)
     public EmpresaResponseDTO buscarEmpresaLogadaDTO() {
-        // 1. Obtém a autenticação atual
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
 
-        // 2. Busca o usuário pelo e-mail do token
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
 
-        // 3. Pega a empresa vinculada a esse usuário
-        Empresa empresa = usuario.getEmpresa();
-        if (empresa == null) {
+        if (usuario.getEmpresa() == null) {
             throw new RuntimeException("Usuário não possui instituição vinculada.");
         }
 
-        // 4. Retorna o DTO da empresa DELE (empresa_id = 2)
+        // Pega o ID (o Hibernate consegue ler o ID do proxy sem abrir sessão)
+        Long empresaId = usuario.getEmpresa().getId();
+
+        // Busca a Empresa real e completa no banco, eliminando o erro de proxy
+        Empresa empresa = empresaRepository.findById(empresaId)
+                .orElseThrow(() -> new RuntimeException("Empresa não encontrada."));
+
         return new EmpresaResponseDTO(empresa);
     }
 
-
+    @Transactional(readOnly = true)
     public Empresa buscarEmpresaLogada() {
         Long empresaId = securityUtils.empresaId();
         return empresaRepository.findById(empresaId)
                 .orElseThrow(() -> new RuntimeException("Empresa não encontrada para o usuário logado."));
     }
 
+    @Transactional(readOnly = true)
     public Empresa buscarPorId(Long id) {
-        // Opcional: validar se o usuário pertence a essa empresa antes de retornar
         return empresaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Empresa não encontrada com o ID: " + id));
     }
 
+    @Transactional
     public Empresa atualizarEmpresa(Long id, Empresa dadosAtualizados) {
         Empresa empresa = buscarPorId(id);
 
@@ -92,22 +93,23 @@ public class EmpresaService {
 
         return empresaRepository.save(empresa);
     }
-    
+
+    // 🟢 CORREÇÃO: Removido readOnly = true pois este método realiza UPDATE (save)
     @Transactional
     public EmpresaResponseDTO atualizarEmpresaLogada(Empresa dados) {
-        // 1. Pega o e-mail do usuário autenticado
-        String email = org.springframework.security.core.context.SecurityContextHolder
-                .getContext().getAuthentication().getName();
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
 
-        Empresa empresa = usuario.getEmpresa();
-        if (empresa == null) {
+        if (usuario.getEmpresa() == null) {
             throw new RuntimeException("Usuário não possui instituição vinculada.");
         }
 
-        // 2. Atualiza apenas os campos cadastrais permitidos para o Admin local
+        Long empresaId = usuario.getEmpresa().getId();
+        Empresa empresa = empresaRepository.findById(empresaId)
+                .orElseThrow(() -> new RuntimeException("Empresa não encontrada."));
+
         if (dados.getNome() != null && !dados.getNome().isBlank()) {
             empresa.setNome(dados.getNome().trim());
         }
@@ -115,12 +117,8 @@ public class EmpresaService {
         empresa.setTelefone(dados.getTelefone());
         empresa.setEmail(dados.getEmail());
         empresa.setEndereco(dados.getEndereco());
-        
-        // Obs: 'ativa' NÃO é alterado pelo admin comum, somente pelo Super Admin
 
         Empresa salva = empresaRepository.save(empresa);
         return new EmpresaResponseDTO(salva);
     }
-
-    
 }
