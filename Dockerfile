@@ -11,7 +11,7 @@ RUN chmod +x mvnw
 COPY src ./src
 
 # Compila e empacota a aplicação ignorando testes
-RUN ./mvnw clean package -DskipTests
+RUN ./mvnw clean package -DskipTests -Dfile.encoding=UTF-8
 
 # ETAPA 2: Imagem final de execução
 FROM eclipse-temurin:21-jre-alpine
