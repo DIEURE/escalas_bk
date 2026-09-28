@@ -30,4 +30,10 @@ ENV TZ=America/Sao_Paulo
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
+ENTRYPOINT ["java", \
+  "-Djava.security.egd=file:/dev/./urandom", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-XX:+TieredCompilation", \
+  "-XX:TieredStopAtLevel=1", \
+  "-jar", "app.jar"]
