@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,6 +42,7 @@ public class AuthController {
 		this.passwordEncoder = passwordEncoder;
 	}
 
+	@Transactional(readOnly = true)
 	@PostMapping("/login")
 	public LoginResponseDTO login(@RequestBody LoginRequestDTO dto) {
 		System.out.println("Email recebido: " + dto.getEmail());
@@ -48,7 +50,7 @@ public class AuthController {
 		
 		authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(dto.getEmail(), dto.getSenha()));
 
-		Usuario usuario = usuarioRepository.findByEmail(dto.getEmail())
+		Usuario usuario = usuarioRepository.findByEmailComEmpresa(dto.getEmail())
 				.orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
 		// 🟢 BLOQUEIO DE SEGURANÇA: Impede o login se o cadastro estiver inativo/pendente

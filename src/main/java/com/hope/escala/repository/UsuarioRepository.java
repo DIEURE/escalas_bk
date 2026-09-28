@@ -11,7 +11,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.hope.escala.dto.DistribuicaoPerfilDTO;
 import com.hope.escala.entity.Usuario;
 import com.hope.escala.enums.PerfilUsuario;
 
@@ -20,13 +19,15 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     Optional<Usuario> findByEmail(String email);
 
+    // 🟢 Busca o usuário já carregando a empresa em uma única consulta (evita LazyInitializationException / no session)
+    @Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.email = :email")
+    Optional<Usuario> findByEmailComEmpresa(@Param("email") String email);
+
     boolean existsByEmail(String email);
 
     // Listagem geral ordenada (Super Admin)
     List<Usuario> findAllByOrderByNomeAsc();
-    
-    
-    
+
     // 🟢 Busca músicos aptos para o rodízio automático por congregação
     @Query("SELECT DISTINCT u FROM Usuario u " +
            "JOIN u.instrumentos i " +
@@ -68,7 +69,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     @Query("SELECT DISTINCT u FROM Usuario u JOIN u.instrumentos i WHERE i.id = :instrumentoId AND u.empresa.id = :empresaId AND u.ativo = true ORDER BY u.nome ASC")
     List<Usuario> findByInstrumentosIdAndEmpresaIdAndAtivoTrue(@Param("instrumentoId") Long instrumentoId, @Param("empresaId") Long empresaId);
 
-    // Query para a Data Table com filtros combinados (se utilizada no UsuarioService)
+    // Query para a Data Table com filtros combinados
     @Query("SELECT u FROM Usuario u WHERE (:empresaId IS NULL OR u.empresa.id = :empresaId) " +
            "AND (:busca IS NULL OR LOWER(u.nome) LIKE LOWER(CONCAT('%', :busca, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :busca, '%'))) " +
            "AND (:perfil IS NULL OR u.perfil = :perfil) " +
@@ -78,8 +79,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
                                   @Param("perfil") PerfilUsuario perfil,
                                   @Param("ativo") Boolean ativo,
                                   Pageable pageable);
-    
-    
+
     long countByAtivoTrue();
 
     long countByAtivoFalse();
@@ -92,8 +92,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     long countByDataCadastroBetween(LocalDateTime inicio, LocalDateTime fim);
 
-    // 🟢 A anotação @Query é obrigatória aqui para o Spring não tentar deduzir pelas propriedades da entidade
     @Query("SELECT u.perfil, COUNT(u) FROM Usuario u GROUP BY u.perfil")
     List<Object[]> contarUsuariosPorPerfilRaw();
-    
 }
