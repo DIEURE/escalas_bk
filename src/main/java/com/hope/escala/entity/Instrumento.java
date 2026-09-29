@@ -30,8 +30,8 @@ public class Instrumento {
 	
 	@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
-	 
-    private Empresa empresa;
+	@com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+	private Empresa empresa;
 
 	public Empresa getEmpresa() {
 		return empresa;

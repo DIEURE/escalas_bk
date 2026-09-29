@@ -69,8 +69,9 @@ public class DepartamentoController {
 
     @PutMapping("/{id}")
     @AdminOuLider
-    public ResponseEntity<Departamento> atualizar(@PathVariable Long id, @RequestBody Departamento dep) {
-        return ResponseEntity.ok(departamentoService.atualizar(id, dep));
+    public ResponseEntity<DepartamentoResponseDTO> atualizar(@PathVariable Long id, @RequestBody Departamento dep) {
+        Departamento atualizado = departamentoService.atualizar(id, dep);
+        return ResponseEntity.ok(new DepartamentoResponseDTO(atualizado));
     }
 
     @PatchMapping("/{id}/status")
