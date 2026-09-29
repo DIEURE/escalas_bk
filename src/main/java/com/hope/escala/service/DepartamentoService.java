@@ -1,5 +1,6 @@
 package com.hope.escala.service;
  
+import com.hope.escala.dto.response.DepartamentoResponseDTO;
 import com.hope.escala.entity.Departamento;
 import com.hope.escala.entity.Empresa;
 import com.hope.escala.entity.Usuario;
@@ -56,45 +57,55 @@ public class DepartamentoService {
     }
 
     @Transactional
-    public Departamento salvar(Departamento dados) {
+    public DepartamentoResponseDTO salvar(Departamento dados) {
         Usuario usuario = getUsuarioLogado();
         boolean isSuperAdmin = usuario.getPerfil() == PerfilUsuario.SUPER_ADMIN;
 
-        // 1. Determina o ID da empresa de destino
-        Long empresaIdDestino = dados.getEmpresaId() != null
-                ? dados.getEmpresaId()
-                : (dados.getEmpresa() != null ? dados.getEmpresa().getId() : null);
-
+        // 1. Identifica a congregação
         Long empresaIdFinal;
-        if (isSuperAdmin && empresaIdDestino != null) {
-            empresaIdFinal = empresaIdDestino;
+        if (isSuperAdmin && dados.getEmpresaId() != null) {
+            empresaIdFinal = dados.getEmpresaId();
         } else {
             if (usuario.getEmpresa() == null) {
-                throw new RuntimeException("Usuário não possui instituição vinculada.");
+                throw new RuntimeException("Usuário logado não possui congregação vinculada.");
             }
             empresaIdFinal = usuario.getEmpresa().getId();
         }
 
-        // 2. Busca a entidade Empresa real e gerenciada no banco (evita proxy Lazy)
+        // 2. Busca a Empresa real completa no banco (carregando os dados dentro da transação)
         Empresa empresaDestino = empresaRepository.findById(empresaIdFinal)
                 .orElseThrow(() -> new RuntimeException("Congregação não encontrada com ID: " + empresaIdFinal));
 
-        // 3. Validação de duplicidade
+        // 3. Força a inicialização dos dados da empresa antes de fechar a sessão
+        org.hibernate.Hibernate.initialize(empresaDestino);
+
+        // 4. Validação de duplicidade
         if (departamentoRepository.existsByNomeIgnoreCaseAndEmpresaId(dados.getNome().trim(), empresaIdFinal)) {
-            throw new RuntimeException("Já existe um departamento com este nome na congregação.");
+            throw new RuntimeException("Já existe um departamento com este nome nesta congregação.");
         }
 
+        // 5. Salva o departamento
         Departamento dep = new Departamento();
         dep.setNome(dados.getNome().trim());
         dep.setEmpresa(empresaDestino);
         dep.setAtivo(dados.getAtivo() != null ? dados.getAtivo() : true);
 
-        return departamentoRepository.save(dep);
+        Departamento salvo = departamentoRepository.save(dep);
+
+        // 🟢 CRUCIAL: converte para DTO AQUI DENTRO, com a sessão do banco ABERTA:
+        return new DepartamentoResponseDTO(
+            salvo.getId(),
+            salvo.getNome(),
+            salvo.getAtivo(),
+            empresaDestino.getId(),
+            empresaDestino.getNome()
+        );
     }
 
 
+
     @Transactional
-    public Departamento atualizar(Long id, Departamento dados) {
+    public DepartamentoResponseDTO atualizar(Long id, Departamento dados) {
         Usuario usuario = getUsuarioLogado();
         boolean isSuperAdmin = usuario.getPerfil() == PerfilUsuario.SUPER_ADMIN;
 
@@ -104,25 +115,7 @@ public class DepartamentoService {
                     .orElseThrow(() -> new RuntimeException("Departamento não encontrado."));
         } else {
             dep = departamentoRepository.findByIdAndEmpresaId(id, usuario.getEmpresa().getId())
-                    .orElseThrow(() -> new RuntimeException("Departamento não encontrado ou sem permissão de acesso."));
-        }
-
-        Long empresaIdVerificacao = dep.getEmpresa().getId();
-
-        // 🟢 Se o Super Admin alterou a congregação do departamento
-        Long novaEmpresaId = dados.getEmpresaId() != null
-                ? dados.getEmpresaId()
-                : (dados.getEmpresa() != null ? dados.getEmpresa().getId() : null);
-
-        if (isSuperAdmin && novaEmpresaId != null && !novaEmpresaId.equals(dep.getEmpresa().getId())) {
-            Empresa novaEmpresa = empresaRepository.findById(novaEmpresaId)
-                    .orElseThrow(() -> new RuntimeException("Congregação não encontrada: " + novaEmpresaId));
-            dep.setEmpresa(novaEmpresa);
-            empresaIdVerificacao = novaEmpresa.getId();
-        }
-
-        if (departamentoRepository.existsByNomeIgnoreCaseAndEmpresaIdAndIdNot(dados.getNome().trim(), empresaIdVerificacao, id)) {
-            throw new RuntimeException("Já existe outro departamento com este nome nesta congregação.");
+                    .orElseThrow(() -> new RuntimeException("Departamento não encontrado ou sem permissão."));
         }
 
         dep.setNome(dados.getNome().trim());
@@ -130,8 +123,18 @@ public class DepartamentoService {
             dep.setAtivo(dados.getAtivo());
         }
 
-        return departamentoRepository.save(dep);
+        Departamento atualizado = departamentoRepository.save(dep);
+        org.hibernate.Hibernate.initialize(atualizado.getEmpresa());
+
+        return new DepartamentoResponseDTO(
+            atualizado.getId(),
+            atualizado.getNome(),
+            atualizado.getAtivo(),
+            atualizado.getEmpresa().getId(),
+            atualizado.getEmpresa().getNome()
+        );
     }
+
 
     @Transactional
     public void alternarStatus(Long id) {

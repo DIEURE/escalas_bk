@@ -63,15 +63,13 @@ public class DepartamentoController {
     @PostMapping
     @AdminOuLider
     public ResponseEntity<DepartamentoResponseDTO> criar(@RequestBody Departamento dep) {
-        Departamento criado = departamentoService.salvar(dep);
-        return ResponseEntity.status(HttpStatus.CREATED).body(new DepartamentoResponseDTO(criado));
+        return ResponseEntity.status(HttpStatus.CREATED).body(departamentoService.salvar(dep));
     }
 
     @PutMapping("/{id}")
     @AdminOuLider
     public ResponseEntity<DepartamentoResponseDTO> atualizar(@PathVariable Long id, @RequestBody Departamento dep) {
-        Departamento atualizado = departamentoService.atualizar(id, dep);
-        return ResponseEntity.ok(new DepartamentoResponseDTO(atualizado));
+        return ResponseEntity.ok(departamentoService.atualizar(id, dep));
     }
 
     @PatchMapping("/{id}/status")
