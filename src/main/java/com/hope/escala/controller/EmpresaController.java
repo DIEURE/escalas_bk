@@ -54,9 +54,8 @@ public class EmpresaController {
     }
      
     @GetMapping("/empresas-publicas")
-    public ResponseEntity<List<Empresa>> listarEmpresasPublicas() {
-        List<Empresa> empresas = empresaService.listarEmpresasParaCadastro(); 
-        return ResponseEntity.ok(empresas);
+    public ResponseEntity<List<EmpresaResponseDTO>> listarEmpresasPublicas() {
+    	return ResponseEntity.ok(empresaService.listarEmpresasParaCadastro());
     }
 
      

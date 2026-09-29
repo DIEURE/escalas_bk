@@ -11,6 +11,7 @@ public class EmpresaResponseDTO {
     private String telefone;
     private String email;
     private String endereco;
+    private Boolean ativa;
 
     // Construtores
     public EmpresaResponseDTO() {}
@@ -22,6 +23,7 @@ public class EmpresaResponseDTO {
         this.telefone = empresa.getTelefone();
         this.email = empresa.getEmail();
         this.endereco = empresa.getEndereco();
+        this.ativa = empresa.getAtiva();
     }
 
     // Getters e Setters
@@ -29,7 +31,15 @@ public class EmpresaResponseDTO {
         return id;
     }
 
-    public void setId(Long id) {
+    public Boolean getAtiva() {
+		return ativa;
+	}
+
+	public void setAtiva(Boolean ativa) {
+		this.ativa = ativa;
+	}
+
+	public void setId(Long id) {
         this.id = id;
     }
 

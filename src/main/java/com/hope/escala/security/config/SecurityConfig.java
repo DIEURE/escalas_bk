@@ -56,6 +56,7 @@ public class SecurityConfig {
 		
 		// 🟢 Origens permitidas: Domínio de produção, subdomínios, Render e desenvolvimento local
 		configuration.setAllowedOriginPatterns(Arrays.asList(
+				"https://hope-escala-web.onrender.com",
 				"https://hopeescalapro.com.br",
 				"https://www.hopeescalapro.com.br",
 				"https://*.onrender.com",

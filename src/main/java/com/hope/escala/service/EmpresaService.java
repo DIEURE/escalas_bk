@@ -40,9 +40,17 @@ public class EmpresaService {
         return empresaRepository.findAll();
     }
 
+	/*
+	 * @Transactional(readOnly = true) public List<Empresa>
+	 * listarEmpresasParaCadastro() { return empresaRepository.findAll(); }
+	 */
+    
     @Transactional(readOnly = true)
-    public List<Empresa> listarEmpresasParaCadastro() {
-        return empresaRepository.findAll();
+    public List<EmpresaResponseDTO> listarEmpresasParaCadastro() {
+    	 return empresaRepository.findEmpresasParaCadastroPublico()
+                 .stream()
+                 .map(EmpresaResponseDTO::new)
+                 .toList();
     }
 
     // 🟢 CORREÇÃO: Transacional e buscando a entidade direto pelo ID no repository
