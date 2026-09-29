@@ -189,11 +189,13 @@ public class UsuarioService {
                 .toList();
     }
 
+    @Transactional
     @PodeSerAdmin 
     public UsuarioResponseDTO aprovar(Long id, UsuarioRequestDTO dto) {
         Long empresaIdLogada = securityUtils.empresaId();
 
-        Usuario usuario = usuarioRepository.findById(id)
+        // 🟢 Trocado para findByIdComEmpresa: resolve o erro de proxy da Empresa#2
+        Usuario usuario = usuarioRepository.findByIdComEmpresa(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário pendente não encontrado"));
 
         if (!securityUtils.isSuperAdmin() && (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada))) {
@@ -228,6 +230,7 @@ public class UsuarioService {
 
         return converterParaDTO(aprovado);
     }
+
 
     @PodeSerAdmin
     public UsuarioResponseDTO alternarStatus(Long id) {

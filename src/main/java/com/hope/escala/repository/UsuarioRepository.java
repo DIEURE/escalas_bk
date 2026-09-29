@@ -101,4 +101,11 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     @Query("SELECT u.perfil, COUNT(u) FROM Usuario u GROUP BY u.perfil")
     List<Object[]> contarUsuariosPorPerfilRaw();
+    
+    @Query("""
+    	    SELECT u FROM Usuario u 
+    	    LEFT JOIN FETCH u.empresa 
+    	    WHERE u.id = :id
+    	""")
+    	Optional<Usuario> findByIdComEmpresa(@Param("id") Long id);
 }
