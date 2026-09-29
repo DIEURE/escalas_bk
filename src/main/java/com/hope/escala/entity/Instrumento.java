@@ -28,10 +28,10 @@ public class Instrumento {
 	private String descricao;
 
 	
-	@ManyToOne(fetch = FetchType.LAZY)
+	@JsonIgnore // 🟢 IMPEDE O JACKSON DE TOCAR NO PROXY LAZY
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
-	@com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-	private Empresa empresa;
+    private Empresa empresa;
 
 	public Empresa getEmpresa() {
 		return empresa;

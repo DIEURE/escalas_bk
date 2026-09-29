@@ -3,6 +3,7 @@ package com.hope.escala.service;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.hope.escala.dto.request.InstrumentoRequestDTO;
 import com.hope.escala.dto.response.InstrumentoResponse;
@@ -69,7 +70,7 @@ public class InstrumentoService {
 		return converterResponse(salvo);
 	}
 
-
+	@Transactional(readOnly = true)
 	public List<InstrumentoResponse> listar(Long empresaId) {
 		boolean isSuperAdmin = securityUtils.isSuperAdmin();
 
@@ -88,7 +89,7 @@ public class InstrumentoService {
 
 		return lista.stream().map(this::converterResponse).toList();
 	}
-
+	@Transactional(readOnly = true)
 	public InstrumentoResponse buscarPorId(Long id) {
 		Instrumento instrumento = repository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Instrumento não encontrado"));
