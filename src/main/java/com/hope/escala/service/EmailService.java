@@ -7,7 +7,6 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import com.hope.escala.entity.EmailConfig;
 import com.hope.escala.repository.EmailConfigRepository;
-import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
 @Service
@@ -19,20 +18,41 @@ public class EmailService {
         this.emailConfigRepository = emailConfigRepository;
     }
 
-    private JavaMailSender criarMailSenderParaEmpresa(Long empresaId) {
-        EmailConfig config = emailConfigRepository.findByEmpresa_Id(empresaId)
-                .orElseThrow(() -> new RuntimeException("Servidor SMTP não configurado para esta instituição."));
-
+    private JavaMailSender criarMailSender(EmailConfig config) {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost(config.getHost());
         mailSender.setPort(config.getPorta());
         mailSender.setUsername(config.getUsuario());
         mailSender.setPassword(config.getSenha());
+        mailSender.setDefaultEncoding("UTF-8");
 
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", String.valueOf(config.getUsarTls()));
+
+        // 🟢 Configuração robusta de acordo com a porta:
+        // Porta 465 usa SSL direto (Altamente recomendada em ambientes de nuvem como Render)
+        if (config.getPorta() != null && config.getPorta() == 465) {
+            props.put("mail.smtp.ssl.enable", "true");
+            props.put("mail.smtp.socketFactory.port", "465");
+            props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+            props.put("mail.smtp.socketFactory.fallback", "false");
+        } else {
+            // Porta 587 (ou padrão) usa STARTTLS
+            boolean usarTls = config.getUsarTls() != null && config.getUsarTls();
+            props.put("mail.smtp.starttls.enable", String.valueOf(usarTls));
+            props.put("mail.smtp.starttls.required", String.valueOf(usarTls));
+        }
+
+        // 🟢 Confia no certificado e define protocolos TLS seguros
+        props.put("mail.smtp.ssl.trust", config.getHost());
+        props.put("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
+
+        // 🟢 Timeouts explícitos de 10 segundos (evita o timeout -1 indefinido)
+        props.put("mail.smtp.connectiontimeout", "10000");
+        props.put("mail.smtp.timeout", "10000");
+        props.put("mail.smtp.writetimeout", "10000");
+
         props.put("mail.debug", "false");
 
         return mailSender;
@@ -56,11 +76,6 @@ public class EmailService {
 
     public void enviarEmailAprovacao(Long empresaId, String destinatario, String nomeUsuario) {
         String assunto = "Acesso Liberado! - Hope Escala Pro";
-        
-        // Você pode buscar o nome da empresa pelo ID se precisar para o rodapé ou texto
-        // Empresa empresa = empresaRepository.findById(empresaId).orElse(null);
-        // String nomeEmpresa = empresa != null ? empresa.getNome() : "Hope Escala Pro";
-        
         String corpoMensagem = "Boas notícias! Seu acesso foi aprovado por um administrador ou líder. Você já pode entrar no sistema e gerenciar suas escalas.";
         
         String htmlMensagem = """
@@ -72,8 +87,6 @@ public class EmailService {
             </head>
             <body style="margin: 0; padding: 0; background-color: #090d16; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #e2e8f0;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%%" style="max-width: 600px; margin: 20px auto; background-color: #111827; border-radius: 16px; border: 1px solid #1f2937; overflow: hidden;">
-                    
-                    <!-- CABEÇALHO -->
                     <tr>
                         <td align="center" style="padding: 30px 20px; background-color: #090d16; border-bottom: 1px solid #1f2937;">
                             <div style="font-size: 20px; font-weight: bold; color: #ffffff; background: linear-gradient(135deg, #f97316, #ea580c); padding: 8px 20px; border-radius: 12px; display: inline-block; letter-spacing: 1px;">
@@ -81,18 +94,14 @@ public class EmailService {
                             </div>
                         </td>
                     </tr>
-
-                    <!-- CORPO DA MENSAGEM -->
                     <tr>
                         <td style="padding: 40px 30px;">
                             <h2 style="color: #ffffff; font-size: 22px; margin-top: 0; margin-bottom: 20px;">
                                 Olá, %s! 🎉
                             </h2>
-                            
                             <p style="font-size: 16px; line-height: 1.6; color: #94a3b8; margin-bottom: 20px;">
                                 %s
                             </p>
-
                             <div style="background-color: #090d16; border: 1px solid #1f2937; border-radius: 12px; padding: 20px; margin-top: 25px;">
                                 <p style="font-size: 14px; color: #cbd5e1; margin: 0; text-align: center;">
                                     Status atual: <strong style="color: #10b981;">Aprovado e Ativo</strong>
@@ -100,14 +109,11 @@ public class EmailService {
                             </div>
                         </td>
                     </tr>
-
-                    <!-- RODAPÉ -->
                     <tr>
                         <td align="center" style="padding: 20px; background-color: #090d16; color: #475569; font-size: 12px; border-top: 1px solid #1f2937;">
                             Gerenciado com carinho por <strong style="color: #f97316;">Hope Escala Pro</strong>.
                         </td>
                     </tr>
-
                 </table>
             </body>
             </html>
@@ -116,18 +122,22 @@ public class EmailService {
         enviarHtmlDinamico(empresaId, destinatario, assunto, htmlMensagem);
     }
 
-
-     
-
     private void enviarHtmlDinamico(Long empresaId, String para, String assunto, String htmlBody) {
         try {
-            JavaMailSender mailSender = criarMailSenderParaEmpresa(empresaId);
-            EmailConfig config = emailConfigRepository.findByEmpresa_Id(empresaId).orElseThrow();
+            // Busca a configuração uma única vez
+            EmailConfig config = emailConfigRepository.findByEmpresa_Id(empresaId)
+                    .orElseThrow(() -> new RuntimeException("Servidor SMTP não configurado para esta instituição."));
+
+            JavaMailSender mailSender = criarMailSender(config);
 
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             
-            helper.setFrom(config.getUsuario(), config.getRemetenteNome() != null ? config.getRemetenteNome() : "Hope Escala Pro");
+            String remetente = (config.getRemetenteNome() != null && !config.getRemetenteNome().isBlank()) 
+                    ? config.getRemetenteNome() 
+                    : "Hope Escala Pro";
+
+            helper.setFrom(config.getUsuario(), remetente);
             helper.setTo(para);
             helper.setSubject(assunto);
             helper.setText(htmlBody, true);
@@ -135,7 +145,7 @@ public class EmailService {
             mailSender.send(message);
         } catch (Exception e) {
             System.err.println("Erro ao enviar e-mail multi-tenant: " + e.getMessage());
-            throw new RuntimeException("Erro ao enviar e-mail. Verifique as configurações de SMTP da empresa.");
+            throw new RuntimeException("Erro ao enviar e-mail. Verifique as configurações de SMTP da empresa: " + e.getMessage(), e);
         }
     }
 }
