@@ -28,6 +28,16 @@ public class EscalaMusicoResponseDTO {
 	private LocalTime horarioManha;
 
 	private LocalTime horarioNoite;
+	
+	private String justificativaRecusa;
+	
+	public String getJustificativaRecusa() {
+	    return justificativaRecusa;
+	}
+
+	public void setJustificativaRecusa(String justificativaRecusa) {
+	    this.justificativaRecusa = justificativaRecusa;
+	}
 
 	public LocalDate getDataEscala() {
 		return dataEscala;

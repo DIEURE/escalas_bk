@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.hope.escala.dto.request.ConfirmarEscalaRequestDTO;
 import com.hope.escala.dto.request.EscalaRequestDTO;
 import com.hope.escala.dto.request.GerarEscalasMesRequestDTO;
 import com.hope.escala.dto.response.EscalaDetalhesResponseDTO;
@@ -46,12 +47,13 @@ public class EscalaController {
 	private final EscalaService escalaService;
 	private final YoutubePlaylistService youTubePlaylistService;
 	private final PdfEscalaService pdfEscalaService;
-	private final EscalaRelatorioService escalaRelatorioService; 
+	private final EscalaRelatorioService escalaRelatorioService;
 	private final EscalaRepository escalaRepository;
 	private final SecurityUtils securityUtils; // 🟢 Injeção do SecurityUtils
 
 	public EscalaController(EscalaService escalaService, YoutubePlaylistService youTubePlaylistService,
-			PdfEscalaService pdfEscalaService, EscalaRepository escalaRepository,EscalaRelatorioService escalaRelatorioService, SecurityUtils securityUtils) {
+			PdfEscalaService pdfEscalaService, EscalaRepository escalaRepository,
+			EscalaRelatorioService escalaRelatorioService, SecurityUtils securityUtils) {
 		this.escalaService = escalaService;
 		this.youTubePlaylistService = youTubePlaylistService;
 		this.pdfEscalaService = pdfEscalaService;
@@ -59,7 +61,7 @@ public class EscalaController {
 		this.escalaRepository = escalaRepository;
 		this.securityUtils = securityUtils;
 	}
-	
+
 	@Transactional
 	@AdminOuLider
 	@PostMapping
@@ -79,14 +81,13 @@ public class EscalaController {
 		return ResponseEntity.ok(escalaService.buscarPorId(id));
 	}
 
-	@Transactional 
+	@Transactional
 	@PutMapping("/{id}")
 	public ResponseEntity<EscalaResponseDTO> atualizar(@PathVariable Long id,
 			@Valid @RequestBody EscalaRequestDTO dto) {
 		return ResponseEntity.ok(escalaService.atualizar(id, dto));
 	}
-	
-	
+
 	@GetMapping("/verificar-conflito")
 	public ResponseEntity<Boolean> verificarConflito(@RequestParam String data, @RequestParam String horario,
 			@RequestParam Long departamentoId) {
@@ -96,12 +97,12 @@ public class EscalaController {
 		String horarioComSegundos = horario.length() == 5 ? horario + ":00" : horario;
 		LocalTime localTime = LocalTime.parse(horarioComSegundos);
 
-		// 🟢 Obtém a empresa logada para garantir o isolamento multi-tenant na verificação
+		// 🟢 Obtém a empresa logada para garantir o isolamento multi-tenant na
+		// verificação
 		Long empresaIdLogada = securityUtils.empresaId();
 
-		boolean existe = escalaRepository.existeConflitoHorario(
-				localDate, localTime, localTime, departamentoId, empresaIdLogada
-		);
+		boolean existe = escalaRepository.existeConflitoHorario(localDate, localTime, localTime, departamentoId,
+				empresaIdLogada);
 
 		return ResponseEntity.ok(existe);
 	}
@@ -124,25 +125,24 @@ public class EscalaController {
 		return ResponseEntity.ok(playlistUrl);
 	}
 
-	public record PlaylistManualRequest(
-		    String tituloPlaylistManual,
-		    List<Long> musicasIds
-		) {}
-	
-	// ✅ NOVO: Playlist Manual (recebe lista de IDs de música e retorna a URL gerada)
-	@PostMapping("/{id}/playlist-manual")
-	public ResponseEntity<String> criarPlaylistManual(
-	        @PathVariable Long id,
-	        @RequestBody PlaylistManualRequest request) {
-	    
-	    String urlPlaylist = escalaService.salvarPlaylistManual(id, request.tituloPlaylistManual(), request.musicasIds());
-	    return ResponseEntity.ok(urlPlaylist);
+	public record PlaylistManualRequest(String tituloPlaylistManual, List<Long> musicasIds) {
 	}
-	
+
+	// ✅ NOVO: Playlist Manual (recebe lista de IDs de música e retorna a URL
+	// gerada)
+	@PostMapping("/{id}/playlist-manual")
+	public ResponseEntity<String> criarPlaylistManual(@PathVariable Long id,
+			@RequestBody PlaylistManualRequest request) {
+
+		String urlPlaylist = escalaService.salvarPlaylistManual(id, request.tituloPlaylistManual(),
+				request.musicasIds());
+		return ResponseEntity.ok(urlPlaylist);
+	}
+
 	@GetMapping("/{id}/playlist-manual/musicas")
 	public ResponseEntity<List<EscalaMusicaResponseDTO>> listarMusicasDaPlaylistManual(@PathVariable Long id) {
-	    List<EscalaMusicaResponseDTO> musicas = escalaService.listarMusicasDaPlaylistManual(id);
-	    return ResponseEntity.ok(musicas);
+		List<EscalaMusicaResponseDTO> musicas = escalaService.listarMusicasDaPlaylistManual(id);
+		return ResponseEntity.ok(musicas);
 	}
 
 	@GetMapping("/{id}/pdf")
@@ -151,56 +151,62 @@ public class EscalaController {
 		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=escala.pdf")
 				.contentType(MediaType.APPLICATION_PDF).body(pdf);
 	}
-	 
+
 	@Transactional(readOnly = true)
 	@GetMapping("/relatorio-mensal")
 	@PodeGerenciarDepartamento
-	public ResponseEntity<byte[]> gerarRelatorioMensal(
-	        @RequestParam Long agendaMensalId,
-	        @RequestParam(required = false) Long departamentoId) {
+	public ResponseEntity<byte[]> gerarRelatorioMensal(@RequestParam Long agendaMensalId,
+			@RequestParam(required = false) Long departamentoId) {
 
-	    byte[] pdfBytes = escalaRelatorioService.gerarRelatorioMensalPdf(agendaMensalId, departamentoId);
+		byte[] pdfBytes = escalaRelatorioService.gerarRelatorioMensalPdf(agendaMensalId, departamentoId);
 
-	    HttpHeaders headers = new HttpHeaders();
-	    headers.setContentType(MediaType.APPLICATION_PDF);
-	    // "inline" tenta abrir em nova aba; use "attachment; filename=..." se preferir forçar download
-	    headers.setContentDisposition(ContentDisposition.inline().filename("relatorio-escalas-mes.pdf").build());
-	    headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_PDF);
+		// "inline" tenta abrir em nova aba; use "attachment; filename=..." se preferir
+		// forçar download
+		headers.setContentDisposition(ContentDisposition.inline().filename("relatorio-escalas-mes.pdf").build());
+		headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
 
-	    return ResponseEntity.ok()
-	            .headers(headers)
-	            .body(pdfBytes);
+		return ResponseEntity.ok().headers(headers).body(pdfBytes);
 	}
 
-	
 	@AdminOuLider
 	@PostMapping("/agenda/{agendaMensalId}/gerar-automaticas")
 	public ResponseEntity<List<EscalaResponseDTO>> gerarEscalasAutomaticas(@PathVariable Long agendaMensalId,
 			@Valid @RequestBody GerarEscalasMesRequestDTO dto) {
 		return ResponseEntity.ok(escalaService.gerarEscalasMes(agendaMensalId, dto));
 	}
+
 	@AdminOuLider
 	@PostMapping("/{id}/adicionar-musicos")
 	public ResponseEntity<Void> adicionarMusicos(@PathVariable Long id, @RequestBody List<Long> musicosIds) {
 		escalaService.adicionarMusicos(id, musicosIds);
 		return ResponseEntity.ok().build();
 	}
-	
-    @PutMapping("/{id}/regenerar-automatica")
-    public ResponseEntity<EscalaDetalhesResponseDTO> regenerarEscalaAutomatica(@PathVariable Long id) {
-        return ResponseEntity.ok(escalaService.regenerarEscalaAutomatica(id));
-    }
 
+	@PutMapping("/{id}/regenerar-automatica")
+	public ResponseEntity<EscalaDetalhesResponseDTO> regenerarEscalaAutomatica(@PathVariable Long id) {
+		return ResponseEntity.ok(escalaService.regenerarEscalaAutomatica(id));
+	}
 
 	@PatchMapping("/{id}/status")
 	public ResponseEntity<EscalaResponseDTO> alterarStatus(@PathVariable Long id, @RequestBody StatusEscala status) {
 		return ResponseEntity.ok(escalaService.alterarStatus(id, status));
 	}
+
+	@DeleteMapping("/{id}/playlist")
+	public ResponseEntity<Void> desvincularPlaylist(@PathVariable Long id) {
+		escalaService.desvincularPlaylist(id);
+		return ResponseEntity.noContent().build();
+	}
 	
-	 @DeleteMapping("/{id}/playlist")
-	    public ResponseEntity<Void> desvincularPlaylist(@PathVariable Long id) {
-	        escalaService.desvincularPlaylist(id);
-	        return ResponseEntity.noContent().build();
-	    }
+	@PutMapping("/{escalaId}/confirmar")
+	public ResponseEntity<Void> confirmarMinhaEscala(
+	        @PathVariable Long escalaId,
+	        @RequestBody ConfirmarEscalaRequestDTO dto) {
+
+	    escalaService.confirmarPresencaMusico(escalaId, dto.confirmado(), dto.justificativa());
+	    return ResponseEntity.noContent().build();
+	}
 
 }

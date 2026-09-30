@@ -449,6 +449,10 @@ public class EscalaService {
 
 		dto.setConfirmado(escalaMusico.getConfirmado());
 		dto.setObservacao(escalaMusico.getObservacao());
+		
+		// 🟢 Mapeia a justificativa gravada
+		dto.setJustificativaRecusa(escalaMusico.getJustificativaRecusa());
+		
 		return dto;
 	}
 
@@ -702,4 +706,38 @@ public class EscalaService {
 		escalaMusicaRepository.deleteAll(musicasEscala);
 		escalaRepository.save(escala);
 	}
+	
+	@Transactional
+	public void confirmarPresencaMusico(Long escalaId, Boolean confirmado, String justificativa) {
+	    Long usuarioLogadoId = securityUtils.usuarioId();
+	    Long empresaIdLogada = securityUtils.empresaId();
+
+	    // 1. Busca o vínculo do músico na escala indicada
+	    List<EscalaMusico> registros = escalaMusicoRepository.findByEscalaId(escalaId);
+	    
+	    EscalaMusico vinculo = registros.stream()
+	            .filter(em -> em.getUsuario().getId().equals(usuarioLogadoId))
+	            .findFirst()
+	            .orElseThrow(() -> new ResourceNotFoundException("Você não está escalado para este evento."));
+
+	    // 2. Validação Multi-tenant
+	    if (!vinculo.getEmpresa().getId().equals(empresaIdLogada)) {
+	        throw new ResourceNotFoundException("Escala não pertence à sua congregação.");
+	    }
+
+	    // 3. Atualiza o status
+	    vinculo.setConfirmado(confirmado);
+
+	    if (Boolean.FALSE.equals(confirmado)) {
+	        // Se recusou, grava a justificativa informada pelo voluntário
+	        vinculo.setJustificativaRecusa(justificativa != null && !justificativa.isBlank() ? justificativa.trim() : "Sem justificativa informada");
+	    } else {
+	        // Se confirmou a presença, limpa justificativa anterior caso tenha retificado
+	        vinculo.setJustificativaRecusa(null);
+	    }
+
+	    escalaMusicoRepository.save(vinculo);
+	}
+
+	
 }

@@ -23,7 +23,7 @@ public class EscalaMusico {
     @JoinColumn(name = "usuario_id")
     private Usuario usuario;
     
-    // 🟢 Campo adicionado para armazenar o instrumento/função (ex: "MINISTRO", "TECLADO")
+    // Campo para armazenar o instrumento/função (ex: "MINISTRO", "TECLADO")
     private String instrumento;
 
     private Boolean substituido = false;
@@ -35,6 +35,10 @@ public class EscalaMusico {
     private String motivoSubstituicao;
 
     private Boolean confirmado = false;
+
+    // 🟢 Novo campo: Justificativa quando o voluntário recusa a convocação
+    @Column(name = "justificativa_recusa")
+    private String justificativaRecusa;
 
     private String observacao;
     
@@ -91,6 +95,14 @@ public class EscalaMusico {
         this.confirmado = confirmado;
     }
 
+    public String getJustificativaRecusa() {
+        return justificativaRecusa;
+    }
+
+    public void setJustificativaRecusa(String justificativaRecusa) {
+        this.justificativaRecusa = justificativaRecusa;
+    }
+
     public String getObservacao() {
         return observacao;
     }
@@ -99,61 +111,59 @@ public class EscalaMusico {
         this.observacao = observacao;
     }
 
-	public Boolean getSubstituido() {
-		return substituido;
-	}
+    public Boolean getSubstituido() {
+        return substituido;
+    }
 
-	public void setSubstituido(Boolean substituido) {
-		this.substituido = substituido;
-	}
+    public void setSubstituido(Boolean substituido) {
+        this.substituido = substituido;
+    }
 
-	public Usuario getUsuarioSubstituto() {
-		return usuarioSubstituto;
-	}
+    public Usuario getUsuarioSubstituto() {
+        return usuarioSubstituto;
+    }
 
-	public void setUsuarioSubstituto(Usuario usuarioSubstituto) {
-		this.usuarioSubstituto = usuarioSubstituto;
-	}
+    public void setUsuarioSubstituto(Usuario usuarioSubstituto) {
+        this.usuarioSubstituto = usuarioSubstituto;
+    }
 
-	public String getMotivoSubstituicao() {
-		return motivoSubstituicao;
-	}
+    public String getMotivoSubstituicao() {
+        return motivoSubstituicao;
+    }
 
-	public void setMotivoSubstituicao(String motivoSubstituicao) {
-		this.motivoSubstituicao = motivoSubstituicao;
-	}
+    public void setMotivoSubstituicao(String motivoSubstituicao) {
+        this.motivoSubstituicao = motivoSubstituicao;
+    }
 
-	public LocalDate getDataEscala() {
-		return dataEscala;
-	}
+    public LocalDate getDataEscala() {
+        return dataEscala;
+    }
 
-	public void setDataEscala(LocalDate dataEscala) {
-		this.dataEscala = dataEscala;
-	}
+    public void setDataEscala(LocalDate dataEscala) {
+        this.dataEscala = dataEscala;
+    }
 
-	public LocalTime getHorarioManha() {
-		return horarioManha;
-	}
+    public LocalTime getHorarioManha() {
+        return horarioManha;
+    }
 
-	public void setHorarioManha(LocalTime horarioManha) {
-		this.horarioManha = horarioManha;
-	}
+    public void setHorarioManha(LocalTime horarioManha) {
+        this.horarioManha = horarioManha;
+    }
 
-	public LocalTime getHorarioNoite() {
-		return horarioNoite;
-	}
+    public LocalTime getHorarioNoite() {
+        return horarioNoite;
+    }
 
-	public void setHorarioNoite(LocalTime horarioNoite) {
-		this.horarioNoite = horarioNoite;
-	}
+    public void setHorarioNoite(LocalTime horarioNoite) {
+        this.horarioNoite = horarioNoite;
+    }
 
-	public Empresa getEmpresa() {
-		return empresa;
-	}
+    public Empresa getEmpresa() {
+        return empresa;
+    }
 
-	public void setEmpresa(Empresa empresa) {
-		this.empresa = empresa;
-	}
-	
-	
+    public void setEmpresa(Empresa empresa) {
+        this.empresa = empresa;
+    }
 }
