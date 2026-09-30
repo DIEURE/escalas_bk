@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import com.hope.escala.service.DisponibilidadeService;
  
 
 @RestController
