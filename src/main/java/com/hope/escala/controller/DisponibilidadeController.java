@@ -9,7 +9,7 @@ import com.hope.escala.service.DisponibilidadeService;
  
 
 @RestController
-@RequestMapping("/api/disponibilidades")
+@RequestMapping("/disponibilidades")
 public class DisponibilidadeController {
 
     private final DisponibilidadeService service;

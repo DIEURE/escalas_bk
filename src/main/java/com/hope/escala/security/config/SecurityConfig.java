@@ -40,6 +40,8 @@ public class SecurityConfig {
 						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 						.requestMatchers("/usuarios/**").permitAll()
 						.requestMatchers("/auth/login", "/auth/solicitar-cadastro").permitAll()
+						.requestMatchers("/disponibilidades/**").authenticated()
+					    .requestMatchers("/agenda-mensal/datas").authenticated()
 						.requestMatchers(HttpMethod.GET, "/empresas-publicas").permitAll()
 						.requestMatchers(HttpMethod.GET, "/empresas", "/empresas/**").permitAll()
 						.anyRequest().authenticated());
