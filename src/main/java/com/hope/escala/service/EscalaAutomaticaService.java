@@ -4,9 +4,13 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.hope.escala.entity.Escala;
 import com.hope.escala.entity.Usuario;
 import com.hope.escala.repository.EscalaMusicoRepository;
+import com.hope.escala.repository.EscalaRepository;
+import com.hope.escala.repository.SuspensaoRepository;
 import com.hope.escala.repository.UsuarioRepository;
 import com.hope.escala.security.SecurityUtils;
 
@@ -15,18 +19,24 @@ public class EscalaAutomaticaService {
 
     private final UsuarioRepository usuarioRepository;
     private final EscalaMusicoRepository escalaMusicoRepository;
+    private final EscalaRepository escalaRepository;
     private final SecurityUtils securityUtils;
+    private final SuspensaoRepository suspensaoRepository;
 
     public EscalaAutomaticaService(
             UsuarioRepository usuarioRepository,
             EscalaMusicoRepository escalaMusicoRepository,
-            SecurityUtils securityUtils) {
+            EscalaRepository escalaRepository,
+            SecurityUtils securityUtils,
+            SuspensaoRepository suspensaoRepository) {
         this.usuarioRepository = usuarioRepository;
         this.escalaMusicoRepository = escalaMusicoRepository;
         this.securityUtils = securityUtils;
+        this.suspensaoRepository = suspensaoRepository;
+        this.escalaRepository = escalaRepository;
     }
-
-    // Sobrecarga para quando o empresaId for informado diretamente (ex: vindo da Escala ou do Super Admin)
+    
+    @Transactional(readOnly = true)
     public Usuario escolherMusicoRodizio(Long instrumentoId, Long departamentoId, Long escalaId, Long empresaId) {
         Long empresaAlvo = empresaId != null ? empresaId : securityUtils.empresaId();
 
@@ -34,21 +44,34 @@ public class EscalaAutomaticaService {
             throw new RuntimeException("Não foi possível identificar a congregação para o rodízio automático.");
         }
 
-        // 🟢 Busca os músicos disponíveis filtrados pela congregação
+        // 1. Busca a escala para obter a data (mês e ano) da realização do culto
+        Escala escala = escalaRepository.findById(escalaId)
+                .orElseThrow(() -> new RuntimeException("Escala não encontrada com o ID: " + escalaId));
+
+        int mesEscala = escala.getDataEscala().getMonthValue();
+        int anoEscala = escala.getDataEscala().getYear();
+
+        // 2. Busca os músicos disponíveis filtrados pela congregação
         List<Usuario> usuarios = usuarioRepository.buscarMusicosDisponiveisPorEmpresa(instrumentoId, departamentoId, empresaAlvo);
 
-        // Músicos já escalados nesse mesmo dia/evento
+        // 3. Músicos já escalados nesse mesmo dia/evento
         List<Long> usuariosJaEscalados = escalaMusicoRepository.buscarUsuariosJaEscalados(escalaId);
 
+        // 4. 🟢 Músicos suspensos no mês por critério disciplinar (faltas/recusas sem justificativa)
+        List<Long> usuariosSuspensos = suspensaoRepository.buscarIdsSuspensosNoMes(
+                departamentoId, mesEscala, anoEscala, empresaAlvo);
+
+        // 5. Filtra retirando quem já está escalado e quem está suspenso no mês
         usuarios = usuarios.stream()
                 .filter(usuario -> !usuariosJaEscalados.contains(usuario.getId()))
+                .filter(usuario -> !usuariosSuspensos.contains(usuario.getId()))
                 .toList();
 
         if (usuarios.isEmpty()) {
             return null;
         }
 
-        // Apenas 1 músico disponível
+        // Apenas 1 músico disponível após os filtros
         if (usuarios.size() == 1) {
             return usuarios.get(0);
         }
@@ -74,8 +97,14 @@ public class EscalaAutomaticaService {
         return escolhido;
     }
 
+
     // Mantém compatibilidade com chamadas existentes que passam 3 parâmetros
+    @Transactional(readOnly = true)
     public Usuario escolherMusicoRodizio(Long instrumentoId, Long departamentoId, Long escalaId) {
         return escolherMusicoRodizio(instrumentoId, departamentoId, escalaId, null);
     }
+    
+  
+    
+    
 }
