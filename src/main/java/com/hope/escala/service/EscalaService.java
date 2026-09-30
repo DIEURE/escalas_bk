@@ -415,6 +415,31 @@ public class EscalaService {
 		}
 	}
 
+	
+	@Transactional
+	public void solicitarSubstituicao(Long escalaId, String motivo) {
+	    Long usuarioLogadoId = securityUtils.usuarioId();
+	    Long empresaIdLogada = securityUtils.empresaId();
+
+	    List<EscalaMusico> registros = escalaMusicoRepository.findByEscalaId(escalaId);
+
+	    EscalaMusico vinculo = registros.stream()
+	            .filter(em -> em.getUsuario().getId().equals(usuarioLogadoId))
+	            .findFirst()
+	            .orElseThrow(() -> new ResourceNotFoundException("Você não está escalado para este evento."));
+
+	    if (!vinculo.getEmpresa().getId().equals(empresaIdLogada)) {
+	        throw new ResourceNotFoundException("Escala não pertence à sua congregação.");
+	    }
+
+	    // Marca que a vaga está aberta para substituição
+	    vinculo.setSubstituido(true); 
+	    vinculo.setConfirmado(false);
+	    vinculo.setObservacao("Substituição solicitada: " + (motivo != null ? motivo : "Imprevisto pessoal"));
+
+	    escalaMusicoRepository.save(vinculo);
+	}
+
 
 	public EscalaDetalhesResponseDTO buscarDetalhesEscala(Long escalaId) {
 		Long empresaIdLogada = securityUtils.empresaId();

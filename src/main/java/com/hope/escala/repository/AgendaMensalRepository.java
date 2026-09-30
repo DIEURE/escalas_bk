@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.hope.escala.entity.AgendaMensal;
@@ -25,4 +27,11 @@ public interface AgendaMensalRepository extends JpaRepository<AgendaMensal, Long
     boolean existsByMesAndAnoAndDepartamento(Integer mes, Integer ano, Departamento departamento);
 
     Optional<AgendaMensal> findByMesAndAnoAndDepartamento(Integer mes, Integer ano, Departamento departamento);
+    
+    @Query("SELECT a FROM AgendaMensal a WHERE a.mes = :mes AND a.ano = :ano AND a.empresa.id = :empresaId")
+    Optional<AgendaMensal> findByMesEAnoEEmpresaId(
+            @Param("mes") int mes, 
+            @Param("ano") int ano, 
+            @Param("empresaId") Long empresaId);
+
 }
