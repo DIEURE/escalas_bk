@@ -3,6 +3,9 @@ package com.hope.escala.controller;
 import com.hope.escala.entity.ExcecaoEscalaData;
 import com.hope.escala.security.annotation.AdminOuLider;
 import com.hope.escala.service.ExcecaoEscalaService;
+
+import jakarta.validation.Valid;
+
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,46 +20,53 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class ExcecaoEscalaController {
 
-    private final ExcecaoEscalaService service;
+	private final ExcecaoEscalaService service;
 
-    public ExcecaoEscalaController(ExcecaoEscalaService service) {
-        this.service = service;
-    }
+	public ExcecaoEscalaController(ExcecaoEscalaService service) {
+		this.service = service;
+	}
 
-@Transactional
-    @AdminOuLider
-    @GetMapping
-    public ResponseEntity<List<ExcecaoEscalaData>> listar(
-            @RequestParam(required = false) Long departamentoId,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate inicio,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate fim
-    ) {
-        List<ExcecaoEscalaData> lista = service.listarPorPeriodo(departamentoId, inicio, fim);
-        return ResponseEntity.ok(lista);
-    }
+	@Transactional
+	@AdminOuLider
+	@GetMapping
+	public ResponseEntity<List<ExcecaoEscalaData>> listar(@RequestParam(required = false) Long departamentoId,
+			@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate inicio,
+			@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate fim) {
+		List<ExcecaoEscalaData> lista = service.listarPorPeriodo(departamentoId, inicio, fim);
+		return ResponseEntity.ok(lista);
+	}
 
-@Transactional
-    @AdminOuLider
-    @PostMapping
-    public ResponseEntity<ExcecaoEscalaData> salvar(@RequestBody ExcecaoEscalaData excecao) {
-        ExcecaoEscalaData salva = service.salvarOuAtualizar(excecao);
-        return ResponseEntity.ok(salva);
-    }
-    
-@Transactional
-    @AdminOuLider
-    @GetMapping("/todas")
-    public ResponseEntity<List<ExcecaoEscalaData>> listarTodas() {
-        List<ExcecaoEscalaData> lista = service.listarTodasPorEmpresa();
-        return ResponseEntity.ok(lista);
-    }
+	@Transactional
+	@AdminOuLider
+	@PostMapping
+	public ResponseEntity<ExcecaoEscalaData> salvar(@RequestBody ExcecaoEscalaData excecao) {
+		ExcecaoEscalaData salva = service.salvarOuAtualizar(excecao);
+		return ResponseEntity.ok(salva);
+	}
 
- 
+	@Transactional
+	@GetMapping("/{id}")
+	public ResponseEntity<ExcecaoEscalaData> buscarPorId(@PathVariable Long id) {
+		return ResponseEntity.ok(service.buscarPorId(id));
+	}
 
-    @AdminOuLider
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        service.deletar(id);
-        return ResponseEntity.noContent().build();
-    }
+	@PutMapping("/{id}")
+	public ResponseEntity<ExcecaoEscalaData> atualizar(@PathVariable Long id, @RequestBody ExcecaoEscalaData dados) {
+		return ResponseEntity.ok(service.atualizar(id, dados));
+	}
+
+	@Transactional
+	@AdminOuLider
+	@GetMapping("/todas")
+	public ResponseEntity<List<ExcecaoEscalaData>> listarTodas() {
+		List<ExcecaoEscalaData> lista = service.listarTodasPorEmpresa();
+		return ResponseEntity.ok(lista);
+	}
+
+	@AdminOuLider
+	@DeleteMapping("/{id}")
+	public ResponseEntity<Void> deletar(@PathVariable Long id) {
+		service.deletar(id);
+		return ResponseEntity.noContent().build();
+	}
 }
