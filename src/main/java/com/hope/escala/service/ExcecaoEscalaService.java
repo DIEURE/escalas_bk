@@ -6,6 +6,7 @@ import com.hope.escala.exception.ResourceNotFoundException;
 import com.hope.escala.repository.ExcecaoEscalaDataRepository;
 import com.hope.escala.security.SecurityUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -49,7 +50,7 @@ public class ExcecaoEscalaService {
         return repository.findByEmpresaId(securityUtils.empresaId());
     }
 
-
+    @Transactional
     public ExcecaoEscalaData salvarOuAtualizar(ExcecaoEscalaData excecao) {
         Long empresaIdLogada = securityUtils.empresaId();
 

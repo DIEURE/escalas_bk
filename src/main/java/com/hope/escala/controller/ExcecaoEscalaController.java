@@ -5,6 +5,7 @@ import com.hope.escala.security.annotation.AdminOuLider;
 import com.hope.escala.service.ExcecaoEscalaService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -22,6 +23,7 @@ public class ExcecaoEscalaController {
         this.service = service;
     }
 
+@Transactional
     @AdminOuLider
     @GetMapping
     public ResponseEntity<List<ExcecaoEscalaData>> listar(
@@ -33,6 +35,7 @@ public class ExcecaoEscalaController {
         return ResponseEntity.ok(lista);
     }
 
+@Transactional
     @AdminOuLider
     @PostMapping
     public ResponseEntity<ExcecaoEscalaData> salvar(@RequestBody ExcecaoEscalaData excecao) {
@@ -40,7 +43,7 @@ public class ExcecaoEscalaController {
         return ResponseEntity.ok(salva);
     }
     
-    
+@Transactional
     @AdminOuLider
     @GetMapping("/todas")
     public ResponseEntity<List<ExcecaoEscalaData>> listarTodas() {

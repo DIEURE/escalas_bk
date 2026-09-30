@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -58,27 +59,34 @@ public class EscalaController {
 		this.escalaRepository = escalaRepository;
 		this.securityUtils = securityUtils;
 	}
+	
+	@Transactional
 	@AdminOuLider
 	@PostMapping
 	public ResponseEntity<EscalaResponseDTO> salvar(@Valid @RequestBody EscalaRequestDTO dto) {
 		return ResponseEntity.status(HttpStatus.CREATED).body(escalaService.salvar(dto));
 	}
 
+	@Transactional(readOnly = true)
 	@GetMapping
 	public ResponseEntity<List<EscalaResponseDTO>> listar() {
 		return ResponseEntity.ok(escalaService.listar());
 	}
 
+	@Transactional(readOnly = true)
 	@GetMapping("/{id}")
 	public ResponseEntity<EscalaResponseDTO> buscarPorId(@PathVariable Long id) {
 		return ResponseEntity.ok(escalaService.buscarPorId(id));
 	}
 
+	@Transactional 
 	@PutMapping("/{id}")
 	public ResponseEntity<EscalaResponseDTO> atualizar(@PathVariable Long id,
 			@Valid @RequestBody EscalaRequestDTO dto) {
 		return ResponseEntity.ok(escalaService.atualizar(id, dto));
 	}
+	
+	
 	@GetMapping("/verificar-conflito")
 	public ResponseEntity<Boolean> verificarConflito(@RequestParam String data, @RequestParam String horario,
 			@RequestParam Long departamentoId) {
@@ -104,6 +112,7 @@ public class EscalaController {
 		return ResponseEntity.ok("Escala inativada com sucesso");
 	}
 
+	@Transactional(readOnly = true)
 	@GetMapping("/{id}/detalhes")
 	public ResponseEntity<EscalaDetalhesResponseDTO> buscarDetalhesEscala(@PathVariable Long id) {
 		return ResponseEntity.ok(escalaService.buscarDetalhesEscala(id));
@@ -143,7 +152,7 @@ public class EscalaController {
 				.contentType(MediaType.APPLICATION_PDF).body(pdf);
 	}
 	 
-	
+	@Transactional(readOnly = true)
 	@GetMapping("/relatorio-mensal")
 	@PodeGerenciarDepartamento
 	public ResponseEntity<byte[]> gerarRelatorioMensal(

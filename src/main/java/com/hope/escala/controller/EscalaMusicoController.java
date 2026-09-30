@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,16 +31,16 @@ public class EscalaMusicoController {
         this.escalaMusicoService = escalaMusicoService;
     }
 
+    @Transactional
     @PostMapping
-     
     public ResponseEntity<EscalaMusicoResponseDTO> salvar(
             @Valid @RequestBody EscalaMusicoRequestDTO dto) {
         EscalaMusicoResponseDTO escalaMusicoSalvo = escalaMusicoService.salvar(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(escalaMusicoSalvo);
     }
 
+    @Transactional
     @GetMapping("/escala/{escalaId}")
-     
     public ResponseEntity<List<EscalaMusicoResponseDTO>> listarPorEscala(
             @PathVariable Long escalaId) {
         List<EscalaMusicoResponseDTO> escalaMusicos = 
@@ -47,10 +48,12 @@ public class EscalaMusicoController {
         return ResponseEntity.ok(escalaMusicos);
     }
     
+    @Transactional
     @GetMapping("/minhas-escalas")
     public ResponseEntity<List<EscalaMusicoResponseDTO>> listarMinhasEscalas() {
         return ResponseEntity.ok(escalaMusicoService.listarMinhasEscalas());
     }
+    
     
     @PatchMapping("/minhas-escalas/{escalaId}/confirmacao")
     public ResponseEntity<EscalaMusicoResponseDTO> confirmarMinhaEscala(

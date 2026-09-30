@@ -271,6 +271,7 @@ public class EscalaService {
 		escalaRepository.save(escala);
 	}
 
+	@Transactional
 	public List<EscalaResponseDTO> gerarEscalasMes(Long agendaMensalId, GerarEscalasMesRequestDTO dto) {
 		Long empresaIdLogada = securityUtils.empresaId();
 
@@ -346,8 +347,8 @@ public class EscalaService {
 			int quantidadeFinal = instrumento.getQuantidadeEscala();
 
 			java.util.Optional<com.hope.escala.entity.ExcecaoEscalaData> excecaoOpt = excecaoEscalaDataRepository
-					.findByDepartamentoIdAndDataExcecaoAndInstrumentoId(departamentoId, dataEscala,
-							instrumento.getId());
+			        .findByDepartamentoIdAndDataExcecaoAndInstrumentoIdAndEmpresaId(
+			                departamentoId, dataEscala, instrumento.getId(), empresaId);
 
 			if (excecaoOpt.isPresent()) {
 				com.hope.escala.entity.ExcecaoEscalaData excecao = excecaoOpt.get();
@@ -372,7 +373,7 @@ public class EscalaService {
 				escalaMusico.setUsuario(usuario);
 				escalaMusico.setInstrumento(instrumento.getNome());
 				escalaMusico.setConfirmado(false);
-				// 🟢 CORREÇÃO DO ERRO AQUI:
+				 
 				escalaMusico.setEmpresa(escala.getEmpresa());
 
 				escalaMusicoRepository.save(escalaMusico);
@@ -537,11 +538,11 @@ public class EscalaService {
 			String nomeInstrumento = (usuario.getInstrumentos() != null && !usuario.getInstrumentos().isEmpty())
 					? usuario.getInstrumentos().iterator().next().getNome()
 					: "Geral";
-			novo.setInstrumento(nomeInstrumento); // 🟢 Garante instrumento preenchido
+			novo.setInstrumento(nomeInstrumento);  
 
 			novo.setConfirmado(false);
 			novo.setSubstituido(false);
-			novo.setEmpresa(escala.getEmpresa()); // 🟢 Garante empresa preenchida
+			novo.setEmpresa(escala.getEmpresa());  
 			
 			escalaMusicoRepository.save(novo);
 		}

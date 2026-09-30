@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,6 +32,7 @@ public class InstrumentoController {
         this.service = service;
     }
 
+    @Transactional
     @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa criar instrumentos
     @PostMapping
     public ResponseEntity<InstrumentoResponse> criar(
@@ -38,6 +40,7 @@ public class InstrumentoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.salvar(request));
     }
 
+@Transactional
     @GetMapping
     public ResponseEntity<List<InstrumentoResponse>> listar(
             @RequestParam(name = "empresaId", required = false) Long empresaId) {
