@@ -14,8 +14,10 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hope.escala.entity.YoutubeConfig; // Ou sua entidade onde fica o refreshToken do Google
+import com.hope.escala.entity.YoutubeConfig;
+import com.hope.escala.repository.UsuarioRepository;
 import com.hope.escala.repository.YoutubeConfigRepository;
+import com.hope.escala.security.SecurityUtils;
 
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
@@ -27,8 +29,7 @@ public class EmailService {
     private final YoutubeConfigRepository googleConfigRepository;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
-
-    public EmailService(YoutubeConfigRepository googleConfigRepository, ObjectMapper objectMapper) {
+    public EmailService(YoutubeConfigRepository googleConfigRepository, ObjectMapper objectMapper, SecurityUtils securityUtils,UsuarioRepository usuarioRepository) {
         this.googleConfigRepository = googleConfigRepository;
         this.objectMapper = objectMapper;
         this.httpClient = HttpClient.newHttpClient();
@@ -64,11 +65,10 @@ public class EmailService {
     }
 
     /**
-     * Converte a mensagem MIME para Base64 URL-Safe e dispara via Gmail REST API (Porta 443)
+     * Dispara via Gmail REST API (Porta 443) e retorna TRUE se o Google aceitou a mensagem
      */
-    private void enviarEmailViaGmailApi(Long empresaId, String destinatario, String assunto, String htmlBody) {
+    private boolean enviarEmailViaGmailApi(Long empresaId, String destinatario, String assunto, String htmlBody) {
         try {
-            // Busca as credenciais OAuth da empresa
             YoutubeConfig config = googleConfigRepository.findByEmpresaId(empresaId)
                     .orElseThrow(() -> new RuntimeException("Google OAuth não configurado para esta instituição."));
 
@@ -78,7 +78,6 @@ public class EmailService {
 
             String accessToken = obterAccessToken(config);
 
-            // Cria mensagem MIME padrão
             Session session = Session.getDefaultInstance(new Properties(), null);
             MimeMessage mimeMessage = new MimeMessage(session);
 
@@ -88,15 +87,13 @@ public class EmailService {
             mimeMessage.setSubject(assunto, "UTF-8");
             mimeMessage.setContent(htmlBody, "text/html; charset=UTF-8");
 
-            // Serializa o MIME para bytes e codifica em Base64 URL-Safe sem padding
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             mimeMessage.writeTo(outputStream);
             String rawMessage = Base64.getUrlEncoder().withoutPadding().encodeToString(outputStream.toByteArray());
 
-            // Monta o payload JSON esperado pela Gmail API: {"raw": "..."}
             String payloadJson = objectMapper.writeValueAsString(new MensagemGmailDTO(rawMessage));
 
-            // Dispara via POST HTTPS na porta 443 (sem bloqueios no Render)
+            // Endpoint consultado: https://gmail.googleapis.com/gmail/v1/users/me/messages/send
             HttpRequest apiRequest = HttpRequest.newBuilder()
                     .uri(URI.create("https://gmail.googleapis.com/gmail/v1/users/me/messages/send"))
                     .header("Authorization", "Bearer " + accessToken)
@@ -106,16 +103,67 @@ public class EmailService {
 
             HttpResponse<String> apiResponse = httpClient.send(apiRequest, HttpResponse.BodyHandlers.ofString());
 
-            if (apiResponse.statusCode() >= 400) {
-                throw new RuntimeException("Erro no envio pela Gmail API (Status " + apiResponse.statusCode() + "): " + apiResponse.body());
+            if (apiResponse.statusCode() == 200) {
+                System.out.println("E-mail enviado com sucesso via Gmail API para " + destinatario);
+                return true;
+            } else {
+                System.err.println("Erro Gmail API (Status " + apiResponse.statusCode() + "): " + apiResponse.body());
+                return false;
             }
 
-            System.out.println("E-mail transacional enviado com sucesso via Gmail REST API para: " + destinatario);
-
         } catch (Exception e) {
-            System.err.println("Erro ao enviar e-mail via Gmail API: " + e.getMessage());
-            throw new RuntimeException("Falha no disparo do e-mail: " + e.getMessage(), e);
+            System.err.println("Erro ao disparar e-mail via Gmail API: " + e.getMessage());
+            return false;
         }
+    }
+
+    /**
+     * Envia o e-mail notificando o voluntário/músico sobre a liberação da suspensão
+     */
+    public boolean enviarEmailLiberacaoMusico(Long empresaId, String destinatario, String nomeUsuario) {
+        String assunto = "Escala Liberada! - Hope Escala Pro";
+        String htmlMensagem = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Hope Escala Pro</title>
+            </head>
+            <body style="margin: 0; padding: 0; background-color: #090d16; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #e2e8f0;">
+                <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%%" style="max-width: 600px; margin: 20px auto; background-color: #111827; border-radius: 16px; border: 1px solid #1f2937; overflow: hidden;">
+                    <tr>
+                        <td align="center" style="padding: 30px 20px; background-color: #090d16; border-bottom: 1px solid #1f2937;">
+                            <div style="font-size: 20px; font-weight: bold; color: #ffffff; background: linear-gradient(135deg, #FF6B00, #ea580c); padding: 8px 20px; border-radius: 12px; display: inline-block; letter-spacing: 1px;">
+                                HOPE ESCALA PRO
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h2 style="color: #ffffff; font-size: 22px; margin-top: 0; margin-bottom: 20px;">
+                                Olá, %s! 🎸
+                            </h2>
+                            <p style="font-size: 16px; line-height: 1.6; color: #94a3b8; margin-bottom: 20px;">
+                                Sua participação nas escalas foi restabelecida pela liderança. Você já está disponível novamente para ser convocado nas próximas escalas.
+                            </p>
+                            <div style="background-color: #090d16; border: 1px solid #1f2937; border-radius: 12px; padding: 20px; margin-top: 25px;">
+                                <p style="font-size: 14px; color: #cbd5e1; margin: 0; text-align: center;">
+                                    Status do Voluntário: <strong style="color: #10b981;">Disponível / Liberado</strong>
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding: 20px; background-color: #090d16; color: #475569; font-size: 12px; border-top: 1px solid #1f2937;">
+                            Hope Escala Pro • Gestão de Ministérios e Escalas
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+        """.formatted(nomeUsuario);
+
+        return enviarEmailViaGmailApi(empresaId, destinatario, assunto, htmlMensagem);
     }
 
     public void enviarEmailSolicitacao(Long empresaId, String destinatario, String nomeUsuario, String nomeEmpresa) {
@@ -182,6 +230,8 @@ public class EmailService {
         enviarEmailViaGmailApi(empresaId, destinatario, assunto, htmlMensagem);
     }
 
-    // DTO interno em Record Java 21 para o JSON da Gmail API
     private record MensagemGmailDTO(String raw) {}
+    
+     
+
 }
