@@ -25,6 +25,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByEmailComEmpresa(@Param("email") String email);
 
     boolean existsByEmail(String email);
+     
 
     // 🟢 SUPER ADMIN: Carrega os usuários trazendo a congregação
     @Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa ORDER BY u.nome ASC")

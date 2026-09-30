@@ -80,14 +80,14 @@ public class UsuarioService {
                 .map(this::converterParaDTO)
                 .toList();
     }
-
+    @Transactional // 🟢 OBRIGATÓRIO: Mantém a sessão aberta até o fim do converterParaDTO
     @PodeSerAdmin
     public UsuarioResponseDTO salvar(UsuarioRequestDTO dto) {
         if (usuarioRepository.existsByEmail(dto.getEmail())) {
             throw new RuntimeException("Email já existe");
         }
 
-        // 🟢 Multi-tenant: se for Super Admin e escolheu a congregação no modal, usa o dto.getEmpresaId()
+        // Multi-tenant: se for Super Admin e escolheu a congregação no modal, usa o dto.getEmpresaId()
         Long empresaIdDestino = securityUtils.empresaId();
         if (securityUtils.isSuperAdmin() && dto.getEmpresaId() != null) {
             empresaIdDestino = dto.getEmpresaId();
@@ -120,14 +120,16 @@ public class UsuarioService {
         usuario.setDepartamentos(departamentos);
         usuario.setAtivo(true);
 
-        // Vínculo da congregação
         Empresa empresa = new Empresa();
         empresa.setId(empresaIdDestino);
         usuario.setEmpresa(empresa);
 
         Usuario salvo = usuarioRepository.save(usuario);
-        return converterParaDTO(salvo);
+        
+        // 🟢 Recarrega com fetch da empresa para preencher empresaNome com segurança no DTO
+        return converterParaDTO(usuarioRepository.findByIdComEmpresa(salvo.getId()).orElse(salvo));
     }
+
 
     public UsuarioResponseDTO solicitarCadastroPublico(UsuarioRequestDTO dto) {
         if (dto.getEmpresaId() == null) {
@@ -278,7 +280,8 @@ public class UsuarioService {
     public UsuarioResponseDTO buscarPorId(Long id) {
         Long empresaIdLogada = securityUtils.empresaId();
 
-        Usuario usuario = usuarioRepository.findById(id)
+        // 🟢 Usar findByIdComEmpresa para não quebrar no modal de edição
+        Usuario usuario = usuarioRepository.findByIdComEmpresa(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
         if (!securityUtils.isSuperAdmin() && (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada))) {
@@ -287,6 +290,7 @@ public class UsuarioService {
 
         return converterParaDTO(usuario);
     }
+
 
     @Transactional(readOnly = true)
     public List<UsuarioResponseDTO> buscarPorDepartamento(Long departamentoId) {
@@ -297,14 +301,15 @@ public class UsuarioService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional // 🟢 OBRIGATÓRIO: Sem isso, o LazyInitializationException ocorre no converterParaDTO
     @PodeSerAdmin
     public UsuarioResponseDTO atualizar(Long id, UsuarioRequestDTO dto) {
         Long empresaIdLogada = securityUtils.empresaId();
 
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+        Usuario usuario = usuarioRepository.findByIdComEmpresa(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com id: " + id));
 
-        // Se não for Super Admin, só altera da própria igreja
+        // Se não for Super Admin, só altera da própria congregação
         if (!securityUtils.isSuperAdmin() && (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada))) {
             throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
         }
@@ -313,7 +318,7 @@ public class UsuarioService {
             throw new RuntimeException("Email já existe");
         }
 
-        // 🟢 Se for Super Admin e escolheu trocar a congregação no modal
+        // Se for Super Admin e trocou a congregação no modal
         if (securityUtils.isSuperAdmin() && dto.getEmpresaId() != null) {
             Empresa novaEmpresa = new Empresa();
             novaEmpresa.setId(dto.getEmpresaId());
@@ -345,8 +350,15 @@ public class UsuarioService {
         }
 
         Usuario atualizado = usuarioRepository.save(usuario);
+        
+        // 🟢 Se a congregação foi alterada, recarrega com a nova congregação para o DTO
+        if (securityUtils.isSuperAdmin() && dto.getEmpresaId() != null) {
+            return converterParaDTO(usuarioRepository.findByIdComEmpresa(atualizado.getId()).orElse(atualizado));
+        }
+
         return converterParaDTO(atualizado);
     }
+
 
     @PodeSerAdmin
     public void inativar(Long id) {
