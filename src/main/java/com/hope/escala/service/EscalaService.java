@@ -336,15 +336,41 @@ public class EscalaService {
 	}
 
 	private void gerarMusicosAutomaticamente(Escala escala) {
-		// 🟢 Dica: se tiver o método no repository, filtre os instrumentos da empresa
 		List<Instrumento> instrumentos = instrumentoRepository.findByEmpresaIdAndAtivoTrue(escala.getEmpresa().getId());
 
 		Long departamentoId = escala.getDepartamento().getId();
 		LocalDate dataEscala = escala.getDataEscala();
 		Long empresaId = escala.getEmpresa().getId();
 
+		// 🟢 1. Descobre se haverá 2 ou mais ministros escalados nesta data
+		int quantidadeMinistrosNaData = 0;
+		for (Instrumento inst : instrumentos) {
+			String nomeInst = inst.getNome() != null ? inst.getNome().toUpperCase() : "";
+			if (nomeInst.contains("MINISTRO")) {
+				int qtdMinistro = inst.getQuantidadeEscala() != null ? inst.getQuantidadeEscala() : 1;
+
+				java.util.Optional<com.hope.escala.entity.ExcecaoEscalaData> excMinistro = excecaoEscalaDataRepository
+						.findByDepartamentoIdAndDataExcecaoAndInstrumentoIdAndEmpresaId(
+								departamentoId, dataEscala, inst.getId(), empresaId);
+
+				if (excMinistro.isPresent()) {
+					com.hope.escala.entity.ExcecaoEscalaData exc = excMinistro.get();
+					if (Boolean.TRUE.equals(exc.getBloqueado())) {
+						qtdMinistro = 0;
+					} else if (exc.getLimiteVagas() != null) {
+						qtdMinistro = exc.getLimiteVagas();
+					}
+				}
+				quantidadeMinistrosNaData += qtdMinistro;
+			}
+		}
+
+		// Se tiver 2 ou mais ministros na data, deve reduzir 1 backing vocal
+		boolean compensarBackingVocal = quantidadeMinistrosNaData >= 2;
+
+		// 🟢 2. Itera sobre os instrumentos preenchendo as vagas
 		for (Instrumento instrumento : instrumentos) {
-			int quantidadeFinal = instrumento.getQuantidadeEscala();
+			int quantidadeFinal = instrumento.getQuantidadeEscala() != null ? instrumento.getQuantidadeEscala() : 0;
 
 			java.util.Optional<com.hope.escala.entity.ExcecaoEscalaData> excecaoOpt = excecaoEscalaDataRepository
 			        .findByDepartamentoIdAndDataExcecaoAndInstrumentoIdAndEmpresaId(
@@ -360,6 +386,15 @@ public class EscalaService {
 				}
 			}
 
+			// 🟢 3. Regra de compensação: se for Backing Vocal e houver >= 2 Ministros, remove 1 vaga
+			String nomeAtual = instrumento.getNome() != null ? instrumento.getNome().toUpperCase() : "";
+			boolean ehBackingVocal = nomeAtual.contains("BACKING") || (nomeAtual.contains("VOCAL") && !nomeAtual.contains("MINISTRO"));
+
+			if (compensarBackingVocal && ehBackingVocal) {
+				quantidadeFinal = Math.max(0, quantidadeFinal - 1);
+			}
+
+			// 🟢 4. Realiza o sorteio/rodízio para a quantidade ajustada
 			for (int i = 0; i < quantidadeFinal; i++) {
 				Usuario usuario = escalaAutomaticaService.escolherMusicoRodizio(instrumento.getId(), departamentoId,
 						escala.getId(), empresaId);
@@ -373,13 +408,13 @@ public class EscalaService {
 				escalaMusico.setUsuario(usuario);
 				escalaMusico.setInstrumento(instrumento.getNome());
 				escalaMusico.setConfirmado(false);
-				 
 				escalaMusico.setEmpresa(escala.getEmpresa());
 
 				escalaMusicoRepository.save(escalaMusico);
 			}
 		}
 	}
+
 
 	public EscalaDetalhesResponseDTO buscarDetalhesEscala(Long escalaId) {
 		Long empresaIdLogada = securityUtils.empresaId();
