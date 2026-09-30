@@ -11,11 +11,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hope.escala.dto.request.AgendaMensalRequestDTO;
 import com.hope.escala.dto.request.GerarEscalasMesRequestDTO;
 import com.hope.escala.dto.response.AgendaMensalResponseDTO;
+import com.hope.escala.dto.response.DataCultoResponseDTO;
 import com.hope.escala.security.annotation.PodeGerenciarDepartamento;
 import com.hope.escala.service.AgendaMensalService;
 
@@ -31,7 +33,14 @@ public class AgendaMensalController {
 		this.service = service;
 	}
 
-	 
+	// 🟢 IMPORTANTE: A rota fixa "/datas" DEVE vir antes de "/{id}"
+	@GetMapping("/datas")
+	public ResponseEntity<List<DataCultoResponseDTO>> buscarDatasPorMesEAno(
+			@RequestParam("mes") int mes,
+			@RequestParam("ano") int ano) {
+		return ResponseEntity.ok(service.buscarDatasPorMesEAno(mes, ano));
+	}
+
 	@PostMapping	 
 	public ResponseEntity<AgendaMensalResponseDTO> salvar(@Valid @RequestBody AgendaMensalRequestDTO dto) {
 		return ResponseEntity.status(HttpStatus.CREATED).body(service.salvar(dto));
@@ -42,6 +51,7 @@ public class AgendaMensalController {
 		return ResponseEntity.ok(service.listar());
 	}
 
+	// Rotas com {id} numérico vêm depois
 	@GetMapping("/{id}")
 	public ResponseEntity<AgendaMensalResponseDTO> buscarPorId(@PathVariable Long id) {
 		return ResponseEntity.ok(service.buscarPorId(id));
@@ -62,7 +72,6 @@ public class AgendaMensalController {
 	}
 
 	@PostMapping("/{id}/gerar-escalas")
-	
 	public ResponseEntity<String> gerarEscalasMes(@PathVariable Long id,
 			@Valid @RequestBody GerarEscalasMesRequestDTO dto) {
 		service.gerarEscalasMes(id, dto);
