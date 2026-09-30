@@ -24,6 +24,9 @@ public interface EscalaRepository extends JpaRepository<Escala, Long> {
 
     // 🟢 Método que estava faltando no repositório para a agenda mensal com multi-tenant
     List<Escala> findByAgendaMensalIdAndEmpresaIdAndAtivaTrue(Long agendaMensalId, Long empresaId);
+    
+    List<Escala> findByEmpresaIdAndDataEscalaBetweenOrderByDataEscalaAsc(Long empresaId, LocalDate inicio, LocalDate fim);
+
 
     // Query customizada para verificar conflito de horário (manhã OU noite)
     @Query("SELECT COUNT(e) > 0 FROM Escala e WHERE e.dataEscala = :data " +

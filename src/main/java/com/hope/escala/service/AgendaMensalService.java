@@ -1,5 +1,7 @@
 package com.hope.escala.service;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -9,14 +11,17 @@ import org.springframework.transaction.annotation.Transactional;
 import com.hope.escala.dto.request.AgendaMensalRequestDTO;
 import com.hope.escala.dto.request.GerarEscalasMesRequestDTO;
 import com.hope.escala.dto.response.AgendaMensalResponseDTO;
+import com.hope.escala.dto.response.DataCultoResponseDTO;
 import com.hope.escala.entity.AgendaMensal;
 import com.hope.escala.entity.Departamento;
 import com.hope.escala.entity.Empresa;
+import com.hope.escala.entity.Escala;
 import com.hope.escala.enums.StatusAgendaMensal;
 import com.hope.escala.exception.ObjectnotFoundException;
 import com.hope.escala.repository.AgendaMensalRepository;
 import com.hope.escala.repository.DepartamentoRepository;
 import com.hope.escala.repository.EmpresaRepository;
+import com.hope.escala.repository.EscalaRepository;
 import com.hope.escala.security.SecurityUtils;
 
 @Service
@@ -25,19 +30,77 @@ public class AgendaMensalService {
 	private final AgendaMensalRepository agendaMensalRepository;
 	private final DepartamentoRepository departamentoRepository;
 	private final EscalaService escalaService;
+	private final EscalaRepository escalaRepository;
 	private final SecurityUtils securityUtils;
 	private final EmpresaRepository empresaRepository;
 
 	public AgendaMensalService(AgendaMensalRepository agendaMensalRepository,
-			DepartamentoRepository departamentoRepository, EscalaService escalaService, SecurityUtils securityUtils,
+			DepartamentoRepository departamentoRepository, 
+			EscalaService escalaService, 
+			EscalaRepository escalaRepository,
+			SecurityUtils securityUtils,
 			EmpresaRepository empresaRepository) {
 
 		this.departamentoRepository = departamentoRepository;
 		this.escalaService = escalaService;
+		this.escalaRepository = escalaRepository;
 		this.securityUtils = securityUtils;
 		this.empresaRepository = empresaRepository;
 		this.agendaMensalRepository = agendaMensalRepository;
 	}
+
+	@Transactional(readOnly = true)
+	public List<DataCultoResponseDTO> buscarDatasPorMesEAno(int mes, int ano) {
+		Long empresaId = securityUtils.empresaId();
+		if (empresaId == null) {
+			throw new RuntimeException("Empresa não identificada na sessão.");
+		}
+
+		LocalDate inicio = LocalDate.of(ano, mes, 1);
+		LocalDate fim = inicio.withDayOfMonth(inicio.lengthOfMonth());
+
+		// 1. Busca as escalas já cadastradas para a congregação no período
+		List<Escala> escalas = escalaRepository.findByEmpresaIdAndDataEscalaBetweenOrderByDataEscalaAsc(empresaId, inicio, fim);
+
+		if (!escalas.isEmpty()) {
+			List<DataCultoResponseDTO> listaCultos = new ArrayList<>();
+
+			for (Escala e : escalas) {
+				// 🟢 Culto da Manhã: só entra SE foi marcado na geração da escala
+				if (e.getHorarioManha() != null || (e.getNomeCultoManha() != null && !e.getNomeCultoManha().isBlank())) {
+					String nomeManha = (e.getNomeCultoManha() != null && !e.getNomeCultoManha().isBlank()) 
+							? e.getNomeCultoManha() 
+							: "Culto da Manhã";
+					String horaManha = e.getHorarioManha() != null ? e.getHorarioManha().toString() : "09:00";
+					listaCultos.add(new DataCultoResponseDTO(e.getDataEscala(), nomeManha, horaManha));
+				}
+
+				// Culto da Noite (padrão principal)
+				String nomeNoite = (e.getNomeCultoNoite() != null && !e.getNomeCultoNoite().isBlank()) 
+						? e.getNomeCultoNoite() 
+						: "Culto de Celebração";
+				String horaNoite = e.getHorarioNoite() != null ? e.getHorarioNoite().toString() : "18:00";
+				listaCultos.add(new DataCultoResponseDTO(e.getDataEscala(), nomeNoite, horaNoite));
+			}
+
+			return listaCultos;
+		}
+
+		// 2. Fallback (antes de gerar as escalas): apenas domingos à noite
+		List<DataCultoResponseDTO> domingosPadrao = new ArrayList<>();
+		LocalDate dataCorrente = inicio;
+
+		while (!dataCorrente.isAfter(fim)) {
+			// Apenas Domingos (DayOfWeek = 7)
+			if (dataCorrente.getDayOfWeek().getValue() == 7) {
+				domingosPadrao.add(new DataCultoResponseDTO(dataCorrente, "Culto de Celebração", "19:00"));
+			}
+			dataCorrente = dataCorrente.plusDays(1);
+		}
+
+		return domingosPadrao;
+	}
+
 
 	public List<AgendaMensal> listarPorEmpresa() {
 		return agendaMensalRepository.findByEmpresaId(securityUtils.empresaId());
@@ -48,8 +111,7 @@ public class AgendaMensalService {
 		  Empresa empresa = empresaRepository.findById(securityUtils.empresaId())
 	                .orElseThrow(() -> new RuntimeException("Empresa não encontrada"));
 	        
-		// ← NOVO: Validar permissão de segurança
-		// Verifica se o usuário é ADMIN ou se pertence ao departamento
+		// ← Validar permissão de segurança
 		if (!securityUtils.isAdmin() && !securityUtils.pertenceAoDepartamento(dto.getDepartamentoId())) {
 			throw new RuntimeException("Você não possui acesso a este departamento.");
 		}
@@ -125,12 +187,10 @@ public class AgendaMensalService {
 		AgendaMensal agenda = agendaMensalRepository.findById(agendaMensalId).orElseThrow(
 				() -> new ObjectnotFoundException("Agenda mensal não encontrada com ID: " + agendaMensalId));
 
-		// ← NOVO: Validação de segurança PRIMEIRO
 		if (!securityUtils.isAdmin() && !securityUtils.pertenceAoDepartamento(dto.getDepartamentoId())) {
 			throw new RuntimeException("Você não possui acesso a este departamento.");
 		}
 
-		// Depois valida se o departamento da agenda corresponde
 		if (!agenda.getDepartamento().getId().equals(dto.getDepartamentoId())) {
 			throw new RuntimeException("O departamento informado não corresponde ao da agenda mensal");
 		}
