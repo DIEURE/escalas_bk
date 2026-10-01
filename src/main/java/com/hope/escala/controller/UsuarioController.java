@@ -1,5 +1,5 @@
 package com.hope.escala.controller;
-
+import java.security.Principal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -44,15 +44,21 @@ public class UsuarioController {
     }
     
     @GetMapping("/meu-perfil")
-    public ResponseEntity<UsuarioPerfilDTO> buscarMeuPerfil(@AuthenticationPrincipal Usuario usuarioLogado) {
-        return ResponseEntity.ok(service.buscarMeuPerfil(usuarioLogado.getId()));
+    public ResponseEntity<UsuarioPerfilDTO> buscarMeuPerfil(Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(service.buscarMeuPerfilPorEmail(principal.getName()));
     }
 
     @PutMapping("/meu-perfil")
     public ResponseEntity<UsuarioPerfilDTO> atualizarMeuPerfil(
-            @AuthenticationPrincipal Usuario usuarioLogado,
+            Principal principal,
             @RequestBody @Valid AtualizarPerfilDTO dto) {
-        return ResponseEntity.ok(service.atualizarMeuPerfil(usuarioLogado.getId(), dto));
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(service.atualizarMeuPerfilPorEmail(principal.getName(), dto));
     }
 
     @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa criar usuários diretamente
@@ -74,10 +80,7 @@ public class UsuarioController {
     public ResponseEntity<UsuarioResponseDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(service.buscarPorId(id));
     }
-    
-
-
-
+     
     @AdminOuLider // 🟢 Apenas Admin ou Líder pode atualizar dados de usuários
     @PutMapping("/{id}")
     public ResponseEntity<UsuarioResponseDTO> atualizar(
@@ -123,7 +126,6 @@ public class UsuarioController {
         service.inativar(id);
         return ResponseEntity.ok("Usuário inativado");
     }
-    
-    
+     
 
 }
