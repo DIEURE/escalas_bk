@@ -151,51 +151,70 @@ public class YoutubeService {
 	    }
 
 
-	public String gerarAuthUrl() {
-		YoutubeConfig config = getConfig();
-		if (config.getClientId() == null || config.getRedirectUri() == null) {
-			throw new IllegalArgumentException("Configure o Client ID e a Redirect URI primeiro.");
-		}
-
-		return "https://accounts.google.com/o/oauth2/v2/auth?" + "client_id=" + config.getClientId().trim()
-				+ "&redirect_uri=" + config.getRedirectUri().trim() + "&response_type=code"
-				+ "&scope=https://www.googleapis.com/auth/youtube" + "&access_type=offline" + "&prompt=consent";
-	}
-
-	public String criarPlaylistNoYoutube(String accessToken, String tituloPlaylist) {
-		// 🟢 CORREÇÃO: Utiliza a API Key correta salva no banco de dados para chamadas autenticadas de API
-		String apiKey = getConfig().getApiKey();
-		if (apiKey == null || apiKey.isBlank()) {
-			throw new RuntimeException("A Chave da API do YouTube (API Key) não está configurada.");
-		}
-		
-		String url = "https://www.googleapis.com/youtube/v3/playlists?part=snippet,status&key=" + apiKey.trim();
-
-		RestTemplate restTemplate = new RestTemplate();
-		HttpHeaders headers = new HttpHeaders();
-		headers.setBearerAuth(accessToken);
-		headers.setContentType(MediaType.APPLICATION_JSON);
-
-		String tituloFinal = (tituloPlaylist != null && !tituloPlaylist.isBlank()) ? tituloPlaylist
-				: "Playlist Hope Escala";
-
-		String requestBody = "{" + "\"snippet\": {" + "\"title\": \"" + tituloFinal + "\","
-				+ "\"description\": \"Criado automaticamente pelo sistema Hope Escala\"" + "}," + "\"status\": {"
-				+ "\"privacyStatus\": \"public\"" + "}" + "}";
-
-		HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
-
-		try {
-			ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
-			if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-				Map<String, Object> data = response.getBody();
-				return (String) data.get("id");
+		public String gerarAuthUrl() {
+			YoutubeConfig config = getConfig();
+			if (config.getClientId() == null || config.getRedirectUri() == null) {
+				throw new IllegalArgumentException("Configure o Client ID e a Redirect URI primeiro.");
 			}
-		} catch (Exception e) {
-			throw new RuntimeException("Erro ao criar playlist no YouTube: " + e.getMessage());
+
+			String escopos = java.net.URLEncoder.encode(
+					"https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.force-ssl",
+					java.nio.charset.StandardCharsets.UTF_8
+			);
+
+			return "https://accounts.google.com/o/oauth2/v2/auth?" 
+					+ "client_id=" + config.getClientId().trim()
+					+ "&redirect_uri=" + java.net.URLEncoder.encode(config.getRedirectUri().trim(), java.nio.charset.StandardCharsets.UTF_8)
+					+ "&response_type=code"
+					+ "&scope=" + escopos
+					+ "&access_type=offline" 
+					+ "&prompt=consent";
 		}
-		return null;
-	}
+
+
+		public String criarPlaylistNoYoutube(String accessToken, String tituloPlaylist) {
+			// 🟢 1. URL limpa SEM a &key= (apenas part=snippet,status)
+			String url = "https://www.googleapis.com/youtube/v3/playlists?part=snippet,status";
+
+			RestTemplate restTemplate = new RestTemplate();
+			HttpHeaders headers = new HttpHeaders();
+			headers.setBearerAuth(accessToken);
+			headers.setContentType(MediaType.APPLICATION_JSON);
+
+			String tituloFinal = (tituloPlaylist != null && !tituloPlaylist.isBlank()) 
+					? tituloPlaylist 
+					: "Playlist Hope Escala";
+
+			// 🟢 2. privacyStatus alterado para "unlisted"
+			String requestBody = "{" 
+					+ "\"snippet\": {" 
+					+ "\"title\": \"" + tituloFinal.replace("\"", "\\\"") + "\"," 
+					+ "\"description\": \"Criado automaticamente pelo sistema Hope Escala\"" 
+					+ "}," 
+					+ "\"status\": {" 
+					+ "\"privacyStatus\": \"unlisted\"" 
+					+ "}" 
+					+ "}";
+
+			HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+
+			try {
+				ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
+				if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+					Map<String, Object> data = response.getBody();
+					return (String) data.get("id");
+				}
+			} catch (org.springframework.web.client.HttpStatusCodeException ex) {
+				// Se o Google rejeitar, agora o log exibirá o motivo exato retornado pelo Google
+				System.err.println("Erro YouTube API [" + ex.getStatusCode() + "]: " + ex.getResponseBodyAsString());
+				throw new RuntimeException("Erro da API do YouTube: " + ex.getResponseBodyAsString(), ex);
+			} catch (Exception e) {
+				throw new RuntimeException("Erro ao criar playlist no YouTube: " + e.getMessage(), e);
+			}
+			return null;
+		}
+
+
 	
 	public String obterAccessToken() {
         YoutubeConfig config = getConfig();
@@ -251,10 +270,13 @@ public class YoutubeService {
 
 		try {
 			restTemplate.postForEntity(url, entity, Map.class);
+		} catch (org.springframework.web.client.HttpStatusCodeException ex) {
+			System.err.println("Erro ao adicionar vídeo " + youtubeVideoId + " (" + ex.getStatusCode() + "): " + ex.getResponseBodyAsString());
 		} catch (Exception e) {
 			System.err.println("Erro ao adicionar o vídeo " + youtubeVideoId + " na playlist: " + e.getMessage());
 		}
 	}
+
 	 
 	public List<Map<String, String>> pesquisarVideos(String query) {
 	    if (query == null || query.isBlank()) {
