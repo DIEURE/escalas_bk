@@ -42,6 +42,18 @@ public class UsuarioController {
         this.securityUtils = securityUtils;
         this.usuarioRepository = usuarioRepository;
     }
+    
+    @GetMapping("/meu-perfil")
+    public ResponseEntity<UsuarioPerfilDTO> buscarMeuPerfil(@AuthenticationPrincipal Usuario usuarioLogado) {
+        return ResponseEntity.ok(service.buscarMeuPerfil(usuarioLogado.getId()));
+    }
+
+    @PutMapping("/meu-perfil")
+    public ResponseEntity<UsuarioPerfilDTO> atualizarMeuPerfil(
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            @RequestBody @Valid AtualizarPerfilDTO dto) {
+        return ResponseEntity.ok(service.atualizarMeuPerfil(usuarioLogado.getId(), dto));
+    }
 
     @AdminOuLider // 🟢 Garante que apenas Admin ou Líder possa criar usuários diretamente
     @PostMapping
@@ -63,17 +75,7 @@ public class UsuarioController {
         return ResponseEntity.ok(service.buscarPorId(id));
     }
     
-    @GetMapping("/meu-perfil")
-    public ResponseEntity<UsuarioPerfilDTO> buscarMeuPerfil(@AuthenticationPrincipal Usuario usuarioLogado) {
-        return ResponseEntity.ok(service.buscarMeuPerfil(usuarioLogado.getId()));
-    }
 
-    @PutMapping("/meu-perfil")
-    public ResponseEntity<UsuarioPerfilDTO> atualizarMeuPerfil(
-            @AuthenticationPrincipal Usuario usuarioLogado,
-            @RequestBody @Valid AtualizarPerfilDTO dto) {
-        return ResponseEntity.ok(service.atualizarMeuPerfil(usuarioLogado.getId(), dto));
-    }
 
 
     @AdminOuLider // 🟢 Apenas Admin ou Líder pode atualizar dados de usuários

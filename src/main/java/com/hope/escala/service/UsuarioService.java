@@ -84,6 +84,61 @@ public class UsuarioService {
                 .map(this::converterParaDTO)
                 .toList();
     }
+    
+    @Transactional(readOnly = true)
+    public UsuarioPerfilDTO buscarMeuPerfilPorEmail(String email) {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("Usuário não encontrado com o e-mail: " + email));
+
+        String empresaNome = usuario.getEmpresa() != null ? usuario.getEmpresa().getNome() : "Matriz";
+
+        return new UsuarioPerfilDTO(
+            usuario.getId(),
+            usuario.getNome(),
+            usuario.getEmail(),
+            usuario.getTelefone(),
+            usuario.getPerfil().name(),
+            empresaNome
+        );
+    }
+
+    @Transactional
+    public UsuarioPerfilDTO atualizarMeuPerfilPorEmail(String email, AtualizarPerfilDTO dto) {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("Usuário não encontrado com o e-mail: " + email));
+
+        if (dto.nome() != null && !dto.nome().isBlank()) {
+            usuario.setNome(dto.nome());
+        }
+        
+        usuario.setTelefone(dto.telefone());
+
+        // Se preencheu nova senha, valida a senha atual
+        if (dto.novaSenha() != null && !dto.novaSenha().isBlank()) {
+            if (dto.senhaAtual() == null || dto.senhaAtual().isBlank()) {
+                throw new IllegalArgumentException("Informe a senha atual para cadastrar uma nova.");
+            }
+            if (!passwordEncoder.matches(dto.senhaAtual(), usuario.getSenha())) {
+                throw new IllegalArgumentException("Senha atual informada está incorreta.");
+            }
+            usuario.setSenha(passwordEncoder.encode(dto.novaSenha()));
+        }
+
+        Usuario salvo = usuarioRepository.save(usuario);
+        String empresaNome = salvo.getEmpresa() != null ? salvo.getEmpresa().getNome() : "Matriz";
+
+        return new UsuarioPerfilDTO(
+            salvo.getId(),
+            salvo.getNome(),
+            salvo.getEmail(),
+            salvo.getTelefone(),
+            salvo.getPerfil().name(),
+            empresaNome
+        );
+    }
+
+    
+    
     @Transactional // 🟢 OBRIGATÓRIO: Mantém a sessão aberta até o fim do converterParaDTO
     @PodeSerAdmin
     public UsuarioResponseDTO salvar(UsuarioRequestDTO dto) {
