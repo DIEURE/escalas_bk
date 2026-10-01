@@ -41,6 +41,7 @@ public class SecurityConfig {
 						.requestMatchers("/usuarios/**").permitAll()
 						.requestMatchers("/auth/login", "/auth/solicitar-cadastro").permitAll()
 						.requestMatchers("/disponibilidades/**").authenticated()
+						.requestMatchers(HttpMethod.GET, "/disponibilidades/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "VOLUNTARIO", "USER")
 					    .requestMatchers("/agenda-mensal/datas").authenticated()
 						.requestMatchers(HttpMethod.GET, "/empresas-publicas").permitAll()
 						.requestMatchers(HttpMethod.GET, "/empresas", "/empresas/**").permitAll()
