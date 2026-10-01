@@ -176,28 +176,35 @@ public class EscalaService {
                 departamentoId, empresaId, inicioMes, fimMes);
 
         return escalas.stream().map(escala -> {
-            List<EscalaMesDTO.VoluntarioEscalaDTO> voluntarios = escala.getMusicos().stream()
-                    .map(m -> {
-                        String instrumento = "Voluntário";
-                        if (m.getUsuario() != null && m.getUsuario().getInstrumentos() != null && !m.getUsuario().getInstrumentos().isEmpty()) {
-                            instrumento = m.getUsuario().getInstrumentos().iterator().next().getNome();
-                        }
-                        return new EscalaMesDTO.VoluntarioEscalaDTO(
-                                m.getUsuario() != null ? m.getUsuario().getId() : null,
-                                m.getUsuario() != null ? m.getUsuario().getNome() : "Sem nome",
-                                instrumento
-                        );
-                    })
-                    .toList();
+            List<EscalaMesDTO.VoluntarioEscalaDTO> voluntarios = new ArrayList<>();
+
+            if (escala.getMusicos() != null) {
+                for (EscalaMusico m : escala.getMusicos()) {
+                    // Pega o instrumento salvo na própria convocação da escala
+                    String funcaoOuInstrumento = m.getInstrumento();
+                    if (funcaoOuInstrumento == null || funcaoOuInstrumento.isBlank()) {
+                        funcaoOuInstrumento = "Voluntário";
+                    }
+
+                    if (m.getUsuario() != null) {
+                        voluntarios.add(new EscalaMesDTO.VoluntarioEscalaDTO(
+                                m.getUsuario().getId(),
+                                m.getUsuario().getNome(),
+                                funcaoOuInstrumento
+                        ));
+                    }
+                }
+            }
 
             return new EscalaMesDTO(
                     escala.getId(),
-                    escala.getDataEscala(), // 🟢 Corrigido para getDataEscala()
+                    escala.getDataEscala(),
                     escala.getObservacao(),
                     voluntarios
             );
         }).toList();
     }
+
 
 
 	public List<EscalaResponseDTO> listarPorAgendaMensal(Long agendaMensalId) {
