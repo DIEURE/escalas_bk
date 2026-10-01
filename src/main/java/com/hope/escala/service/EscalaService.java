@@ -196,6 +196,7 @@ public class EscalaService {
                 }
             }
 
+            System.out.println("DEBUG BUSCA: empresaId=" + empresaId + " | inicio=" + inicioMes + " | fim=" + fimMes);
             return new EscalaMesDTO(
                     escala.getId(),
                     escala.getDataEscala(),
