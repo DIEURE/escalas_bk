@@ -42,4 +42,13 @@ public interface DisponibilidadeUsuarioRepository extends JpaRepository<Disponib
             @Param("empresaId") Long empresaId,
             @Param("inicio") LocalDate inicio,
             @Param("fim") LocalDate fim);
+    
+    @Query("SELECT d FROM DisponibilidadeUsuario d " +
+            "JOIN FETCH d.usuario u " +
+            "WHERE d.empresa.id = :empresaId " +
+            "AND d.dataDisponibilidade BETWEEN :inicio AND :fim")
+     List<DisponibilidadeUsuario> buscarPorPeriodoEEmpresa(
+             @Param("empresaId") Long empresaId,
+             @Param("inicio") LocalDate inicio,
+             @Param("fim") LocalDate fim);
 }

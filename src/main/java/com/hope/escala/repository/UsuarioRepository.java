@@ -45,6 +45,17 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
             @Param("instrumentoId") Long instrumentoId,
             @Param("departamentoId") Long departamentoId,
             @Param("empresaId") Long empresaId);
+    
+    @Query("SELECT DISTINCT u FROM Usuario u " +
+            "LEFT JOIN FETCH u.instrumentos " +
+            "JOIN u.departamentos d " +
+            "WHERE d.id = :departamentoId " +
+            "AND u.empresa.id = :empresaId " +
+            "AND u.ativo = true " +
+            "ORDER BY u.nome ASC")
+     List<Usuario> buscarUsuariosPorDepartamentoEEmpresa(
+             @Param("departamentoId") Long departamentoId,
+             @Param("empresaId") Long empresaId);
 
     // Listagem por congregação/empresa
     @Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.empresa.id = :empresaId ORDER BY u.nome ASC")

@@ -1,11 +1,19 @@
 package com.hope.escala.service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.hope.escala.dto.response.MatrizDisponibilidadeResponseDTO;
+import com.hope.escala.dto.response.MatrizDisponibilidadeResponseDTO.MusicoMatrizDTO;
+import com.hope.escala.dto.response.MatrizDisponibilidadeResponseDTO.StatusDataDTO;
 import com.hope.escala.entity.AgendaMensal;
 import com.hope.escala.entity.DisponibilidadeUsuario;
 import com.hope.escala.entity.Empresa;
@@ -108,4 +116,67 @@ public class DisponibilidadeService {
 
         disponibilidadeRepository.saveAll(novasDisponibilidades);
     }
+    
+    @Transactional(readOnly = true)
+    public MatrizDisponibilidadeResponseDTO obterMatrizDisponibilidade(Long departamentoId, int mes, int ano) {
+        Long empresaId = securityUtils.empresaId();
+
+        YearMonth yearMonth = YearMonth.of(ano, mes);
+        LocalDate inicioMes = yearMonth.atDay(1);
+        LocalDate fimMes = yearMonth.atEndOfMonth();
+
+        // 1. Considera apenas os domingos do mês (regra do Hope Escala Pro)
+        List<LocalDate> domingos = new ArrayList<>();
+        LocalDate cursor = inicioMes;
+        while (!cursor.isAfter(fimMes)) {
+            if (cursor.getDayOfWeek() == DayOfWeek.SUNDAY) {
+                domingos.add(cursor);
+            }
+            cursor = cursor.plusDays(1);
+        }
+
+        // 2. Busca voluntários ativos do departamento na congregação
+        List<Usuario> voluntarios = usuarioRepository.buscarUsuariosPorDepartamentoEEmpresa(departamentoId, empresaId);
+
+        // 3. Busca marcações de presença do mês
+        List<DisponibilidadeUsuario> registros = disponibilidadeRepository.buscarPorPeriodoEEmpresa(
+                empresaId, inicioMes, fimMes);
+
+        // Mapeia por "usuarioId_data" -> Boolean (true = marcou que pode servir)
+        Map<String, Boolean> mapaPresenca = new HashMap<>();
+        for (DisponibilidadeUsuario reg : registros) {
+            String chave = reg.getUsuario().getId() + "_" + reg.getDataDisponivel();
+            mapaPresenca.put(chave, true); // Corrigido aqui: passa 'true' em vez de LocalDate
+        }
+
+        // 4. Monta as linhas da matriz para cada voluntário
+        List<MusicoMatrizDTO> linhas = new ArrayList<>();
+
+        for (Usuario musico : voluntarios) {
+            List<StatusDataDTO> listaStatus = new ArrayList<>();
+
+            for (LocalDate domingo : domingos) {
+                String chave = musico.getId() + "_" + domingo;
+                
+                // Se a chave existe no mapa, o voluntário marcou disponibilidade
+                String status = Boolean.TRUE.equals(mapaPresenca.get(chave)) ? "DISPONIVEL" : "PENDENTE";
+
+                listaStatus.add(new StatusDataDTO(domingo, status));
+            }
+
+            String instrumentoNome = (musico.getInstrumentos() != null && !musico.getInstrumentos().isEmpty())
+                    ? musico.getInstrumentos().iterator().next().getNome()
+                    : "Geral";
+
+            linhas.add(new MusicoMatrizDTO(
+                    musico.getId(),
+                    musico.getNome(),
+                    instrumentoNome,
+                    listaStatus
+            ));
+        }
+
+        return new MatrizDisponibilidadeResponseDTO(mes, ano, domingos, linhas);
+    }
+
 }

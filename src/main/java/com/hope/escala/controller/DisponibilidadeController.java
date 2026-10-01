@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.hope.escala.dto.response.MatrizDisponibilidadeResponseDTO;
 import com.hope.escala.service.DisponibilidadeService;
  
 
@@ -34,7 +35,7 @@ public class DisponibilidadeController {
             @RequestParam int mes,
             @RequestParam int ano) {
         
-        MatrizDisponibilidadeResponseDTO response = disponibilidadeService.obterMatrizDisponibilidade(
+        MatrizDisponibilidadeResponseDTO response = service.obterMatrizDisponibilidade(
                 departamentoId, mes, ano);
         return ResponseEntity.ok(response);
     }
