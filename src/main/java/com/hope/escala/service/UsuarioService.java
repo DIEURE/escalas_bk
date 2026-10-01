@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.hope.escala.dto.AtualizarPerfilDTO;
+import com.hope.escala.dto.UsuarioPerfilDTO;
 import com.hope.escala.dto.request.UsuarioRequestDTO;
 import com.hope.escala.dto.response.UsuarioResponseDTO;
 import com.hope.escala.entity.Departamento;
@@ -27,6 +29,8 @@ import com.hope.escala.repository.InstrumentoRepository;
 import com.hope.escala.repository.UsuarioRepository;
 import com.hope.escala.security.SecurityUtils;
 import com.hope.escala.security.annotation.PodeSerAdmin;
+
+import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class UsuarioService {
@@ -128,6 +132,55 @@ public class UsuarioService {
         
         // 🟢 Recarrega com fetch da empresa para preencher empresaNome com segurança no DTO
         return converterParaDTO(usuarioRepository.findByIdComEmpresa(salvo.getId()).orElse(salvo));
+    }
+
+    @Transactional(readOnly = true)
+    public UsuarioPerfilDTO buscarMeuPerfil(Long usuarioId) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+            .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
+
+        String empresaNome = usuario.getEmpresa() != null ? usuario.getEmpresa().getNome() : "Matriz";
+
+        return new UsuarioPerfilDTO(
+            usuario.getId(),
+            usuario.getNome(),
+            usuario.getEmail(),
+            usuario.getTelefone(),
+            usuario.getPerfil().name(),
+            empresaNome
+        );
+    }
+
+    @Transactional
+    public UsuarioPerfilDTO atualizarMeuPerfil(Long usuarioId, AtualizarPerfilDTO dto) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+            .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
+
+        usuario.setNome(dto.nome());
+        usuario.setTelefone(dto.telefone());
+
+        // Se o usuário solicitou troca de senha
+        if (dto.novaSenha() != null && !dto.novaSenha().isBlank()) {
+            if (dto.senhaAtual() == null || dto.senhaAtual().isBlank()) {
+                throw new IllegalArgumentException("Informe sua senha atual para definir uma nova.");
+            }
+            if (!passwordEncoder.matches(dto.senhaAtual(), usuario.getSenha())) {
+                throw new IllegalArgumentException("A senha atual informada está incorreta.");
+            }
+            usuario.setSenha(passwordEncoder.encode(dto.novaSenha()));
+        }
+
+        Usuario salvo = usuarioRepository.save(usuario);
+        String empresaNome = salvo.getEmpresa() != null ? salvo.getEmpresa().getNome() : "Matriz";
+
+        return new UsuarioPerfilDTO(
+            salvo.getId(),
+            salvo.getNome(),
+            salvo.getEmail(),
+            salvo.getTelefone(),
+            salvo.getPerfil().name(),
+            empresaNome
+        );
     }
 
 

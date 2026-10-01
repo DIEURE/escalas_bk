@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.hope.escala.dto.AtualizarPerfilDTO;
+import com.hope.escala.dto.UsuarioPerfilDTO;
 import com.hope.escala.dto.request.UsuarioDisponibilidadeDTO;
 import com.hope.escala.dto.request.UsuarioRequestDTO;
 import com.hope.escala.dto.response.UsuarioResponseDTO;
@@ -59,6 +62,19 @@ public class UsuarioController {
     public ResponseEntity<UsuarioResponseDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(service.buscarPorId(id));
     }
+    
+    @GetMapping("/meu-perfil")
+    public ResponseEntity<UsuarioPerfilDTO> buscarMeuPerfil(@AuthenticationPrincipal Usuario usuarioLogado) {
+        return ResponseEntity.ok(service.buscarMeuPerfil(usuarioLogado.getId()));
+    }
+
+    @PutMapping("/meu-perfil")
+    public ResponseEntity<UsuarioPerfilDTO> atualizarMeuPerfil(
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            @RequestBody @Valid AtualizarPerfilDTO dto) {
+        return ResponseEntity.ok(service.atualizarMeuPerfil(usuarioLogado.getId(), dto));
+    }
+
 
     @AdminOuLider // 🟢 Apenas Admin ou Líder pode atualizar dados de usuários
     @PutMapping("/{id}")
