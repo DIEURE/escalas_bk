@@ -124,16 +124,6 @@ public class UsuarioController {
         return ResponseEntity.ok("Usuário inativado");
     }
     
-    @GetMapping("/meu-perfil")
-    public ResponseEntity<UsuarioResponseDTO> buscarMeuPerfil() {
-        Long usuarioIdLogado = securityUtils.usuarioId(); // ou extraído do token
-        return ResponseEntity.ok(service.buscarPorId(usuarioIdLogado));
-    }
-
-    @PutMapping("/meu-perfil")
-    public ResponseEntity<UsuarioResponseDTO> atualizarMeuPerfil(@Valid @RequestBody UsuarioRequestDTO dto) {
-        Long usuarioIdLogado = securityUtils.usuarioId();
-        return ResponseEntity.ok(service.atualizar(usuarioIdLogado, dto));
-    }
+    
 
 }
