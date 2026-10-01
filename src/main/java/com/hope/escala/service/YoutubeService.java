@@ -173,7 +173,10 @@ public class YoutubeService {
 
 
 		public String criarPlaylistNoYoutube(String accessToken, String tituloPlaylist) {
-			// 🟢 1. URL limpa SEM a &key= (apenas part=snippet,status)
+			if (accessToken == null || accessToken.isBlank()) {
+				throw new RuntimeException("O Access Token do YouTube está nulo ou vazio. Verifique o vínculo da conta.");
+			}
+
 			String url = "https://www.googleapis.com/youtube/v3/playlists?part=snippet,status";
 
 			RestTemplate restTemplate = new RestTemplate();
@@ -181,11 +184,9 @@ public class YoutubeService {
 			headers.setBearerAuth(accessToken);
 			headers.setContentType(MediaType.APPLICATION_JSON);
 
-			String tituloFinal = (tituloPlaylist != null && !tituloPlaylist.isBlank()) 
-					? tituloPlaylist 
+			String tituloFinal = (tituloPlaylist != null && !tituloPlaylist.isBlank()) ? tituloPlaylist
 					: "Playlist Hope Escala";
 
-			// 🟢 2. privacyStatus alterado para "unlisted"
 			String requestBody = "{" 
 					+ "\"snippet\": {" 
 					+ "\"title\": \"" + tituloFinal.replace("\"", "\\\"") + "\"," 
@@ -205,14 +206,17 @@ public class YoutubeService {
 					return (String) data.get("id");
 				}
 			} catch (org.springframework.web.client.HttpStatusCodeException ex) {
-				// Se o Google rejeitar, agora o log exibirá o motivo exato retornado pelo Google
-				System.err.println("Erro YouTube API [" + ex.getStatusCode() + "]: " + ex.getResponseBodyAsString());
-				throw new RuntimeException("Erro da API do YouTube: " + ex.getResponseBodyAsString(), ex);
+				// Captura o cabeçalho WWW-Authenticate onde o Google explica o 401:
+				List<String> authHeaders = ex.getResponseHeaders() != null ? ex.getResponseHeaders().get("WWW-Authenticate") : null;
+				System.err.println("Erro YouTube API [" + ex.getStatusCode() + "] Detalhe Auth: " + authHeaders);
+				System.err.println("Corpo de erro: " + ex.getResponseBodyAsString());
+				throw new RuntimeException("Erro da API do YouTube (" + ex.getStatusCode() + "): " + authHeaders, ex);
 			} catch (Exception e) {
 				throw new RuntimeException("Erro ao criar playlist no YouTube: " + e.getMessage(), e);
 			}
 			return null;
 		}
+
 
 
 	
