@@ -45,6 +45,7 @@ public class SecurityConfig {
 					    .requestMatchers("/agenda-mensal/datas").authenticated()
 						.requestMatchers(HttpMethod.GET, "/empresas-publicas").permitAll()
 						.requestMatchers(HttpMethod.GET, "/empresas", "/empresas/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/escalas/mes").authenticated()
 						.anyRequest().authenticated());
 
 		http.headers(headers -> headers.frameOptions(frame -> frame.disable()));

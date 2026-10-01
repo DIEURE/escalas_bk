@@ -126,13 +126,13 @@ public class EscalaController {
 		return ResponseEntity.ok(playlistUrl);
 	}
 
-	@Transactional(readOnly = true)
 	@GetMapping("/mes")
-	public ResponseEntity<List<EscalaMesDTO>> buscarEscalasDoMes(
-			@RequestParam Long departamentoId,
-			@RequestParam int mes,
-			@RequestParam int ano) {
-		return ResponseEntity.ok(escalaService.buscarEscalasPorMesEDepartamento(departamentoId, mes, ano));
+	@PreAuthorize("isAuthenticated()") // Qualquer usuário autenticado (admin, líder ou voluntário) pode ver
+	public ResponseEntity<List<EscalaMesDTO>> buscarEscalasMes(
+	        @RequestParam Long departamentoId,
+	        @RequestParam int mes,
+	        @RequestParam int ano) {
+	    return ResponseEntity.ok(escalaService.buscarEscalasPorMesEDepartamento(departamentoId, mes, ano));
 	}
 
 	
