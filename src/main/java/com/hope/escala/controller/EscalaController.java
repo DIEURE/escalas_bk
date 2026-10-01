@@ -26,6 +26,7 @@ import com.hope.escala.dto.request.ConfirmarEscalaRequestDTO;
 import com.hope.escala.dto.request.EscalaRequestDTO;
 import com.hope.escala.dto.request.GerarEscalasMesRequestDTO;
 import com.hope.escala.dto.response.EscalaDetalhesResponseDTO;
+import com.hope.escala.dto.response.EscalaMesDTO;
 import com.hope.escala.dto.response.EscalaMusicaResponseDTO;
 import com.hope.escala.dto.response.EscalaResponseDTO;
 import com.hope.escala.enums.StatusEscala;
@@ -125,6 +126,16 @@ public class EscalaController {
 		return ResponseEntity.ok(playlistUrl);
 	}
 
+	@Transactional(readOnly = true)
+	@GetMapping("/mes")
+	public ResponseEntity<List<EscalaMesDTO>> buscarEscalasDoMes(
+			@RequestParam Long departamentoId,
+			@RequestParam int mes,
+			@RequestParam int ano) {
+		return ResponseEntity.ok(escalaService.buscarEscalasPorMesEDepartamento(departamentoId, mes, ano));
+	}
+
+	
 	public record PlaylistManualRequest(String tituloPlaylistManual, List<Long> musicasIds) {
 	}
 

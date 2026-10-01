@@ -14,6 +14,7 @@ import com.hope.escala.dto.request.EscalaMusicoRequestDTO;
 import com.hope.escala.dto.request.EscalaRequestDTO;
 import com.hope.escala.dto.request.GerarEscalasMesRequestDTO;
 import com.hope.escala.dto.response.EscalaDetalhesResponseDTO;
+import com.hope.escala.dto.response.EscalaMesDTO;
 import com.hope.escala.dto.response.EscalaMusicaResponseDTO;
 import com.hope.escala.dto.response.EscalaMusicoResponseDTO;
 import com.hope.escala.dto.response.EscalaResponseDTO;
@@ -162,6 +163,42 @@ public class EscalaService {
 		return escalaRepository.findByEmpresaIdAndAtivaTrue(empresaIdLogada).stream().map(this::converterParaDTO)
 				.collect(Collectors.toList());
 	}
+	
+    @Transactional(readOnly = true)
+    public List<EscalaMesDTO> buscarEscalasPorMesEDepartamento(Long departamentoId, int mes, int ano) {
+        Long empresaId = securityUtils.empresaId();
+
+        YearMonth yearMonth = YearMonth.of(ano, mes);
+        LocalDate inicioMes = yearMonth.atDay(1);
+        LocalDate fimMes = yearMonth.atEndOfMonth();
+
+        List<Escala> escalas = escalaRepository.buscarPorPeriodoEDepartamento(
+                departamentoId, empresaId, inicioMes, fimMes);
+
+        return escalas.stream().map(escala -> {
+            List<EscalaMesDTO.VoluntarioEscalaDTO> voluntarios = escala.getMusicos().stream()
+                    .map(m -> {
+                        String instrumento = "Voluntário";
+                        if (m.getUsuario() != null && m.getUsuario().getInstrumentos() != null && !m.getUsuario().getInstrumentos().isEmpty()) {
+                            instrumento = m.getUsuario().getInstrumentos().iterator().next().getNome();
+                        }
+                        return new EscalaMesDTO.VoluntarioEscalaDTO(
+                                m.getUsuario() != null ? m.getUsuario().getId() : null,
+                                m.getUsuario() != null ? m.getUsuario().getNome() : "Sem nome",
+                                instrumento
+                        );
+                    })
+                    .toList();
+
+            return new EscalaMesDTO(
+                    escala.getId(),
+                    escala.getDataEscala(), // 🟢 Corrigido para getDataEscala()
+                    escala.getObservacao(),
+                    voluntarios
+            );
+        }).toList();
+    }
+
 
 	public List<EscalaResponseDTO> listarPorAgendaMensal(Long agendaMensalId) {
 		Long empresaIdLogada = securityUtils.empresaId();
