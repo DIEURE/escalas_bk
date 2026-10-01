@@ -142,12 +142,13 @@ public class DisponibilidadeService {
         List<DisponibilidadeUsuario> registros = disponibilidadeRepository.buscarPorPeriodoEEmpresa(
                 empresaId, inicioMes, fimMes);
 
-        // Mapeia por "usuarioId_data" -> Boolean (true = marcou que pode servir)
+        // Mapeia por "usuarioId_data" -> true
         Map<String, Boolean> mapaPresenca = new HashMap<>();
         for (DisponibilidadeUsuario reg : registros) {
             String chave = reg.getUsuario().getId() + "_" + reg.getDataDisponivel();
-            mapaPresenca.put(chave, true); // Corrigido aqui: passa 'true' em vez de LocalDate
+            mapaPresenca.put(chave, true);
         }
+
 
         // 4. Monta as linhas da matriz para cada voluntário
         List<MusicoMatrizDTO> linhas = new ArrayList<>();
