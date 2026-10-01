@@ -47,14 +47,16 @@ public interface EscalaRepository extends JpaRepository<Escala, Long> {
             "LEFT JOIN FETCH u.instrumentos " +
             "WHERE e.departamento.id = :departamentoId " +
             "AND e.empresa.id = :empresaId " +
-            "AND e.ativo = true " +
-            "AND e.data BETWEEN :inicio AND :fim " +
-            "ORDER BY e.data ASC")
+            "AND e.ativa = true " +
+            "AND e.dataEscala BETWEEN :inicio AND :fim " +
+            "ORDER BY e.dataEscala ASC")
      List<Escala> buscarPorPeriodoEDepartamento(
              @Param("departamentoId") Long departamentoId,
              @Param("empresaId") Long empresaId,
              @Param("inicio") LocalDate inicio,
              @Param("fim") LocalDate fim);
+
+
 
 
  // EscalaRepository.java
