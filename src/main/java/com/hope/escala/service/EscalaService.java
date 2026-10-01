@@ -661,25 +661,25 @@ public class EscalaService {
 		// 2. Salva as novas músicas já com empresa_id preenchido (Multi-tenant)
 		List<EscalaMusica> novas = new ArrayList<>();
 		int ordem = 1;
-		for (Long musicaId : musicasIds) {
-			Musica musica = musicaRepository.findById(musicaId)
-					.orElseThrow(() -> new ResourceNotFoundException("Música não encontrada: " + musicaId));
+		if (musicasIds != null) {
+			for (Long musicaId : musicasIds) {
+				Musica musica = musicaRepository.findById(musicaId)
+						.orElseThrow(() -> new ResourceNotFoundException("Música não encontrada: " + musicaId));
 
-			int vezesAtual = musica.getVezesEscalada() != null ? musica.getVezesEscalada() : 0;
-			musica.setVezesEscalada(vezesAtual + 1);
-			musicaRepository.save(musica);
+				int vezesAtual = musica.getVezesEscalada() != null ? musica.getVezesEscalada() : 0;
+				musica.setVezesEscalada(vezesAtual + 1);
+				musicaRepository.save(musica);
 
-			EscalaMusica em = new EscalaMusica();
-			em.setEscala(escala);
-			em.setMusica(musica);
-			em.setOrdem(ordem++);
-			em.setSubstituida(false);
-			
-			// 🟢 CORREÇÃO CRÍTICA: Define a empresa para não quebrar a constraint NOT NULL
-			em.setEmpresa(escala.getEmpresa());
+				EscalaMusica em = new EscalaMusica();
+				em.setEscala(escala);
+				em.setMusica(musica);
+				em.setOrdem(ordem++);
+				em.setSubstituida(false);
+				em.setEmpresa(escala.getEmpresa());
 
-			escalaMusicaRepository.save(em);
-			novas.add(em);
+				escalaMusicaRepository.save(em);
+				novas.add(em);
+			}
 		}
 
 		String tituloFinal = (tituloPersonalizado != null && !tituloPersonalizado.isBlank()) 
@@ -691,21 +691,31 @@ public class EscalaService {
 		// 3. Cria a playlist no YouTube e adiciona os vídeos
 		try {
 			String accessToken = youtubeService.obterAccessToken();
+			if (accessToken == null || accessToken.isBlank()) {
+				throw new RuntimeException("Não foi possível obter o token de acesso do YouTube.");
+			}
+
 			String youtubePlaylistId = youtubeService.criarPlaylistNoYoutube(accessToken, tituloFinal);
 
-			if (youtubePlaylistId == null || youtubePlaylistId.isBlank()) {
+			if (youtubePlaylistId == null || youtubePlaylistId.trim().isBlank()) {
 				throw new RuntimeException("O YouTube não retornou o ID da playlist criada.");
+			}
+
+			// Pausa de 1,5s para os servidores do Google propagarem a criação da playlist antes de inserir os vídeos
+			try {
+				Thread.sleep(1500);
+			} catch (InterruptedException ie) {
+				Thread.currentThread().interrupt();
 			}
 
 			for (EscalaMusica em : novas) {
 				String videoId = em.getMusica().getYoutubeVideoId();
-				if (videoId != null && !videoId.isBlank()) {
-					youtubeService.adicionarVideoNaPlaylist(accessToken, youtubePlaylistId, videoId);
+				if (videoId != null && !videoId.trim().isBlank()) {
+					youtubeService.adicionarVideoNaPlaylist(accessToken, youtubePlaylistId.trim(), videoId.trim());
 				}
 			}
 
-			// Monta a URL completa com o ID retornado pelo Google
-			urlPlaylist = "https://www.youtube.com/playlist?list=" + youtubePlaylistId;
+			urlPlaylist = "https://www.youtube.com/playlist?list=" + youtubePlaylistId.trim();
 
 		} catch (Exception e) {
 			throw new RuntimeException("Erro ao criar playlist oficial no YouTube: " + e.getMessage(), e);

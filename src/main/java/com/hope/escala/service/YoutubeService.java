@@ -252,7 +252,36 @@ public class YoutubeService {
         return null;
     }
 	 
+	/*
+	 * public void adicionarVideoNaPlaylist(String accessToken, String playlistId,
+	 * String youtubeVideoId) { String url =
+	 * "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet";
+	 * 
+	 * RestTemplate restTemplate = new RestTemplate(); HttpHeaders headers = new
+	 * HttpHeaders(); headers.setBearerAuth(accessToken);
+	 * headers.setContentType(MediaType.APPLICATION_JSON);
+	 * 
+	 * String requestBody = "{" + "\"snippet\": {" + "\"playlistId\": \"" +
+	 * playlistId + "\"," + "\"resourceId\": {" + "\"kind\": \"youtube#video\"," +
+	 * "\"videoId\": \"" + youtubeVideoId + "\"" + "}" + "}" + "}";
+	 * 
+	 * HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+	 * 
+	 * try { restTemplate.postForEntity(url, entity, Map.class); } catch
+	 * (org.springframework.web.client.HttpStatusCodeException ex) {
+	 * System.err.println("Erro ao adicionar vídeo " + youtubeVideoId + " (" +
+	 * ex.getStatusCode() + "): " + ex.getResponseBodyAsString()); } catch
+	 * (Exception e) { System.err.println("Erro ao adicionar o vídeo " +
+	 * youtubeVideoId + " na playlist: " + e.getMessage()); } }
+	 */
 	public void adicionarVideoNaPlaylist(String accessToken, String playlistId, String youtubeVideoId) {
+		if (youtubeVideoId == null || youtubeVideoId.isBlank() || playlistId == null || playlistId.isBlank()) {
+			return;
+		}
+
+		// Garante que pega apenas o ID de 11 caracteres mesmo se o usuário colou a URL inteira
+		String idLimpo = extrairVideoId(youtubeVideoId.trim());
+
 		String url = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet";
 
 		RestTemplate restTemplate = new RestTemplate();
@@ -265,20 +294,46 @@ public class YoutubeService {
 					"\"playlistId\": \"" + playlistId + "\"," +
 					"\"resourceId\": {" +
 						"\"kind\": \"youtube#video\"," +
-						"\"videoId\": \"" + youtubeVideoId + "\"" +
+						"\"videoId\": \"" + idLimpo + "\"" +
 					"}" +
 				"}" +
 			"}";
 
 		HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
-		try {
-			restTemplate.postForEntity(url, entity, Map.class);
-		} catch (org.springframework.web.client.HttpStatusCodeException ex) {
-			System.err.println("Erro ao adicionar vídeo " + youtubeVideoId + " (" + ex.getStatusCode() + "): " + ex.getResponseBodyAsString());
-		} catch (Exception e) {
-			System.err.println("Erro ao adicionar o vídeo " + youtubeVideoId + " na playlist: " + e.getMessage());
+		// Tenta até 3 vezes (caso a playlist recém-criada ainda esteja propagando no Google)
+		int tentativas = 0;
+		boolean sucesso = false;
+
+		while (!sucesso && tentativas < 3) {
+			try {
+				tentativas++;
+				restTemplate.postForEntity(url, entity, Map.class);
+				sucesso = true;
+			} catch (Exception e) {
+				System.err.println("Tentativa " + tentativas + " falhou para o vídeo " + idLimpo + ": " + e.getMessage());
+				if (tentativas < 3) {
+					try {
+						Thread.sleep(1000); // Aguarda 1 segundo antes de tentar de novo
+					} catch (InterruptedException ie) {
+						Thread.currentThread().interrupt();
+					}
+				}
+			}
 		}
+	}
+
+	private String extrairVideoId(String videoIdOuUrl) {
+		if (videoIdOuUrl.contains("v=")) {
+			int startIndex = videoIdOuUrl.indexOf("v=") + 2;
+			int endIndex = videoIdOuUrl.indexOf("&", startIndex);
+			return endIndex != -1 ? videoIdOuUrl.substring(startIndex, endIndex) : videoIdOuUrl.substring(startIndex);
+		} else if (videoIdOuUrl.contains("youtu.be/")) {
+			int startIndex = videoIdOuUrl.indexOf("youtu.be/") + 9;
+			int endIndex = videoIdOuUrl.indexOf("?", startIndex);
+			return endIndex != -1 ? videoIdOuUrl.substring(startIndex, endIndex) : videoIdOuUrl.substring(startIndex);
+		}
+		return videoIdOuUrl;
 	}
 
 	 
