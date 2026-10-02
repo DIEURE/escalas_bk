@@ -48,6 +48,7 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/empresas-publicas").permitAll()
 						.requestMatchers(HttpMethod.GET, "/empresas", "/empresas/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/escalas/mes").authenticated()
+						
 						.anyRequest().authenticated());
 
 		http.headers(headers -> headers.frameOptions(frame -> frame.disable()));
@@ -60,12 +61,14 @@ public class SecurityConfig {
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
 		
-		// 🟢 Origens permitidas: Domínio de produção, subdomínios, Render e desenvolvimento local
+		// 🟢 Origens permitidas: Adicionado http://localhost:8081 (Expo Web) e http://localhost:19006
 		configuration.setAllowedOriginPatterns(Arrays.asList(
 				"https://hope-escala-web.onrender.com",
 				"https://hopeescalapro.com.br",
 				"https://www.hopeescalapro.com.br",
 				"https://*.onrender.com",
+				"http://localhost:8081",
+				"http://localhost:19006",
 				"http://localhost:5173",
 				"http://localhost:3000",
 				"http://localhost:8080",
