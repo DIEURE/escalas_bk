@@ -3,6 +3,7 @@ package com.hope.escala.service;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.hope.escala.dto.SubstituicaoEscalaMusicaDTO;
 import com.hope.escala.dto.request.EscalaMusicaRequestDTO;
@@ -77,6 +78,7 @@ public class EscalaMusicaService {
 		return converterParaDTO(escalaMusicaSalva);
 	}
 
+	@Transactional(readOnly = true)
 	public List<EscalaMusicaResponseDTO> listarPorEscala(Long escalaId) {
 		// Dica: você também pode garantir que a escala solicitada pertence à empresa logada aqui se achar necessário
 		List<EscalaMusica> escalaMusicas = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);

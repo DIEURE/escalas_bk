@@ -9,6 +9,8 @@ public class EscalaDetalhesResponseDTO {
 	private List<EscalaMusicoResponseDTO> musicos;
 
 	private List<EscalaMusicaResponseDTO> musicas;
+	
+	private List<Long> idsUsuariosDisponiveis; 
 
 	public EscalaDetalhesResponseDTO() {
 	}
@@ -17,6 +19,14 @@ public class EscalaDetalhesResponseDTO {
 		return escala;
 	}
 
+	public List<Long> getIdsUsuariosDisponiveis() {
+	    return idsUsuariosDisponiveis;
+	}
+
+	public void setIdsUsuariosDisponiveis(List<Long> idsUsuariosDisponiveis) {
+	    this.idsUsuariosDisponiveis = idsUsuariosDisponiveis;
+	}
+	
 	public void setEscala(EscalaResponseDTO escala) {
 		this.escala = escala;
 	}

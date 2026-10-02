@@ -33,6 +33,7 @@ import com.hope.escala.enums.TipoEscala;
 import com.hope.escala.exception.ResourceNotFoundException;
 import com.hope.escala.repository.AgendaMensalRepository;
 import com.hope.escala.repository.DepartamentoRepository;
+import com.hope.escala.repository.DisponibilidadeUsuarioRepository;
 import com.hope.escala.repository.EscalaMusicaRepository;
 import com.hope.escala.repository.EscalaMusicoRepository;
 import com.hope.escala.repository.EscalaRepository;
@@ -59,6 +60,7 @@ public class EscalaService {
 	private final SecurityUtils securityUtils;
 	private final MusicaRepository musicaRepository;
 	private final ExcecaoEscalaDataRepository excecaoEscalaDataRepository;
+	private final DisponibilidadeUsuarioRepository disponibilidadeUsuarioRepository;
 
 	@Autowired
 	private YoutubeService youtubeService;
@@ -68,7 +70,7 @@ public class EscalaService {
 			DepartamentoRepository departamentoRepository, EscalaAutomaticaService escalaAutomaticaService,
 			InstrumentoRepository instrumentoRepository, SecurityUtils securityUtils,
 			UsuarioRepository usuarioRepository, MusicaRepository musicaRepository,
-			ExcecaoEscalaDataRepository excecaoEscalaDataRepository) {
+			ExcecaoEscalaDataRepository excecaoEscalaDataRepository,DisponibilidadeUsuarioRepository disponibilidadeUsuarioRepository) {
 		this.escalaRepository = escalaRepository;
 		this.agendaMensalRepository = agendaMensalRepository;
 		this.escalaMusicoRepository = escalaMusicoRepository;
@@ -80,6 +82,7 @@ public class EscalaService {
 		this.securityUtils = securityUtils;
 		this.musicaRepository = musicaRepository;
 		this.excecaoEscalaDataRepository = excecaoEscalaDataRepository;
+		this.disponibilidadeUsuarioRepository = disponibilidadeUsuarioRepository;
 	}
 
 	@Transactional
@@ -486,26 +489,38 @@ public class EscalaService {
 	}
 
 
+	@Transactional(readOnly = true)
 	public EscalaDetalhesResponseDTO buscarDetalhesEscala(Long escalaId) {
-		Long empresaIdLogada = securityUtils.empresaId();
-		Escala escala = escalaRepository.findById(escalaId)
-				.orElseThrow(() -> new RuntimeException("Escala não encontrada"));
+	    Long empresaIdLogada = securityUtils.empresaId();
 
-		if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
-			throw new ResourceNotFoundException("Escala não pertence à sua instituição");
-		}
+	    Escala escala = escalaRepository.findById(escalaId)
+	            .orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada"));
 
-		List<EscalaMusicoResponseDTO> musicos = escalaMusicoRepository.findByEscalaId(escalaId).stream()
-				.map(this::converterMusicoDTO).collect(Collectors.toList());
+	    if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
+	        throw new ResourceNotFoundException("Escala não pertence à sua instituição");
+	    }
 
-		List<EscalaMusicaResponseDTO> musicas = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId).stream()
-				.map(this::converterMusicaDTO).collect(Collectors.toList());
+	    // 1. Músicos escalados
+	    List<EscalaMusicoResponseDTO> musicos = escalaMusicoRepository.findByEscalaId(escalaId).stream()
+	            .map(this::converterMusicoDTO)
+	            .toList();
 
-		EscalaDetalhesResponseDTO dto = new EscalaDetalhesResponseDTO();
-		dto.setEscala(converterParaDTO(escala));
-		dto.setMusicos(musicos);
-		dto.setMusicas(musicas);
-		return dto;
+	    // 2. Repertório / Músicas
+	    List<EscalaMusicaResponseDTO> musicas = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId).stream()
+	            .map(this::converterMusicaDTO)
+	            .toList();
+
+	    // 3. Voluntários com disponibilidade ativa para a data deste culto
+	    List<Long> idsDisponiveis = disponibilidadeUsuarioRepository
+	            .buscarIdsUsuariosDisponiveisNaData(escala.getDataEscala(), empresaIdLogada);
+
+	    EscalaDetalhesResponseDTO dto = new EscalaDetalhesResponseDTO();
+	    dto.setEscala(converterParaDTO(escala));
+	    dto.setMusicos(musicos);
+	    dto.setMusicas(musicas);
+	    dto.setIdsUsuariosDisponiveis(idsDisponiveis);
+
+	    return dto;
 	}
 
 	private EscalaResponseDTO converterParaDTO(Escala escala) {
