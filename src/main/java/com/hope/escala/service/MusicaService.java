@@ -3,7 +3,9 @@ package com.hope.escala.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.hope.escala.dto.request.MusicaRequestDTO;
 import com.hope.escala.dto.response.MusicaResponseDTO;
@@ -109,6 +111,20 @@ public class MusicaService {
         return new MusicaResponseDTO(atualizada);
     }
 
+    @Transactional
+    public void atualizarCifra(Long id, String cifra, String tom) {
+        Musica musica = musicaRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Música não encontrada com ID: " + id));
+
+        musica.setCifra(cifra);
+        
+        if (tom != null && !tom.isBlank()) {
+            musica.setTom(tom.trim().toUpperCase());
+        }
+
+        musicaRepository.save(musica);
+    }
+    
     public List<MusicaResponseDTO> listarTodas() {
         Long empresaId = securityUtils.empresaId();
         

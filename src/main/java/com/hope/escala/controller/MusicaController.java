@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.hope.escala.dto.request.AtualizarCifraRequest;
 import com.hope.escala.dto.request.MusicaRequestDTO;
 import com.hope.escala.dto.response.MusicaResponseDTO;
 import com.hope.escala.security.annotation.AdminOuLider; // 🟢 Import opcional para Admin ou Líder
@@ -46,6 +47,15 @@ public class MusicaController {
         MusicaResponseDTO musicaAtualizada = musicaService.atualizar(id, dto);
         return ResponseEntity.ok(musicaAtualizada);
     }
+    
+    @PutMapping("/{id}/cifra")
+    public ResponseEntity<Void> atualizarCifra(
+            @PathVariable Long id,
+            @RequestBody AtualizarCifraRequest request) {
+        musicaService.atualizarCifra(id, request.cifra(), request.tom());
+        return ResponseEntity.noContent().build();
+    }
+
 
     @GetMapping
     // ✅ Público - todos podem listar músicas
