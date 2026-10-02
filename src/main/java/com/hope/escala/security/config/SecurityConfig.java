@@ -5,13 +5,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -36,19 +36,27 @@ public class SecurityConfig {
 		http.cors(cors -> cors.configurationSource(corsConfigurationSource())).csrf(csrf -> csrf.disable())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
+						// Rotas Públicas / Swagger
 						.requestMatchers("/auth/**").permitAll()
 						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-						.requestMatchers("/usuarios/meu-perfil").authenticated()
-						.requestMatchers("/usuarios/**").permitAll()
-						.requestMatchers("/perfil/**").permitAll()
-						.requestMatchers("/auth/login", "/auth/solicitar-cadastro").permitAll()
-						.requestMatchers("/disponibilidades/**").authenticated()
-						.requestMatchers(HttpMethod.GET, "/disponibilidades/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "VOLUNTARIO", "USER")
-					    .requestMatchers("/agenda-mensal/datas").authenticated()
 						.requestMatchers(HttpMethod.GET, "/empresas-publicas").permitAll()
 						.requestMatchers(HttpMethod.GET, "/empresas", "/empresas/**").permitAll()
-						.requestMatchers(HttpMethod.GET, "/escalas/mes").authenticated()
-						
+						.requestMatchers("/perfil/**").permitAll()
+						.requestMatchers("/usuarios/meu-perfil").authenticated()
+						.requestMatchers("/usuarios/**").permitAll()
+						.requestMatchers("/auth/login", "/auth/solicitar-cadastro").permitAll()
+
+						// Disponibilidades (Voluntários e Admins)
+						.requestMatchers("/disponibilidades/**").authenticated()
+						.requestMatchers(HttpMethod.GET, "/disponibilidades/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "VOLUNTARIO", "USER", "MUSICO")
+						.requestMatchers("/agenda-mensal/datas").authenticated()
+
+						// 🟢 Liberação de Leitura (GET) para Escalas, Músicas e Playlists para qualquer membro autenticado
+						.requestMatchers(HttpMethod.GET, "/escalas", "/escalas/**").authenticated()
+						.requestMatchers(HttpMethod.GET, "/escala-musicos", "/escala-musicos/**").authenticated()
+						.requestMatchers(HttpMethod.GET, "/playlists", "/playlists/**").authenticated()
+						.requestMatchers(HttpMethod.GET, "/musicas", "/musicas/**").authenticated()
+
 						.anyRequest().authenticated());
 
 		http.headers(headers -> headers.frameOptions(frame -> frame.disable()));
@@ -61,7 +69,6 @@ public class SecurityConfig {
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
 		
-		// 🟢 Origens permitidas: Adicionado http://localhost:8081 (Expo Web) e http://localhost:19006
 		configuration.setAllowedOriginPatterns(Arrays.asList(
 				"https://hope-escala-web.onrender.com",
 				"https://hopeescalapro.com.br",
