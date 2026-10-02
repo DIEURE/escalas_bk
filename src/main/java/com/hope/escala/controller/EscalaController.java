@@ -50,7 +50,7 @@ public class EscalaController {
 	private final PdfEscalaService pdfEscalaService;
 	private final EscalaRelatorioService escalaRelatorioService;
 	private final EscalaRepository escalaRepository;
-	private final SecurityUtils securityUtils; // 🟢 Injeção do SecurityUtils
+	private final SecurityUtils securityUtils;
 
 	public EscalaController(EscalaService escalaService, YoutubePlaylistService youTubePlaylistService,
 			PdfEscalaService pdfEscalaService, EscalaRepository escalaRepository,
@@ -98,8 +98,6 @@ public class EscalaController {
 		String horarioComSegundos = horario.length() == 5 ? horario + ":00" : horario;
 		LocalTime localTime = LocalTime.parse(horarioComSegundos);
 
-		// 🟢 Obtém a empresa logada para garantir o isolamento multi-tenant na
-		// verificação
 		Long empresaIdLogada = securityUtils.empresaId();
 
 		boolean existe = escalaRepository.existeConflitoHorario(localDate, localTime, localTime, departamentoId,
@@ -127,7 +125,7 @@ public class EscalaController {
 	}
 
 	@GetMapping("/mes")
-	@PreAuthorize("isAuthenticated()") // Qualquer usuário autenticado (admin, líder ou voluntário) pode ver
+	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<List<EscalaMesDTO>> buscarEscalasMes(
 	        @RequestParam Long departamentoId,
 	        @RequestParam int mes,
@@ -135,12 +133,9 @@ public class EscalaController {
 	    return ResponseEntity.ok(escalaService.buscarEscalasPorMesEDepartamento(departamentoId, mes, ano));
 	}
 
-	
 	public record PlaylistManualRequest(String tituloPlaylistManual, List<Long> musicasIds) {
 	}
 
-	// ✅ NOVO: Playlist Manual (recebe lista de IDs de música e retorna a URL
-	// gerada)
 	@PostMapping("/{id}/playlist-manual")
 	public ResponseEntity<String> criarPlaylistManual(@PathVariable Long id,
 			@RequestBody PlaylistManualRequest request) {
@@ -150,8 +145,17 @@ public class EscalaController {
 		return ResponseEntity.ok(urlPlaylist);
 	}
 
+	@Transactional(readOnly = true)
 	@GetMapping("/{id}/playlist-manual/musicas")
 	public ResponseEntity<List<EscalaMusicaResponseDTO>> listarMusicasDaPlaylistManual(@PathVariable Long id) {
+		List<EscalaMusicaResponseDTO> musicas = escalaService.listarMusicasDaPlaylistManual(id);
+		return ResponseEntity.ok(musicas);
+	}
+
+	// 🟢 Alias direto para consumo do app mobile e outras integrações
+	@Transactional(readOnly = true)
+	@GetMapping("/{id}/musicas")
+	public ResponseEntity<List<EscalaMusicaResponseDTO>> listarMusicasDaEscala(@PathVariable Long id) {
 		List<EscalaMusicaResponseDTO> musicas = escalaService.listarMusicasDaPlaylistManual(id);
 		return ResponseEntity.ok(musicas);
 	}
@@ -173,8 +177,6 @@ public class EscalaController {
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_PDF);
-		// "inline" tenta abrir em nova aba; use "attachment; filename=..." se preferir
-		// forçar download
 		headers.setContentDisposition(ContentDisposition.inline().filename("relatorio-escalas-mes.pdf").build());
 		headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
 
