@@ -118,7 +118,7 @@ public class EscalaMusicoService {
 	  
 	public List<EscalaMusicoResponseDTO> listarMinhasEscalas() {
 	    Long usuarioId = securityUtils.usuarioId();
-	    return escalaMusicoRepository.findByUsuarioId(usuarioId)
+	    return escalaMusicoRepository.findMinhasEscalasPorUsuarioId(usuarioId)
 	            .stream()
 	            .map(this::converterParaDTO)
 	            .toList();
