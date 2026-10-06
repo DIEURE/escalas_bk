@@ -26,4 +26,7 @@ public interface InstrumentoRepository extends JpaRepository<Instrumento, Long> 
     // 🟢 Lista apenas ativos trazendo a congregação
     @Query("SELECT i FROM Instrumento i LEFT JOIN FETCH i.empresa WHERE i.empresa.id = :empresaId AND i.ativo = true ORDER BY i.nome ASC")
     List<Instrumento> findByEmpresaIdAndAtivoTrueOrderByNomeAsc(@Param("empresaId") Long empresaId);
+    
+    List<Instrumento> findByEmpresaIdAndDepartamentoIdAndAtivoTrue(Long empresaId, Long departamentoId);
+
 }

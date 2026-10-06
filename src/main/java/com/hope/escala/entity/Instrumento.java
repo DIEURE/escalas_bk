@@ -26,6 +26,9 @@ public class Instrumento {
 	private Boolean ativo = true;
 	private String tipo;
 	private String descricao;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "departamento_id")
+	private Departamento departamento;
 
 	
 	@JsonIgnore // 🟢 IMPEDE O JACKSON DE TOCAR NO PROXY LAZY
