@@ -383,7 +383,7 @@ public class EscalaService {
 
 		return escalasCriadas.stream().map(this::converterParaDTO).toList();
 	}
-
+	@Transactional
 	private void gerarMusicosAutomaticamente(Escala escala) {
 	    List<Instrumento> instrumentos = instrumentoRepository.findByEmpresaIdAndAtivoTrue(escala.getEmpresa().getId());
 

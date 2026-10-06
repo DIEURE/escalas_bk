@@ -2,6 +2,7 @@
 package com.hope.escala.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.*;
 
@@ -15,6 +16,8 @@ import jakarta.persistence.*;
 	        )
 	    }
 	)
+
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Instrumento {
 
 	@Id
@@ -31,11 +34,21 @@ public class Instrumento {
 	private Departamento departamento;
 
 	
+	public Departamento getDepartamento() {
+		return departamento;
+	}
+
+	public void setDepartamento(Departamento departamento) {
+		this.departamento = departamento;
+	}
+
 	@JsonIgnore // 🟢 IMPEDE O JACKSON DE TOCAR NO PROXY LAZY
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
     private Empresa empresa;
 
+	
+	@JsonIgnore
 	public Empresa getEmpresa() {
 		return empresa;
 	}

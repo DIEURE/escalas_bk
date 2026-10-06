@@ -27,6 +27,7 @@ public class InstrumentoService {
 		this.securityUtils = securityUtils;
 	}
 
+	@Transactional
 	public InstrumentoResponse salvar(InstrumentoRequestDTO request) {
 		boolean isSuperAdmin = securityUtils.isSuperAdmin();
 		boolean isAdmin = securityUtils.isAdmin();
@@ -99,6 +100,7 @@ public class InstrumentoService {
 		return converterResponse(instrumento);
 	}
 
+	@Transactional
 	public InstrumentoResponse atualizar(Long id, InstrumentoRequestDTO request) {
 		boolean isSuperAdmin = securityUtils.isSuperAdmin();
 		boolean isAdmin = securityUtils.isAdmin();
@@ -130,6 +132,7 @@ public class InstrumentoService {
 		return converterResponse(atualizado);
 	}
 
+	@Transactional
 	public void deletar(Long id) {
 		boolean isSuperAdmin = securityUtils.isSuperAdmin();
 		boolean isAdmin = securityUtils.isAdmin();
