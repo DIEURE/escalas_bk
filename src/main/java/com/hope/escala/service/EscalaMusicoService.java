@@ -61,6 +61,7 @@ public class EscalaMusicoService {
 		EscalaMusico escalaMusico = new EscalaMusico();
 
 		escalaMusico.setEscala(escala);
+		escalaMusico.setDataEscala(escala.getDataEscala());
 		escalaMusico.setUsuario(usuario);
 		escalaMusico.setObservacao(dto.getObservacao());
 		escalaMusico.setConfirmado(false);

@@ -268,6 +268,7 @@ public class EscalaService {
 
 					EscalaMusico novo = new EscalaMusico();
 					novo.setEscala(escala);
+					novo.setDataEscala(escala.getDataEscala()); // 🟢 Adicione esta linha
 					novo.setUsuario(usuario);
 					novo.setInstrumento(
 							mDto.getInstrumento() != null && !mDto.getInstrumento().isBlank() ? mDto.getInstrumento()
@@ -453,6 +454,7 @@ public class EscalaService {
 
 				EscalaMusico escalaMusico = new EscalaMusico();
 				escalaMusico.setEscala(escala);
+				escalaMusico.setDataEscala(escala.getDataEscala()); // 🟢 Adicione esta linha
 				escalaMusico.setUsuario(usuario);
 				escalaMusico.setInstrumento(instrumento.getNome());
 				escalaMusico.setConfirmado(false);
@@ -665,6 +667,7 @@ public class EscalaService {
 
 			EscalaMusico novo = new EscalaMusico();
 			novo.setEscala(escala);
+			novo.setDataEscala(escala.getDataEscala()); // 🟢 Adicione esta linha
 			novo.setUsuario(usuario);
 
 			String nomeInstrumento = (usuario.getInstrumentos() != null && !usuario.getInstrumentos().isEmpty())

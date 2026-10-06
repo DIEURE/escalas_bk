@@ -15,20 +15,21 @@ public class EscalaMusico {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "escala_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "escala_id", nullable = false)
     private Escala escala;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_id", nullable = true) // IMPORTANTE: nullable = true
+    @JoinColumn(name = "usuario_id", nullable = true) // Permite vaga aberta/desocupada
     private Usuario usuario;
     
-    // Campo para armazenar o instrumento/função (ex: "MINISTRO", "TECLADO")
+    // Armazena o instrumento/posto da escala (ex: "TECLADO", "VIOLÃO", "MINISTRO")
+    @Column(name = "instrumento")
     private String instrumento;
 
     private Boolean substituido = false;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_substituto_id")
     private Usuario usuarioSubstituto;
 
@@ -36,15 +37,18 @@ public class EscalaMusico {
 
     private Boolean confirmado = false;
 
-    // 🟢 Novo campo: Justificativa quando o voluntário recusa a convocação
     @Column(name = "justificativa_recusa")
     private String justificativaRecusa;
 
     private String observacao;
     
+    @Column(name = "data_escala")
     private LocalDate dataEscala; 
     
+    @Column(name = "horario_manha")
     private LocalTime horarioManha;
+
+    @Column(name = "horario_noite")
     private LocalTime horarioNoite;
     
     @ManyToOne(fetch = FetchType.LAZY)
@@ -53,6 +57,26 @@ public class EscalaMusico {
     private Empresa empresa;
 
     public EscalaMusico() {
+    }
+
+    // 🟢 Sincroniza automaticamente data, horários e empresa da Escala pai antes de salvar/atualizar
+    @PrePersist
+    @PreUpdate
+    public void sincronizarDadosComEscala() {
+        if (this.escala != null) {
+            if (this.dataEscala == null) {
+                this.dataEscala = this.escala.getDataEscala();
+            }
+            if (this.horarioManha == null) {
+                this.horarioManha = this.escala.getHorarioManha();
+            }
+            if (this.horarioNoite == null) {
+                this.horarioNoite = this.escala.getHorarioNoite();
+            }
+            if (this.empresa == null && this.escala.getEmpresa() != null) {
+                this.empresa = this.escala.getEmpresa();
+            }
+        }
     }
 
     public Long getId() {
@@ -166,5 +190,4 @@ public class EscalaMusico {
     public void setEmpresa(Empresa empresa) {
         this.empresa = empresa;
     }
-    
 }
