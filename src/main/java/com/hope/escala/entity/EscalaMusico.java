@@ -19,8 +19,8 @@ public class EscalaMusico {
     @JoinColumn(name = "escala_id")
     private Escala escala;
 
-    @ManyToOne
-    @JoinColumn(name = "usuario_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id", nullable = true) // IMPORTANTE: nullable = true
     private Usuario usuario;
     
     // Campo para armazenar o instrumento/função (ex: "MINISTRO", "TECLADO")

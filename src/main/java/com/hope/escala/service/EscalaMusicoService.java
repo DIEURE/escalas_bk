@@ -140,54 +140,54 @@ public class EscalaMusicoService {
 	
 	private EscalaMusicoResponseDTO converterParaDTO(EscalaMusico escalaMusico) {
 
-		EscalaMusicoResponseDTO dto = new EscalaMusicoResponseDTO();
+	    EscalaMusicoResponseDTO dto = new EscalaMusicoResponseDTO();
 
-		dto.setId(escalaMusico.getId());
+	    dto.setId(escalaMusico.getId());
 
-		dto.setEscalaId(escalaMusico.getEscala().getId());
-		
-		dto.setNomeCultoManha(escalaMusico.getEscala().getNomeCultoManha());
-		
-		dto.setNomeCultoNoite(escalaMusico.getEscala().getNomeCultoNoite());
-		 
-	    dto.setDataEscala(escalaMusico.getEscala().getDataEscala()); 
-	    
-	    dto.setHorarioManha(escalaMusico.getEscala().getHorarioManha());
-	    
-	    dto.setHorarioNoite(escalaMusico.getEscala().getHorarioNoite());
+	    if (escalaMusico.getEscala() != null) {
+	        dto.setEscalaId(escalaMusico.getEscala().getId());
+	        dto.setNomeCultoManha(escalaMusico.getEscala().getNomeCultoManha());
+	        dto.setNomeCultoNoite(escalaMusico.getEscala().getNomeCultoNoite());
+	        dto.setDataEscala(escalaMusico.getEscala().getDataEscala()); 
+	        dto.setHorarioManha(escalaMusico.getEscala().getHorarioManha());
+	        dto.setHorarioNoite(escalaMusico.getEscala().getHorarioNoite());
+	    }
 
-		dto.setUsuarioId(escalaMusico.getUsuario().getId());
+	    // 🟢 Trata vaga aberta/desocupada (sem usuário)
+	    if (escalaMusico.getUsuario() != null) {
+	        dto.setUsuarioId(escalaMusico.getUsuario().getId());
+	        dto.setNomeUsuario(escalaMusico.getUsuario().getNome());
+	    } else {
+	        dto.setUsuarioId(null);
+	        dto.setNomeUsuario(null);
+	    }
 
-		dto.setNomeUsuario(escalaMusico.getUsuario().getNome());
+	    // 🟢 Garante o instrumento da vaga mesmo se o usuário for null
+	    if (escalaMusico.getInstrumento() != null && !escalaMusico.getInstrumento().isBlank()) {
+	        dto.setInstrumento(escalaMusico.getInstrumento());
+	    } else if (escalaMusico.getUsuario() != null && escalaMusico.getUsuario().getInstrumentos() != null && !escalaMusico.getUsuario().getInstrumentos().isEmpty()) {
+	        String nomesInstrumentos = escalaMusico.getUsuario().getInstrumentos().stream()
+	                .map(com.hope.escala.entity.Instrumento::getNome)
+	                .collect(Collectors.joining(", "));
+	        dto.setInstrumento(nomesInstrumentos);
+	    } else {
+	        dto.setInstrumento("Sem Instrumento");
+	    }
 
-		// 🟢 Substitua a verificação antiga do instrumento único por esta:
-		if (escalaMusico.getUsuario().getInstrumentos() != null && !escalaMusico.getUsuario().getInstrumentos().isEmpty()) {
-			String nomesInstrumentos = escalaMusico.getUsuario().getInstrumentos().stream()
-					.map(com.hope.escala.entity.Instrumento::getNome)
-					.collect(Collectors.joining(", "));
-			dto.setInstrumento(nomesInstrumentos);
-		} else {
-			dto.setInstrumento("Sem Instrumento");
-		}
+	    dto.setConfirmado(escalaMusico.getConfirmado());
+	    dto.setObservacao(escalaMusico.getObservacao());
+	    dto.setSubstituido(escalaMusico.getSubstituido());
 
+	    if (escalaMusico.getUsuarioSubstituto() != null) {
+	        dto.setUsuarioSubstitutoId(escalaMusico.getUsuarioSubstituto().getId());
+	        dto.setNomeSubstituto(escalaMusico.getUsuarioSubstituto().getNome());
+	    }
 
-		dto.setConfirmado(escalaMusico.getConfirmado());
+	    dto.setMotivoSubstituicao(escalaMusico.getMotivoSubstituicao());
 
-		dto.setObservacao(escalaMusico.getObservacao());
-
-		dto.setSubstituido(escalaMusico.getSubstituido());
-
-		if (escalaMusico.getUsuarioSubstituto() != null) {
-
-			dto.setUsuarioSubstitutoId(escalaMusico.getUsuarioSubstituto().getId());
-
-			dto.setNomeSubstituto(escalaMusico.getUsuarioSubstituto().getNome());
-		}
-
-		dto.setMotivoSubstituicao(escalaMusico.getMotivoSubstituicao());
-
-		return dto;
+	    return dto;
 	}
+
 
 	private void verificarFechamentoEscala(Long escalaId) {
 

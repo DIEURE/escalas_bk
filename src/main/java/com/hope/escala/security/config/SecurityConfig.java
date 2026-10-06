@@ -73,6 +73,7 @@ public class SecurityConfig {
 				"https://hope-escala-web.onrender.com",
 				"https://hopeescalapro.com.br",
 				"https://www.hopeescalapro.com.br",
+				"https://api.hopeescalapro.com.br",
 				"https://*.onrender.com",
 				"http://localhost:8081",
 				"http://localhost:19006",

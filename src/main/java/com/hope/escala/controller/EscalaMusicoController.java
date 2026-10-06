@@ -73,6 +73,9 @@ public class EscalaMusicoController {
             escalaMusicoService.atualizarConfirmacao(id, dto);
         return ResponseEntity.ok(escalaMusicoAtualizado);
     }
+    
+    
+    
 
     
     @PatchMapping("/{id}/substituir")    

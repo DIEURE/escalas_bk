@@ -189,13 +189,13 @@ public class EscalaService {
                         funcaoOuInstrumento = "Voluntário";
                     }
 
-                    if (m.getUsuario() != null) {
-                        voluntarios.add(new EscalaMesDTO.VoluntarioEscalaDTO(
-                                m.getUsuario().getId(),
-                                m.getUsuario().getNome(),
-                                funcaoOuInstrumento
-                        ));
-                    }
+                 // AGORA: envia a vaga mesmo sem usuário (com nome = null)
+                    voluntarios.add(new EscalaMesDTO.VoluntarioEscalaDTO(
+                            m.getUsuario() != null ? m.getUsuario().getId() : null,
+                            m.getUsuario() != null ? m.getUsuario().getNome() : null,
+                            funcaoOuInstrumento
+                    ));
+                     
                 }
             }
 
@@ -553,28 +553,35 @@ public class EscalaService {
 	}
 
 	private EscalaMusicoResponseDTO converterMusicoDTO(EscalaMusico escalaMusico) {
-		EscalaMusicoResponseDTO dto = new EscalaMusicoResponseDTO();
-		dto.setId(escalaMusico.getId());
-		dto.setEscalaId(escalaMusico.getEscala().getId());
-		dto.setNomeCultoManha(escalaMusico.getEscala().getNomeCultoManha());
-		dto.setNomeCultoNoite(escalaMusico.getEscala().getNomeCultoNoite());
+	    EscalaMusicoResponseDTO dto = new EscalaMusicoResponseDTO();
+	    dto.setId(escalaMusico.getId());
+	    
+	    if (escalaMusico.getEscala() != null) {
+	        dto.setEscalaId(escalaMusico.getEscala().getId());
+	        dto.setNomeCultoManha(escalaMusico.getEscala().getNomeCultoManha());
+	        dto.setNomeCultoNoite(escalaMusico.getEscala().getNomeCultoNoite());
+	        dto.setDataEscala(escalaMusico.getEscala().getDataEscala());
+	        dto.setHorarioManha(escalaMusico.getEscala().getHorarioManha());
+	        dto.setHorarioNoite(escalaMusico.getEscala().getHorarioNoite());
+	    }
 
-		dto.setDataEscala(escalaMusico.getEscala().getDataEscala());
-		dto.setHorarioManha(escalaMusico.getEscala().getHorarioManha());
-		dto.setHorarioNoite(escalaMusico.getEscala().getHorarioNoite());
+	    // Trata vaga aberta/sem voluntário alocado
+	    if (escalaMusico.getUsuario() != null) {
+	        dto.setUsuarioId(escalaMusico.getUsuario().getId());
+	        dto.setNomeUsuario(escalaMusico.getUsuario().getNome());
+	    } else {
+	        dto.setUsuarioId(null);
+	        dto.setNomeUsuario(null);
+	    }
 
-		dto.setUsuarioId(escalaMusico.getUsuario().getId());
-		dto.setNomeUsuario(escalaMusico.getUsuario().getNome());
-		dto.setInstrumento(escalaMusico.getInstrumento() != null ? escalaMusico.getInstrumento() : "Sem Instrumento");
-
-		dto.setConfirmado(escalaMusico.getConfirmado());
-		dto.setObservacao(escalaMusico.getObservacao());
-		
-		// 🟢 Mapeia a justificativa gravada
-		dto.setJustificativaRecusa(escalaMusico.getJustificativaRecusa());
-		
-		return dto;
+	    dto.setInstrumento(escalaMusico.getInstrumento() != null ? escalaMusico.getInstrumento() : "Sem Instrumento");
+	    dto.setConfirmado(escalaMusico.getConfirmado());
+	    dto.setObservacao(escalaMusico.getObservacao());
+	    dto.setJustificativaRecusa(escalaMusico.getJustificativaRecusa());
+	    
+	    return dto;
 	}
+
 
 	private EscalaMusicaResponseDTO converterMusicaDTO(EscalaMusica escalaMusica) {
 		EscalaMusicaResponseDTO dto = new EscalaMusicaResponseDTO();
