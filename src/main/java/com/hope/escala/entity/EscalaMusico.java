@@ -166,4 +166,5 @@ public class EscalaMusico {
     public void setEmpresa(Empresa empresa) {
         this.empresa = empresa;
     }
+    
 }

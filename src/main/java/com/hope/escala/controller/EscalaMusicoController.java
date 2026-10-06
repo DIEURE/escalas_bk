@@ -87,4 +87,5 @@ public class EscalaMusicoController {
             escalaMusicoService.substituirMusico(id, dto);
         return ResponseEntity.ok(escalaMusicoAtualizado);
     }
+        
 }

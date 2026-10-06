@@ -206,6 +206,7 @@ public class EscalaMusicoService {
 	    }
 	}
 	
+	
 	public EscalaMusicoResponseDTO desocuparVaga(Long id) {
 	    EscalaMusico escalaMusico = escalaMusicoRepository.findById(id)
 	            .orElseThrow(() -> new ResourceNotFoundException("Vaga da escala não encontrada"));

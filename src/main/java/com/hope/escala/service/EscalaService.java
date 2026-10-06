@@ -552,6 +552,7 @@ public class EscalaService {
 		return dto;
 	}
 
+	
 	private EscalaMusicoResponseDTO converterMusicoDTO(EscalaMusico escalaMusico) {
 	    EscalaMusicoResponseDTO dto = new EscalaMusicoResponseDTO();
 	    dto.setId(escalaMusico.getId());
