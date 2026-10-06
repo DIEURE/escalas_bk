@@ -16,6 +16,14 @@ public interface EscalaMusicoRepository extends JpaRepository<EscalaMusico, Long
     List<EscalaMusico> findByEscalaId(Long escalaId);
 
     List<EscalaMusico> findByUsuarioId(Long usuarioId);
+    
+    @Query("SELECT em FROM EscalaMusico em " +
+    	       "JOIN FETCH em.escala e " +
+    	       "JOIN FETCH em.usuario u " +
+    	       "WHERE em.usuario.id = :usuarioId " +
+    	       "ORDER BY e.dataEscala ASC")
+    	List<EscalaMusico> findMinhasEscalasPorUsuarioId(@Param("usuarioId") Long usuarioId);
+
 
     // 🟢 Busca os registros pela congregação
     @Query("SELECT em FROM EscalaMusico em WHERE em.empresa.id = :empresaId")

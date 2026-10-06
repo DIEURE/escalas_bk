@@ -2,6 +2,7 @@ package com.hope.escala.dto.response;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 public class EscalaMusicoResponseDTO {
 
@@ -23,6 +24,7 @@ public class EscalaMusicoResponseDTO {
 
 	private String observacao;
 
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
 	private LocalDate dataEscala;
 
 	private LocalTime horarioManha;
