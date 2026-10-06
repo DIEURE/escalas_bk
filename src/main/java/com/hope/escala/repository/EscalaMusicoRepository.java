@@ -13,7 +13,13 @@ import com.hope.escala.entity.EscalaMusico;
 @Repository
 public interface EscalaMusicoRepository extends JpaRepository<EscalaMusico, Long> {
 
-    List<EscalaMusico> findByEscalaId(Long escalaId);
+	// 🟢 O LEFT JOIN garante que traz a vaga mesmo quando usuario_id for NULL:
+	@Query("SELECT em FROM EscalaMusico em " +
+	       "LEFT JOIN FETCH em.usuario u " +
+	       "WHERE em.escala.id = :escalaId " +
+	       "ORDER BY em.id ASC")
+	List<EscalaMusico> findByEscalaId(@Param("escalaId") Long escalaId);
+
 
     List<EscalaMusico> findByUsuarioId(Long usuarioId);
     

@@ -131,33 +131,32 @@ public class EscalaService {
 	
 	@Transactional
 	public EscalaDetalhesResponseDTO regenerarEscalaAutomatica(Long escalaId) {
-		Long empresaIdLogada = securityUtils.empresaId();
+	    Long empresaIdLogada = securityUtils.empresaId();
 
-		// 1. Busca a escala e valida o isolamento multi-tenant
-		Escala escala = escalaRepository.findById(escalaId)
-				.orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + escalaId));
+	    Escala escala = escalaRepository.findById(escalaId)
+	            .orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + escalaId));
 
-		if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
-			throw new ResourceNotFoundException("Escala não pertence à sua instituição");
-		}
+	    if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
+	        throw new ResourceNotFoundException("Escala não pertence à sua instituição");
+	    }
 
-		// 2. Apaga todos os músicos vinculados anteriormente a essa escala
-		escala.getMusicos().clear();
-		escalaMusicoRepository.deleteByEscalaId(escala.getId());
-		escalaRepository.flush();
+	    // 1. Limpa os registros no banco e na coleção gerenciada pelo Hibernate
+	    escalaMusicoRepository.deleteByEscalaId(escala.getId());
+	    escala.getMusicos().clear();
+	    escalaMusicoRepository.flush();
 
-		// 3. Garante que o tipo da escala seja AUTOMATICA e ajusta status para aguardando confirmação
-		escala.setTipoEscala(TipoEscala.AUTOMATICA);
-		escala.setStatus(StatusEscala.AGUARDANDO_CONFIRMACAO);
-		
-		// 4. Executa novamente o algoritmo de sorteio/rodízio automático
-		gerarMusicosAutomaticamente(escala);
+	    // 2. Ajusta status
+	    escala.setTipoEscala(TipoEscala.AUTOMATICA);
+	    escala.setStatus(StatusEscala.AGUARDANDO_CONFIRMACAO);
+	    
+	    // 3. Executa o sorteio preenchendo tanto quem tem voluntário quanto as vagas [VAGO]
+	    gerarMusicosAutomaticamente(escala);
 
-		// 5. Salva e sincroniza
-		escalaRepository.saveAndFlush(escala);
+	    // 4. Salva e sincroniza
+	    escalaRepository.saveAndFlush(escala);
 
-		// 6. Retorna os detalhes completos da escala já atualizada
-		return buscarDetalhesEscala(escalaId);
+	    // 5. Retorna os detalhes atualizados
+	    return buscarDetalhesEscala(escalaId);
 	}
 
 
@@ -391,7 +390,7 @@ public class EscalaService {
 	    LocalDate dataEscala = escala.getDataEscala();
 	    Long empresaId = escala.getEmpresa().getId();
 
-	    // 🟢 1. Descobre se haverá 2 ou mais ministros escalados nesta data
+	    // 1. Descobre se haverá 2 ou mais ministros escalados nesta data
 	    int quantidadeMinistrosNaData = 0;
 	    for (Instrumento inst : instrumentos) {
 	        String nomeInst = inst.getNome() != null ? inst.getNome().toUpperCase() : "";
@@ -414,10 +413,9 @@ public class EscalaService {
 	        }
 	    }
 
-	    // Se tiver 2 ou mais ministros na data, deve reduzir 1 backing vocal
 	    boolean compensarBackingVocal = quantidadeMinistrosNaData >= 2;
 
-	    // 🟢 2. Itera sobre os instrumentos preenchendo as vagas
+	    // 2. Itera sobre os instrumentos preenchendo as vagas
 	    for (Instrumento instrumento : instrumentos) {
 	        int quantidadeFinal = instrumento.getQuantidadeEscala() != null ? instrumento.getQuantidadeEscala() : 0;
 
@@ -435,7 +433,6 @@ public class EscalaService {
 	            }
 	        }
 
-	        // 🟢 3. Regra de compensação: se for Backing Vocal e houver >= 2 Ministros, remove 1 vaga
 	        String nomeAtual = instrumento.getNome() != null ? instrumento.getNome().toUpperCase() : "";
 	        boolean ehBackingVocal = nomeAtual.contains("BACKING") || (nomeAtual.contains("VOCAL") && !nomeAtual.contains("MINISTRO"));
 
@@ -443,7 +440,7 @@ public class EscalaService {
 	            quantidadeFinal = Math.max(0, quantidadeFinal - 1);
 	        }
 
-	        // 🟢 4. Realiza o sorteio/rodízio para a quantidade ajustada
+	        // 3. Cria as vagas (com voluntário ou VAGO)
 	        for (int i = 0; i < quantidadeFinal; i++) {
 	            Usuario usuario = escalaAutomaticaService.escolherMusicoRodizio(instrumento.getId(), departamentoId,
 	                    escala.getId(), empresaId);
@@ -457,15 +454,14 @@ public class EscalaService {
 	            escalaMusico.setConfirmado(false);
 	            escalaMusico.setSubstituido(false);
 	            escalaMusico.setEmpresa(escala.getEmpresa());
+	            escalaMusico.setUsuario(usuario); // pode ser null
 
-	            // 🟢 Se achou voluntário, vincula. Se for null, salva a vaga em aberto (VAGO)
-	            escalaMusico.setUsuario(usuario);
-
-	            escalaMusicoRepository.save(escalaMusico);
+	            // Salva no banco e mantém a lista em memória atualizada para o Hibernate
+	            EscalaMusico salvo = escalaMusicoRepository.save(escalaMusico);
+	            escala.getMusicos().add(salvo);
 	        }
 	    }
 	}
-
 
 	
 	@Transactional
