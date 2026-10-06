@@ -572,7 +572,7 @@ public class EscalaService {
 	        dto.setNomeUsuario(escalaMusico.getUsuario().getNome());
 	    } else {
 	        dto.setUsuarioId(null);
-	        dto.setNomeUsuario(null);
+	        dto.setNomeUsuario("[VAGO]");
 	    }
 
 	    dto.setInstrumento(escalaMusico.getInstrumento() != null ? escalaMusico.getInstrumento() : "Sem Instrumento");
