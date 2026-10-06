@@ -62,8 +62,7 @@ public class EscalaMusicoController {
         // Você precisará criar o método confirmarMinhaEscala no seu EscalaMusicoService
         return ResponseEntity.ok(escalaMusicoService.confirmarMinhaEscala(escalaId, dto.getConfirmado()));
     }
-    
-
+     
     @PatchMapping("/{id}/confirmacao")
     // ✅ Qualquer usuário pode confirmar sua própria participação
     public ResponseEntity<EscalaMusicoResponseDTO> atualizarConfirmacao(
@@ -74,9 +73,11 @@ public class EscalaMusicoController {
         return ResponseEntity.ok(escalaMusicoAtualizado);
     }
     
-    
-    
-
+    @PatchMapping("/{id}/desocupar")
+    public ResponseEntity<EscalaMusicoResponseDTO> desocuparVaga(@PathVariable Long id) {
+        return ResponseEntity.ok(escalaMusicoService.desocuparVaga(id));
+    }
+     
     
     @PatchMapping("/{id}/substituir")    
     public ResponseEntity<EscalaMusicoResponseDTO> substituirMusico(

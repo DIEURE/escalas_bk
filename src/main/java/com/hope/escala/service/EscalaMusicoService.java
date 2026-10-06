@@ -205,5 +205,25 @@ public class EscalaMusicoService {
 	        escalaService.fecharEscala(escalaId);
 	    }
 	}
+	
+	public EscalaMusicoResponseDTO desocuparVaga(Long id) {
+	    EscalaMusico escalaMusico = escalaMusicoRepository.findById(id)
+	            .orElseThrow(() -> new ResourceNotFoundException("Vaga da escala não encontrada"));
+
+	    Long empresaIdLogada = securityUtils.empresaId();
+	    if (!escalaMusico.getEmpresa().getId().equals(empresaIdLogada)) {
+	        throw new ResourceNotFoundException("Escala não pertence à sua congregação");
+	    }
+
+	    escalaMusico.setUsuario(null);
+	    escalaMusico.setConfirmado(false);
+	    escalaMusico.setSubstituido(false);
+	    escalaMusico.setUsuarioSubstituto(null);
+	    escalaMusico.setObservacao("Vaga em aberto");
+
+	    EscalaMusico vagaDesocupada = escalaMusicoRepository.save(escalaMusico);
+	    return converterParaDTO(vagaDesocupada);
+	}
+
 
 }
