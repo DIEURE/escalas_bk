@@ -43,6 +43,10 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/empresas", "/empresas/**").permitAll()
 						.requestMatchers("/perfil/**").permitAll()
 						.requestMatchers("/usuarios/meu-perfil").authenticated()
+						// 🟢 Ajuste para:
+						.requestMatchers(HttpMethod.POST, "/atas/**").hasAnyRole("ADMIN", "LIDER", "SUPER_ADMIN")
+						// ou se o JWT usa autoridade sem prefixo ROLE_:
+						.requestMatchers(HttpMethod.POST, "/atas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN")
 						.requestMatchers("/usuarios/**").permitAll()
 						.requestMatchers("/auth/login", "/auth/solicitar-cadastro").permitAll()
 
