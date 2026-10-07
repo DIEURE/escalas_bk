@@ -198,18 +198,25 @@ public class AtaReuniaoService {
     }
 
     @Transactional
-    public void registrarVoto(Long pautaId, RegistrarVotoRequestDTO dto, Usuario usuarioLogado) {
-        if (usuarioLogado == null) {
-            throw new org.springframework.security.access.AccessDeniedException("Usuário não autenticado");
+    public void registrarVoto(Long pautaId, RegistrarVotoRequestDTO dto, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new AccessDeniedException("Usuário não autenticado");
         }
 
-        Long empresaId = usuarioLogado.getEmpresa() != null ? usuarioLogado.getEmpresa().getId() : null;
-        if (empresaId == null) {
-            throw new org.springframework.security.access.AccessDeniedException("Empresa do usuário não identificada");
+        // 1. Obtém o e-mail/login do usuário autenticado no token
+        String emailUsuario = authentication.getName();
+
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado no sistema"));
+
+        if (usuario.getEmpresa() == null) {
+            throw new AccessDeniedException("Empresa do usuário não identificada");
         }
 
-        Long usuarioId = usuarioLogado.getId();
+        Long empresaId = usuario.getEmpresa().getId();
+        Long usuarioId = usuario.getId();
 
+        // 2. Validações da Pauta e Ata
         PautaReuniao pauta = pautaRepository.findByIdAndEmpresaId(pautaId, empresaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pauta não encontrada"));
 
@@ -228,6 +235,7 @@ public class AtaReuniaoService {
         PautaOpcao opcaoEscolhida = pautaOpcaoRepository.findByIdAndPautaId(dto.opcaoId(), pautaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Opção de votação não encontrada para esta pauta"));
 
+        // 3. Salva ou atualiza o voto do usuário
         Optional<VotoPauta> votoExistente = votoRepository.findByPautaIdAndUsuarioId(pautaId, usuarioId);
 
         if (votoExistente.isPresent()) {
@@ -239,12 +247,13 @@ public class AtaReuniaoService {
             VotoPauta novoVoto = new VotoPauta();
             novoVoto.setPauta(pauta);
             novoVoto.setOpcao(opcaoEscolhida);
-            novoVoto.setUsuario(usuarioLogado);
+            novoVoto.setUsuario(usuario);
             novoVoto.setEmpresa(pauta.getEmpresa());
             novoVoto.setJustificativa(dto.justificativa());
             votoRepository.save(novoVoto);
         }
     }
+
     @Transactional
     public void alterarStatusVotacaoPauta(Long pautaId, StatusVotacaoPauta novoStatus) {
         Long empresaId = securityUtils.empresaId();

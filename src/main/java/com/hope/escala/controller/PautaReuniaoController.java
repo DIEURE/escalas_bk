@@ -2,19 +2,13 @@ package com.hope.escala.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 
 import com.hope.escala.dto.request.AtualizarStatusVotacaoDTO;
 import com.hope.escala.dto.request.CriarPautaItemDTO;
 import com.hope.escala.dto.request.RegistrarVotoRequestDTO;
 import com.hope.escala.dto.response.PautaDetalheResponseDTO;
-import com.hope.escala.entity.Usuario;
 import com.hope.escala.service.AtaReuniaoService;
 
 @RestController
@@ -39,13 +33,13 @@ public class PautaReuniaoController {
     public ResponseEntity<Void> votar(
             @PathVariable Long id,
             @RequestBody RegistrarVotoRequestDTO dto,
-            @AuthenticationPrincipal Usuario usuarioLogado) {        
-        ataService.registrarVoto(id, dto, usuarioLogado);
+            Authentication authentication) {
+        
+        // Passa a autenticação ativa ou delega a extração ao service
+        ataService.registrarVoto(id, dto, authentication);
         return ResponseEntity.ok().build();
     }
 
- 
-    
     @PatchMapping({ "/{id}/status-votacao", "/{id}/status" })
     public ResponseEntity<Void> alterarStatusVotacao(
             @PathVariable Long id,
