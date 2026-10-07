@@ -52,6 +52,10 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.POST, "/pautas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
 						.requestMatchers(HttpMethod.PATCH, "/pautas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
 						.requestMatchers(HttpMethod.PUT, "/pautas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
+						.requestMatchers(HttpMethod.POST, "/pautas/*/votar").authenticated()
+						.requestMatchers(HttpMethod.PATCH, "/pautas/*/status-votacao", "/pautas/*/status").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
+
+						
 
 						// Votação liberada para qualquer membro autenticado (Voluntários, Músicos, etc.)
 						.requestMatchers(HttpMethod.POST, "/pautas/*/votar").authenticated()

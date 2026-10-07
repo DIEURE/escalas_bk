@@ -198,19 +198,31 @@ public class AtaReuniaoService {
     }
 
     @Transactional
-    public void registrarVoto(Long pautaId, RegistrarVotoRequestDTO dto) {
-        Long empresaId = securityUtils.empresaId();
-        Long usuarioId = securityUtils.usuarioId();
+    public void registrarVoto(Long pautaId, RegistrarVotoRequestDTO dto, Usuario usuarioLogado) {
+        if (usuarioLogado == null) {
+            throw new org.springframework.security.access.AccessDeniedException("Usuário não autenticado");
+        }
+
+        Long empresaId = usuarioLogado.getEmpresa() != null ? usuarioLogado.getEmpresa().getId() : null;
+        if (empresaId == null) {
+            throw new org.springframework.security.access.AccessDeniedException("Empresa do usuário não identificada");
+        }
+
+        Long usuarioId = usuarioLogado.getId();
 
         PautaReuniao pauta = pautaRepository.findByIdAndEmpresaId(pautaId, empresaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pauta não encontrada"));
 
-        if (!pauta.getRequerVotacao() || pauta.getStatusVotacao() != StatusVotacaoPauta.EM_VOTACAO) {
+        if (!Boolean.TRUE.equals(pauta.getRequerVotacao()) || pauta.getStatusVotacao() != StatusVotacaoPauta.EM_VOTACAO) {
             throw new IllegalStateException("Esta pauta não está aberta para votação.");
         }
 
         if (pauta.getAta().getStatus() == StatusAta.CONCLUIDA) {
             throw new IllegalStateException("A ata já foi concluída.");
+        }
+
+        if (dto.opcaoId() == null) {
+            throw new IllegalArgumentException("O ID da opção de voto é obrigatório");
         }
 
         PautaOpcao opcaoEscolhida = pautaOpcaoRepository.findByIdAndPautaId(dto.opcaoId(), pautaId)
@@ -224,19 +236,15 @@ public class AtaReuniaoService {
             voto.setJustificativa(dto.justificativa());
             votoRepository.save(voto);
         } else {
-            Usuario usuario = usuarioRepository.findById(usuarioId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-
             VotoPauta novoVoto = new VotoPauta();
             novoVoto.setPauta(pauta);
             novoVoto.setOpcao(opcaoEscolhida);
-            novoVoto.setUsuario(usuario);
+            novoVoto.setUsuario(usuarioLogado);
             novoVoto.setEmpresa(pauta.getEmpresa());
             novoVoto.setJustificativa(dto.justificativa());
             votoRepository.save(novoVoto);
         }
     }
-
     @Transactional
     public void alterarStatusVotacaoPauta(Long pautaId, StatusVotacaoPauta novoStatus) {
         Long empresaId = securityUtils.empresaId();
