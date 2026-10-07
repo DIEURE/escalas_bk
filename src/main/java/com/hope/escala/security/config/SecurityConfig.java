@@ -41,34 +41,43 @@ public class SecurityConfig {
 						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 						.requestMatchers(HttpMethod.GET, "/empresas-publicas").permitAll()
 						.requestMatchers(HttpMethod.GET, "/empresas", "/empresas/**").permitAll()
-						.requestMatchers("/perfil/**").permitAll()
-						.requestMatchers("/usuarios/meu-perfil").authenticated()
-					 
-						// Rotas de Atas e Pautas (ADMIN, SUPER_ADMIN e LIDER)
-						.requestMatchers(HttpMethod.POST, "/atas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
-						.requestMatchers(HttpMethod.PATCH, "/atas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
-						.requestMatchers(HttpMethod.PUT, "/atas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
-
-						.requestMatchers(HttpMethod.POST, "/pautas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
-						.requestMatchers(HttpMethod.PATCH, "/pautas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
-						.requestMatchers(HttpMethod.PUT, "/pautas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
-						.requestMatchers(HttpMethod.POST, "/pautas/*/votar").authenticated()
-						.requestMatchers(HttpMethod.PATCH, "/pautas/*/status-votacao", "/pautas/*/status").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
-
-						
-
-						// Votação liberada para qualquer membro autenticado (Voluntários, Músicos, etc.)
-						.requestMatchers(HttpMethod.POST, "/pautas/*/votar").authenticated()
-
-						.requestMatchers("/usuarios/**").permitAll()
+						.requestMatchers("/perfil/**").permitAll().requestMatchers("/usuarios/meu-perfil")
+						.authenticated().requestMatchers("/usuarios/**").permitAll()
 						.requestMatchers("/auth/login", "/auth/solicitar-cadastro").permitAll()
+
+						// 1º: Regras específicas de Pautas
+						// Votação liberada para qualquer usuário logado (voluntários, músicos,
+						// liderança)
+						.requestMatchers(HttpMethod.POST, "/pautas/*/votar", "/pautas/**/votar").authenticated()
+
+						// Abertura e encerramento de status de votação restrito à liderança
+						.requestMatchers(HttpMethod.PATCH, "/pautas/*/status-votacao", "/pautas/*/status")
+						.hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER",
+								"ROLE_SUPER_ADMIN")
+
+						// 2º: Regras genéricas de Atas e Pautas (criação, edição e exclusão)
+						.requestMatchers(HttpMethod.POST, "/atas/**", "/pautas/**")
+						.hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER",
+								"ROLE_SUPER_ADMIN")
+						.requestMatchers(HttpMethod.PATCH, "/atas/**", "/pautas/**")
+						.hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER",
+								"ROLE_SUPER_ADMIN")
+						.requestMatchers(HttpMethod.PUT, "/atas/**", "/pautas/**")
+						.hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER",
+								"ROLE_SUPER_ADMIN")
+						.requestMatchers(HttpMethod.DELETE, "/atas/**", "/pautas/**")
+						.hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER",
+								"ROLE_SUPER_ADMIN")
 
 						// Disponibilidades (Voluntários e Admins)
 						.requestMatchers("/disponibilidades/**").authenticated()
-						.requestMatchers(HttpMethod.GET, "/disponibilidades/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "VOLUNTARIO", "USER", "MUSICO")
+						.requestMatchers(HttpMethod.GET, "/disponibilidades/**")
+						.hasAnyRole("ADMIN", "SUPER_ADMIN", "VOLUNTARIO", "USER", "MUSICO")
 						.requestMatchers("/agenda-mensal/datas").authenticated()
 
-						// 🟢 Liberação de Leitura (GET) para Escalas, Músicas e Playlists para qualquer membro autenticado
+						// Liberação de Leitura (GET) para membros autenticados
+						.requestMatchers(HttpMethod.GET, "/atas", "/atas/**").authenticated()
+						.requestMatchers(HttpMethod.GET, "/pautas", "/pautas/**").authenticated()
 						.requestMatchers(HttpMethod.GET, "/escalas", "/escalas/**").authenticated()
 						.requestMatchers(HttpMethod.GET, "/escala-musicos", "/escala-musicos/**").authenticated()
 						.requestMatchers(HttpMethod.GET, "/playlists", "/playlists/**").authenticated()
@@ -85,24 +94,16 @@ public class SecurityConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		
-		configuration.setAllowedOriginPatterns(Arrays.asList(
-				"https://hope-escala-web.onrender.com",
-				"https://hopeescalapro.com.br",
-				"https://www.hopeescalapro.com.br",
-				"https://api.hopeescalapro.com.br",
-				"https://*.onrender.com",
-				"http://localhost:8081",
-				"http://localhost:19006",
-				"http://localhost:5173",
-				"http://localhost:3000",
-				"http://localhost:8080",
-				"http://172.18.73.28:8090",
-				"http://172.18.73.28:5173"
-		));
-		
+
+		configuration.setAllowedOriginPatterns(Arrays.asList("https://hope-escala-web.onrender.com",
+				"https://hopeescalapro.com.br", "https://www.hopeescalapro.com.br", "https://api.hopeescalapro.com.br",
+				"https://*.onrender.com", "http://localhost:8081", "http://localhost:19006", "http://localhost:5173",
+				"http://localhost:3000", "http://localhost:8080", "http://172.18.73.28:8090",
+				"http://172.18.73.28:5173"));
+
 		configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-		configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));
+		configuration.setAllowedHeaders(
+				Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));
 		configuration.setAllowCredentials(true);
 		configuration.setMaxAge(3600L);
 
