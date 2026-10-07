@@ -226,12 +226,13 @@ public class EscalaService {
 
 		return converterParaDTO(escala);
 	}
-
+ 
 	@Transactional
 	public EscalaResponseDTO atualizar(Long id, EscalaRequestDTO dto) {
 		Long empresaIdLogada = securityUtils.empresaId();
 
-		Escala escala = escalaRepository.findById(id).orElseThrow(() -> new RuntimeException("Escala não encontrada"));
+		Escala escala = escalaRepository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Escala não encontrada"));
 
 		if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
 			throw new ResourceNotFoundException("Escala não pertence à sua instituição");
@@ -257,27 +258,30 @@ public class EscalaService {
 
 		escala.getMusicos().clear();
 		escalaMusicoRepository.deleteByEscalaId(escala.getId());
-		escalaRepository.flush();
+		escalaMusicoRepository.flush();
 
 		if (dto.getMusicos() != null && !dto.getMusicos().isEmpty()) {
 			for (EscalaMusicoRequestDTO mDto : dto.getMusicos()) {
+				Usuario usuario = null;
 				if (mDto.getUsuarioId() != null) {
-					Usuario usuario = usuarioRepository.findById(mDto.getUsuarioId())
-							.orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-
-					EscalaMusico novo = new EscalaMusico();
-					novo.setEscala(escala);
-					novo.setDataEscala(escala.getDataEscala()); // 🟢 Adicione esta linha
-					novo.setUsuario(usuario);
-					novo.setInstrumento(
-							mDto.getInstrumento() != null && !mDto.getInstrumento().isBlank() ? mDto.getInstrumento()
-									: "Geral");
-					novo.setConfirmado(false);
-					novo.setSubstituido(false);
-					novo.setEmpresa(escala.getEmpresa()); // 🟢 multi-tenant
-					escala.getMusicos().add(novo);
-					escalaMusicoRepository.save(novo);
+					usuario = usuarioRepository.findById(mDto.getUsuarioId())
+							.orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + mDto.getUsuarioId()));
 				}
+
+				EscalaMusico novo = new EscalaMusico();
+				novo.setEscala(escala);
+				novo.setDataEscala(escala.getDataEscala());
+				novo.setUsuario(usuario); // 🟢 Permite null quando o voluntário for removido (VAGO)
+				novo.setInstrumento(
+						mDto.getInstrumento() != null && !mDto.getInstrumento().isBlank()
+								? mDto.getInstrumento()
+								: "Geral");
+				novo.setConfirmado(false);
+				novo.setSubstituido(false);
+				novo.setEmpresa(escala.getEmpresa());
+
+				escala.getMusicos().add(novo);
+				escalaMusicoRepository.save(novo);
 			}
 		} else if (dto.getMusicosIds() != null && !dto.getMusicosIds().isEmpty()) {
 			for (Long usuarioId : dto.getMusicosIds()) {
@@ -286,6 +290,7 @@ public class EscalaService {
 
 				EscalaMusico novo = new EscalaMusico();
 				novo.setEscala(escala);
+				novo.setDataEscala(escala.getDataEscala());
 				novo.setUsuario(usuario);
 
 				String nomeInstrumento = (usuario.getInstrumentos() != null && !usuario.getInstrumentos().isEmpty())
@@ -295,7 +300,7 @@ public class EscalaService {
 
 				novo.setConfirmado(false);
 				novo.setSubstituido(false);
-				novo.setEmpresa(escala.getEmpresa()); // 🟢 CORRIGIDO: Adicionado o empresa_id aqui!
+				novo.setEmpresa(escala.getEmpresa());
 
 				escala.getMusicos().add(novo);
 				escalaMusicoRepository.save(novo);
@@ -306,6 +311,7 @@ public class EscalaService {
 		escalaRepository.flush();
 		return converterParaDTO(atualizada);
 	}
+
 
 	public void inativar(Long id) {
 		Long empresaIdLogada = securityUtils.empresaId();

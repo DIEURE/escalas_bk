@@ -7,7 +7,7 @@ public class EscalaMusicoRequestDTO {
 	@NotNull(message = "Escala é obrigatória")
 	private Long escalaId;
 
-	@NotNull(message = "Usuário é obrigatório")
+	 
 	private Long usuarioId;
 
 	private String observacao;
