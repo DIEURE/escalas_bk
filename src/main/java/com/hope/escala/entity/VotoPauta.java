@@ -2,12 +2,8 @@ package com.hope.escala.entity;
 
 import java.time.LocalDateTime;
 
-import com.hope.escala.enums.TipoVoto;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -34,16 +30,16 @@ public class VotoPauta {
     private PautaReuniao pauta;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "opcao_id", nullable = false)
+    private PautaOpcao opcao;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
     private Empresa empresa;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "opcao_voto", nullable = false, length = 20)
-    private TipoVoto opcaoVoto;
 
     @Column(length = 300)
     private String justificativa;
@@ -77,6 +73,14 @@ public class VotoPauta {
         this.pauta = pauta;
     }
 
+    public PautaOpcao getOpcao() {
+        return opcao;
+    }
+
+    public void setOpcao(PautaOpcao opcao) {
+        this.opcao = opcao;
+    }
+
     public Usuario getUsuario() {
         return usuario;
     }
@@ -91,14 +95,6 @@ public class VotoPauta {
 
     public void setEmpresa(Empresa empresa) {
         this.empresa = empresa;
-    }
-
-    public TipoVoto getOpcaoVoto() {
-        return opcaoVoto;
-    }
-
-    public void setOpcaoVoto(TipoVoto opcaoVoto) {
-        this.opcaoVoto = opcaoVoto;
     }
 
     public String getJustificativa() {

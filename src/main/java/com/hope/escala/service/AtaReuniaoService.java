@@ -12,19 +12,21 @@ import com.hope.escala.dto.request.CriarPautaItemDTO;
 import com.hope.escala.dto.request.RegistrarVotoRequestDTO;
 import com.hope.escala.dto.response.AtaDetalheResponseDTO;
 import com.hope.escala.dto.response.PautaDetalheResponseDTO;
+import com.hope.escala.dto.response.PautaOpcaoResponseDTO;
 import com.hope.escala.entity.AtaReuniao;
 import com.hope.escala.entity.Departamento;
 import com.hope.escala.entity.Empresa;
+import com.hope.escala.entity.PautaOpcao;
 import com.hope.escala.entity.PautaReuniao;
 import com.hope.escala.entity.Usuario;
 import com.hope.escala.entity.VotoPauta;
 import com.hope.escala.enums.StatusAta;
 import com.hope.escala.enums.StatusVotacaoPauta;
-import com.hope.escala.enums.TipoVoto;
 import com.hope.escala.exception.ResourceNotFoundException;
 import com.hope.escala.repository.AtaReuniaoRepository;
 import com.hope.escala.repository.DepartamentoRepository;
 import com.hope.escala.repository.EmpresaRepository;
+import com.hope.escala.repository.PautaOpcaoRepository;
 import com.hope.escala.repository.PautaReuniaoRepository;
 import com.hope.escala.repository.UsuarioRepository;
 import com.hope.escala.repository.VotoPautaRepository;
@@ -35,6 +37,7 @@ public class AtaReuniaoService {
 
     private final AtaReuniaoRepository ataRepository;
     private final PautaReuniaoRepository pautaRepository;
+    private final PautaOpcaoRepository pautaOpcaoRepository;
     private final VotoPautaRepository votoRepository;
     private final EmpresaRepository empresaRepository;
     private final UsuarioRepository usuarioRepository;
@@ -44,6 +47,7 @@ public class AtaReuniaoService {
     public AtaReuniaoService(
             AtaReuniaoRepository ataRepository,
             PautaReuniaoRepository pautaRepository,
+            PautaOpcaoRepository pautaOpcaoRepository,
             VotoPautaRepository votoRepository,
             EmpresaRepository empresaRepository,
             UsuarioRepository usuarioRepository,
@@ -51,6 +55,7 @@ public class AtaReuniaoService {
             SecurityUtils securityUtils) {
         this.ataRepository = ataRepository;
         this.pautaRepository = pautaRepository;
+        this.pautaOpcaoRepository = pautaOpcaoRepository;
         this.votoRepository = votoRepository;
         this.empresaRepository = empresaRepository;
         this.usuarioRepository = usuarioRepository;
@@ -96,6 +101,16 @@ public class AtaReuniaoService {
                 pauta.setOrdem(item.ordem() != null ? item.ordem() : ata.getPautas().size() + 1);
                 pauta.setRequerVotacao(Boolean.TRUE.equals(item.requerVotacao()));
                 pauta.setStatusVotacao(StatusVotacaoPauta.NAO_INICIADA);
+
+                if (item.opcoes() != null) {
+                    int ordemOpcao = 1;
+                    for (String textoOpcao : item.opcoes()) {
+                        if (textoOpcao != null && !textoOpcao.trim().isEmpty()) {
+                            pauta.getOpcoes().add(new PautaOpcao(pauta, textoOpcao.trim(), ordemOpcao++));
+                        }
+                    }
+                }
+
                 ata.getPautas().add(pauta);
             }
         }
@@ -154,7 +169,21 @@ public class AtaReuniaoService {
         pauta.setRequerVotacao(Boolean.TRUE.equals(dto.requerVotacao()));
         pauta.setStatusVotacao(StatusVotacaoPauta.NAO_INICIADA);
 
+        if (dto.opcoes() != null) {
+            int ordemOpcao = 1;
+            for (String textoOpcao : dto.opcoes()) {
+                if (textoOpcao != null && !textoOpcao.trim().isEmpty()) {
+                    pauta.getOpcoes().add(new PautaOpcao(pauta, textoOpcao.trim(), ordemOpcao++));
+                }
+            }
+        }
+
         PautaReuniao salva = pautaRepository.save(pauta);
+
+        List<PautaOpcaoResponseDTO> opcoesDto = salva.getOpcoes().stream()
+                .map(o -> new PautaOpcaoResponseDTO(o.getId(), o.getTexto(), o.getOrdem(), 0, 0.0))
+                .toList();
+
         return new PautaDetalheResponseDTO(
                 salva.getId(),
                 salva.getOrdem(),
@@ -162,7 +191,9 @@ public class AtaReuniaoService {
                 salva.getDescricao(),
                 salva.getRequerVotacao(),
                 salva.getStatusVotacao(),
-                0, 0, 0, null
+                0,
+                null,
+                opcoesDto
         );
     }
 
@@ -182,11 +213,14 @@ public class AtaReuniaoService {
             throw new IllegalStateException("A ata já foi concluída.");
         }
 
+        PautaOpcao opcaoEscolhida = pautaOpcaoRepository.findByIdAndPautaId(dto.opcaoId(), pautaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Opção de votação não encontrada para esta pauta"));
+
         Optional<VotoPauta> votoExistente = votoRepository.findByPautaIdAndUsuarioId(pautaId, usuarioId);
 
         if (votoExistente.isPresent()) {
             VotoPauta voto = votoExistente.get();
-            voto.setOpcaoVoto(dto.opcaoVoto());
+            voto.setOpcao(opcaoEscolhida);
             voto.setJustificativa(dto.justificativa());
             votoRepository.save(voto);
         } else {
@@ -195,9 +229,9 @@ public class AtaReuniaoService {
 
             VotoPauta novoVoto = new VotoPauta();
             novoVoto.setPauta(pauta);
+            novoVoto.setOpcao(opcaoEscolhida);
             novoVoto.setUsuario(usuario);
             novoVoto.setEmpresa(pauta.getEmpresa());
-            novoVoto.setOpcaoVoto(dto.opcaoVoto());
             novoVoto.setJustificativa(dto.justificativa());
             votoRepository.save(novoVoto);
         }
@@ -218,13 +252,26 @@ public class AtaReuniaoService {
 
         if (ata.getPautas() != null) {
             for (PautaReuniao p : ata.getPautas()) {
-                long favor = votoRepository.countPorTipo(p.getId(), TipoVoto.A_FAVOR);
-                long contra = votoRepository.countPorTipo(p.getId(), TipoVoto.CONTRA);
-                long abstencao = votoRepository.countPorTipo(p.getId(), TipoVoto.ABSTENCAO);
+                long totalGeral = votoRepository.countTotalVotosPauta(p.getId());
 
-                TipoVoto meuVoto = votoRepository.findByPautaIdAndUsuarioId(p.getId(), usuarioLogadoId)
-                        .map(VotoPauta::getOpcaoVoto)
+                Long minhaOpcaoEscolhidaId = votoRepository.findByPautaIdAndUsuarioId(p.getId(), usuarioLogadoId)
+                        .map(v -> v.getOpcao().getId())
                         .orElse(null);
+
+                List<PautaOpcaoResponseDTO> opcoesDto = new ArrayList<>();
+                if (p.getOpcoes() != null) {
+                    for (PautaOpcao op : p.getOpcoes()) {
+                        long totalOpcao = votoRepository.countPorOpcaoId(op.getId());
+                        double porcentagem = totalGeral > 0 ? ((double) totalOpcao / totalGeral) * 100.0 : 0.0;
+                        opcoesDto.add(new PautaOpcaoResponseDTO(
+                                op.getId(),
+                                op.getTexto(),
+                                op.getOrdem(),
+                                totalOpcao,
+                                Math.round(porcentagem * 10.0) / 10.0
+                        ));
+                    }
+                }
 
                 pautasDto.add(new PautaDetalheResponseDTO(
                         p.getId(),
@@ -233,10 +280,9 @@ public class AtaReuniaoService {
                         p.getDescricao(),
                         p.getRequerVotacao(),
                         p.getStatusVotacao(),
-                        favor,
-                        contra,
-                        abstencao,
-                        meuVoto
+                        totalGeral,
+                        minhaOpcaoEscolhidaId,
+                        opcoesDto
                 ));
             }
         }

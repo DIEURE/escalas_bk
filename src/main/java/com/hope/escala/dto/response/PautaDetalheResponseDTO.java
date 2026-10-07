@@ -1,7 +1,7 @@
 package com.hope.escala.dto.response;
 
+import java.util.List;
 import com.hope.escala.enums.StatusVotacaoPauta;
-import com.hope.escala.enums.TipoVoto;
 
 public record PautaDetalheResponseDTO(
         Long id,
@@ -10,8 +10,7 @@ public record PautaDetalheResponseDTO(
         String descricao,
         Boolean requerVotacao,
         StatusVotacaoPauta statusVotacao,
-        long totalVotosFavor,
-        long totalVotosContra,
-        long totalAbstencoes,
-        TipoVoto meuVoto // Voto registrado pelo usuário logado (se houver)
+        long totalVotosGeral,
+        Long minhaOpcaoEscolhidaId,
+        List<PautaOpcaoResponseDTO> opcoes
 ) {}

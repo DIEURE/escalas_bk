@@ -17,6 +17,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 @Entity
@@ -50,6 +51,10 @@ public class PautaReuniao {
     @Enumerated(EnumType.STRING)
     @Column(name = "status_votacao", nullable = false, length = 30)
     private StatusVotacaoPauta statusVotacao = StatusVotacaoPauta.NAO_INICIADA;
+
+    @OneToMany(mappedBy = "pauta", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("ordem ASC")
+    private List<PautaOpcao> opcoes = new ArrayList<>();
 
     @OneToMany(mappedBy = "pauta", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<VotoPauta> votos = new ArrayList<>();
@@ -119,6 +124,14 @@ public class PautaReuniao {
 
     public void setStatusVotacao(StatusVotacaoPauta statusVotacao) {
         this.statusVotacao = statusVotacao;
+    }
+
+    public List<PautaOpcao> getOpcoes() {
+        return opcoes;
+    }
+
+    public void setOpcoes(List<PautaOpcao> opcoes) {
+        this.opcoes = opcoes;
     }
 
     public List<VotoPauta> getVotos() {
