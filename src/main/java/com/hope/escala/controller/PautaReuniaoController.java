@@ -41,7 +41,9 @@ public class PautaReuniaoController {
         return ResponseEntity.ok().build();
     }
 
-    @PatchMapping("/{id}/status-votacao")
+ 
+    
+    @PatchMapping({ "/{id}/status-votacao", "/{id}/status" })
     public ResponseEntity<Void> alterarStatusVotacao(
             @PathVariable Long id,
             @RequestBody AtualizarStatusVotacaoDTO dto) {

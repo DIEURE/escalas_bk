@@ -43,10 +43,19 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/empresas", "/empresas/**").permitAll()
 						.requestMatchers("/perfil/**").permitAll()
 						.requestMatchers("/usuarios/meu-perfil").authenticated()
-						// 🟢 Ajuste para:
-						.requestMatchers(HttpMethod.POST, "/atas/**").hasAnyRole("ADMIN", "LIDER", "SUPER_ADMIN")
-						// ou se o JWT usa autoridade sem prefixo ROLE_:
-						.requestMatchers(HttpMethod.POST, "/atas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN")
+					 
+						// Rotas de Atas e Pautas (ADMIN, SUPER_ADMIN e LIDER)
+						.requestMatchers(HttpMethod.POST, "/atas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
+						.requestMatchers(HttpMethod.PATCH, "/atas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
+						.requestMatchers(HttpMethod.PUT, "/atas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
+
+						.requestMatchers(HttpMethod.POST, "/pautas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
+						.requestMatchers(HttpMethod.PATCH, "/pautas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
+						.requestMatchers(HttpMethod.PUT, "/pautas/**").hasAnyAuthority("ADMIN", "LIDER", "SUPER_ADMIN", "ROLE_ADMIN", "ROLE_LIDER", "ROLE_SUPER_ADMIN")
+
+						// Votação liberada para qualquer membro autenticado (Voluntários, Músicos, etc.)
+						.requestMatchers(HttpMethod.POST, "/pautas/*/votar").authenticated()
+
 						.requestMatchers("/usuarios/**").permitAll()
 						.requestMatchers("/auth/login", "/auth/solicitar-cadastro").permitAll()
 
