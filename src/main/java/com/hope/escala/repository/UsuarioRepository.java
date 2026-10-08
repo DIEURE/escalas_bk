@@ -120,4 +120,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     	    WHERE u.id = :id
     	""")
     	Optional<Usuario> findByIdComEmpresa(@Param("id") Long id);
+    
+    @Query("SELECT u.pushToken FROM Usuario u WHERE u.empresa.id = :empresaId AND u.pushToken IS NOT NULL AND u.ativo = true")
+    List<String> findPushTokensAtivosByEmpresa(@Param("empresaId") Long empresaId);
+
 }

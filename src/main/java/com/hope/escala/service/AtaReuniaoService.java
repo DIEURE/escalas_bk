@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import com.hope.escala.entity.Usuario;
 import com.hope.escala.entity.VotoPauta;
 import com.hope.escala.enums.StatusAta;
 import com.hope.escala.enums.StatusVotacaoPauta;
+import com.hope.escala.event.VotacaoAbertaEvent;
 import com.hope.escala.exception.ResourceNotFoundException;
 import com.hope.escala.repository.AtaReuniaoRepository;
 import com.hope.escala.repository.DepartamentoRepository;
@@ -45,6 +47,7 @@ public class AtaReuniaoService {
     private final UsuarioRepository usuarioRepository;
     private final DepartamentoRepository departamentoRepository;
     private final SecurityUtils securityUtils;
+    private final ApplicationEventPublisher eventPublisher;
 
     public AtaReuniaoService(
             AtaReuniaoRepository ataRepository,
@@ -54,7 +57,8 @@ public class AtaReuniaoService {
             EmpresaRepository empresaRepository,
             UsuarioRepository usuarioRepository,
             DepartamentoRepository departamentoRepository,
-            SecurityUtils securityUtils) {
+            SecurityUtils securityUtils,
+            ApplicationEventPublisher eventPublisher) {
         this.ataRepository = ataRepository;
         this.pautaRepository = pautaRepository;
         this.pautaOpcaoRepository = pautaOpcaoRepository;
@@ -63,6 +67,7 @@ public class AtaReuniaoService {
         this.usuarioRepository = usuarioRepository;
         this.departamentoRepository = departamentoRepository;
         this.securityUtils = securityUtils;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -262,8 +267,19 @@ public class AtaReuniaoService {
         PautaReuniao pauta = pautaRepository.findByIdAndEmpresaId(pautaId, empresaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pauta não encontrada"));
 
+        StatusVotacaoPauta statusAnterior = pauta.getStatusVotacao();
         pauta.setStatusVotacao(novoStatus);
         pautaRepository.save(pauta);
+
+        // Dispara o alerta somente ao transicionar para EM_VOTACAO
+        if (statusAnterior != StatusVotacaoPauta.EM_VOTACAO && novoStatus == StatusVotacaoPauta.EM_VOTACAO) {
+            eventPublisher.publishEvent(new VotacaoAbertaEvent(
+                    pauta.getId(),
+                    pauta.getTitulo(),
+                    pauta.getAta().getId(),
+                    empresaId
+            ));
+        }
     }
 
     private AtaDetalheResponseDTO mapearParaDetalheResponse(AtaReuniao ata, Long usuarioLogadoId) {
