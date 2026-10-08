@@ -92,6 +92,9 @@ public class Usuario implements UserDetails {
 
     private LocalDateTime ultimoLogin;
     
+    @Column(name = "push_token")
+    private String pushToken;
+    
     @Column(name = "token_recuperacao_senha")
     private String tokenRecuperacaoSenha;
 
