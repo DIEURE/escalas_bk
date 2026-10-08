@@ -1,125 +1,126 @@
 package com.hope.escala.service;
 
-import java.io.ByteArrayOutputStream;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Properties;
+import java.util.List;
+import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hope.escala.entity.YoutubeConfig;
-import com.hope.escala.repository.UsuarioRepository;
-import com.hope.escala.repository.YoutubeConfigRepository;
-import com.hope.escala.security.SecurityUtils;
-
-import jakarta.mail.Session;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class EmailService {
 
-    private final YoutubeConfigRepository googleConfigRepository;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
-    public EmailService(YoutubeConfigRepository googleConfigRepository, ObjectMapper objectMapper, SecurityUtils securityUtils,UsuarioRepository usuarioRepository) {
-        this.googleConfigRepository = googleConfigRepository;
+
+    @Value("${resend.api.key:}")
+    private String resendApiKey;
+
+    @Value("${resend.email.from:Hope Escala Pro <onboarding@resend.dev>}")
+    private String emailFrom;
+
+    public EmailService(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
         this.httpClient = HttpClient.newHttpClient();
     }
 
     /**
-     * Obtém um access_token temporário válido usando o refresh_token permanente via HTTPS
+     * Disparo HTTP REST direto para o Resend (Porta 443 HTTPS)
      */
-    private String obterAccessToken(YoutubeConfig config) {
+    private boolean enviarViaResend(String destinatario, String assunto, String htmlBody) {
+        if (resendApiKey == null || resendApiKey.isBlank()) {
+            System.err.println(">>> [Resend] AVISO: RESEND_API_KEY não configurada no servidor. E-mail não enviado.");
+            return false;
+        }
+
         try {
-            String formBody = "client_id=" + URLEncoder.encode(config.getClientId(), StandardCharsets.UTF_8)
-                    + "&client_secret=" + URLEncoder.encode(config.getClientSecret(), StandardCharsets.UTF_8)
-                    + "&refresh_token=" + URLEncoder.encode(config.getRefreshToken(), StandardCharsets.UTF_8)
-                    + "&grant_type=refresh_token";
+            Map<String, Object> payload = Map.of(
+                    "from", emailFrom,
+                    "to", List.of(destinatario),
+                    "subject", assunto,
+                    "html", htmlBody
+            );
+
+            String requestBody = objectMapper.writeValueAsString(payload);
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://oauth2.googleapis.com/token"))
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .POST(HttpRequest.BodyPublishers.ofString(formBody))
+                    .uri(URI.create("https://api.resend.com/emails"))
+                    .header("Authorization", "Bearer " + resendApiKey.trim())
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
                     .build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-            if (response.statusCode() != 200) {
-                throw new RuntimeException("Falha ao renovar token Google: " + response.body());
-            }
-
-            JsonNode jsonNode = objectMapper.readTree(response.body());
-            return jsonNode.get("access_token").asText();
-        } catch (Exception e) {
-            throw new RuntimeException("Erro ao autenticar na API do Google: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Dispara via Gmail REST API (Porta 443) e retorna TRUE se o Google aceitou a mensagem
-     */
-    private boolean enviarEmailViaGmailApi(Long empresaId, String destinatario, String assunto, String htmlBody) {
-        try {
-            YoutubeConfig config = googleConfigRepository.findByEmpresaId(empresaId)
-                    .orElseThrow(() -> new RuntimeException("Google OAuth não configurado para esta instituição."));
-
-            if (config.getRefreshToken() == null || config.getRefreshToken().isBlank()) {
-                throw new RuntimeException("Refresh token do Google ausente. Vincule a conta do Google.");
-            }
-
-            String accessToken = obterAccessToken(config);
-
-            Session session = Session.getDefaultInstance(new Properties(), null);
-            MimeMessage mimeMessage = new MimeMessage(session);
-
-            String remetenteNome = "Hope Escala Pro";
-            mimeMessage.setFrom(new InternetAddress("me", remetenteNome));
-            mimeMessage.addRecipient(jakarta.mail.Message.RecipientType.TO, new InternetAddress(destinatario));
-            mimeMessage.setSubject(assunto, "UTF-8");
-            mimeMessage.setContent(htmlBody, "text/html; charset=UTF-8");
-
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            mimeMessage.writeTo(outputStream);
-            String rawMessage = Base64.getUrlEncoder().withoutPadding().encodeToString(outputStream.toByteArray());
-
-            String payloadJson = objectMapper.writeValueAsString(new MensagemGmailDTO(rawMessage));
-
-            // Endpoint consultado: https://gmail.googleapis.com/gmail/v1/users/me/messages/send
-            HttpRequest apiRequest = HttpRequest.newBuilder()
-                    .uri(URI.create("https://gmail.googleapis.com/gmail/v1/users/me/messages/send"))
-                    .header("Authorization", "Bearer " + accessToken)
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(payloadJson))
-                    .build();
-
-            HttpResponse<String> apiResponse = httpClient.send(apiRequest, HttpResponse.BodyHandlers.ofString());
-
-            if (apiResponse.statusCode() == 200) {
-                System.out.println("E-mail enviado com sucesso via Gmail API para " + destinatario);
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                System.out.println(">>> [Resend] E-mail enviado com sucesso para: " + destinatario);
                 return true;
             } else {
-                System.err.println("Erro Gmail API (Status " + apiResponse.statusCode() + "): " + apiResponse.body());
+                System.err.println(">>> [Resend] Erro da API (Status " + response.statusCode() + "): " + response.body());
                 return false;
             }
-
         } catch (Exception e) {
-            System.err.println("Erro ao disparar e-mail via Gmail API: " + e.getMessage());
+            System.err.println(">>> [Resend] Falha de conexão ao enviar e-mail: " + e.getMessage());
             return false;
         }
     }
 
-    /**
-     * Envia o e-mail notificando o voluntário/músico sobre a liberação da suspensão
-     */
+    public boolean enviarEmailRecuperacaoSenha(Long empresaId, String destinatario, String nomeUsuario, String codigo) {
+        String assunto = "Código de Recuperação de Senha - Hope Escala Pro";
+        String htmlMensagem = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Recuperação de Senha</title>
+            </head>
+            <body style="margin: 0; padding: 0; background-color: #121418; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #f8fafc;">
+                <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%%" style="max-width: 600px; margin: 20px auto; background-color: #1a1d24; border-radius: 16px; border: 1px solid #262b35; overflow: hidden;">
+                    <tr>
+                        <td align="center" style="padding: 28px 20px; background-color: #121418; border-bottom: 1px solid #262b35;">
+                            <div style="font-size: 20px; font-weight: bold; color: #ffffff; background: linear-gradient(135deg, #FF6B00, #ea580c); padding: 8px 22px; border-radius: 10px; display: inline-block; letter-spacing: 1px;">
+                                HOPE ESCALA PRO
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 36px 30px;">
+                            <h2 style="color: #ffffff; font-size: 22px; margin-top: 0; margin-bottom: 16px;">
+                                Olá, %s! 👋
+                            </h2>
+                            <p style="font-size: 15px; line-height: 1.6; color: #94a3b8; margin-bottom: 24px;">
+                                Recebemos uma solicitação para redefinir a senha da sua conta. Use o código de 6 dígitos abaixo para confirmar a alteração:
+                            </p>
+                            <div style="background-color: #121418; border: 1px solid #FF6B00; border-radius: 12px; padding: 22px; margin-bottom: 24px; text-align: center;">
+                                <span style="font-size: 34px; font-weight: bold; letter-spacing: 8px; color: #FF6B00; font-family: monospace;">
+                                    %s
+                                </span>
+                            </div>
+                            <p style="font-size: 13px; line-height: 1.5; color: #64748b; margin: 0;">
+                                • O código expira em <strong>15 minutos</strong>.<br>
+                                • Se não foi você quem fez este pedido, ignore este e-mail por segurança.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding: 18px; background-color: #121418; color: #475569; font-size: 12px; border-top: 1px solid #262b35;">
+                            Hope Escala Pro • Segurança de Acesso
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+        """.formatted(nomeUsuario != null ? nomeUsuario : "Usuário", codigo);
+
+        return enviarViaResend(destinatario, assunto, htmlMensagem);
+    }
+
     public boolean enviarEmailLiberacaoMusico(Long empresaId, String destinatario, String nomeUsuario) {
         String assunto = "Escala Liberada! - Hope Escala Pro";
         String htmlMensagem = """
@@ -163,7 +164,7 @@ public class EmailService {
             </html>
         """.formatted(nomeUsuario);
 
-        return enviarEmailViaGmailApi(empresaId, destinatario, assunto, htmlMensagem);
+        return enviarViaResend(destinatario, assunto, htmlMensagem);
     }
 
     public void enviarEmailSolicitacao(Long empresaId, String destinatario, String nomeUsuario, String nomeEmpresa) {
@@ -179,13 +180,13 @@ public class EmailService {
             </div>
             """.formatted(nomeUsuario, nomeEmpresa);
 
-        enviarEmailViaGmailApi(empresaId, destinatario, assunto, htmlMensagem);
+        enviarViaResend(destinatario, assunto, htmlMensagem);
     }
 
     public void enviarEmailAprovacao(Long empresaId, String destinatario, String nomeUsuario) {
         String assunto = "Acesso Liberado! - Hope Escala Pro";
         String corpoMensagem = "Boas notícias! Seu acesso foi aprovado por um administrador ou líder. Você já pode entrar no sistema e gerenciar suas escalas.";
-        
+
         String htmlMensagem = """
             <!DOCTYPE html>
             <html>
@@ -227,11 +228,6 @@ public class EmailService {
             </html>
         """.formatted(nomeUsuario, corpoMensagem);
 
-        enviarEmailViaGmailApi(empresaId, destinatario, assunto, htmlMensagem);
+        enviarViaResend(destinatario, assunto, htmlMensagem);
     }
-
-    private record MensagemGmailDTO(String raw) {}
-    
-     
-
 }
