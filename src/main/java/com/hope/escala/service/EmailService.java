@@ -22,7 +22,7 @@ public class EmailService {
     @Value("${resend.api.key:}")
     private String resendApiKey;
 
-    @Value("${resend.email.from:Hope Escala Pro <onboarding@resend.dev>}")
+    @Value("${resend.email.from:Hope Escala Pro <nao-responda@hopeescalapro.com.br>}")
     private String emailFrom;
 
     public EmailService(ObjectMapper objectMapper) {
