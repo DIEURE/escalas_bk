@@ -17,111 +17,96 @@ import com.hope.escala.enums.PerfilUsuario;
 @Repository
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
-    // 🟢 SEMPRE trazer a empresa no findByEmail padrão para evitar proxy Lazy em qualquer controller/service:
-    @Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.email = :email")
-    Optional<Usuario> findByEmail(@Param("email") String email);
+	// 🟢 SEMPRE trazer a empresa no findByEmail padrão para evitar proxy Lazy em
+	// qualquer controller/service:
+	@Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.email = :email")
+	Optional<Usuario> findByEmail(@Param("email") String email);
 
-    @Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.email = :email")
-    Optional<Usuario> findByEmailComEmpresa(@Param("email") String email);
+	@Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.email = :email")
+	Optional<Usuario> findByEmailComEmpresa(@Param("email") String email);
 
-    boolean existsByEmail(String email);
-     
+	boolean existsByEmail(String email);
 
-    // 🟢 SUPER ADMIN: Carrega os usuários trazendo a congregação
-    @Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa ORDER BY u.nome ASC")
-    List<Usuario> findAllByOrderByNomeAsc();
+	// 🟢 SUPER ADMIN: Carrega os usuários trazendo a congregação
+	@Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa ORDER BY u.nome ASC")
+	List<Usuario> findAllByOrderByNomeAsc();
 
-    // 🟢 Músicos aptos para rodízio
-    @Query("SELECT DISTINCT u FROM Usuario u " +
-           "JOIN u.instrumentos i " +
-           "JOIN u.departamentos d " +
-           "LEFT JOIN FETCH u.empresa " +
-           "WHERE i.id = :instrumentoId " +
-           "AND d.id = :departamentoId " +
-           "AND u.empresa.id = :empresaId " +
-           "AND u.ativo = true " +
-           "AND u.disponibilidade = true")
-    List<Usuario> buscarMusicosDisponiveisPorEmpresa(
-            @Param("instrumentoId") Long instrumentoId,
-            @Param("departamentoId") Long departamentoId,
-            @Param("empresaId") Long empresaId);
-    
-    @Query("SELECT DISTINCT u FROM Usuario u " +
-            "LEFT JOIN FETCH u.instrumentos " +
-            "JOIN u.departamentos d " +
-            "WHERE d.id = :departamentoId " +
-            "AND u.empresa.id = :empresaId " +
-            "AND u.ativo = true " +
-            "ORDER BY u.nome ASC")
-     List<Usuario> buscarUsuariosPorDepartamentoEEmpresa(
-             @Param("departamentoId") Long departamentoId,
-             @Param("empresaId") Long empresaId);
+	// 🟢 Músicos aptos para rodízio
+	@Query("SELECT DISTINCT u FROM Usuario u " + "JOIN u.instrumentos i " + "JOIN u.departamentos d "
+			+ "LEFT JOIN FETCH u.empresa " + "WHERE i.id = :instrumentoId " + "AND d.id = :departamentoId "
+			+ "AND u.empresa.id = :empresaId " + "AND u.ativo = true " + "AND u.disponibilidade = true")
+	List<Usuario> buscarMusicosDisponiveisPorEmpresa(@Param("instrumentoId") Long instrumentoId,
+			@Param("departamentoId") Long departamentoId, @Param("empresaId") Long empresaId);
 
-    // Listagem por congregação/empresa
-    @Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.empresa.id = :empresaId ORDER BY u.nome ASC")
-    List<Usuario> findByEmpresaIdOrderByNomeAsc(@Param("empresaId") Long empresaId);
+	@Query("SELECT DISTINCT u FROM Usuario u " + "LEFT JOIN FETCH u.instrumentos " + "JOIN u.departamentos d "
+			+ "WHERE d.id = :departamentoId " + "AND u.empresa.id = :empresaId " + "AND u.ativo = true "
+			+ "ORDER BY u.nome ASC")
+	List<Usuario> buscarUsuariosPorDepartamentoEEmpresa(@Param("departamentoId") Long departamentoId,
+			@Param("empresaId") Long empresaId);
 
-    // Listagem apenas de ativos por empresa
-    @Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.empresa.id = :empresaId AND u.ativo = true ORDER BY u.nome ASC")
-    List<Usuario> findByEmpresaIdAndAtivoTrue(@Param("empresaId") Long empresaId);
+	// Listagem por congregação/empresa
+	@Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.empresa.id = :empresaId ORDER BY u.nome ASC")
+	List<Usuario> findByEmpresaIdOrderByNomeAsc(@Param("empresaId") Long empresaId);
 
-    // Busca por ID garantindo a empresa
-    @Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.id = :id AND u.empresa.id = :empresaId")
-    Optional<Usuario> findByIdAndEmpresaId(@Param("id") Long id, @Param("empresaId") Long empresaId);
+	// Listagem apenas de ativos por empresa
+	@Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.empresa.id = :empresaId AND u.ativo = true ORDER BY u.nome ASC")
+	List<Usuario> findByEmpresaIdAndAtivoTrue(@Param("empresaId") Long empresaId);
 
-    // Pendentes/aprovação
-    @Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.ativo = false AND u.empresa.id = :empresaId ORDER BY u.nome ASC")
-    List<Usuario> findByAtivoFalseAndEmpresaIdOrderByNomeAsc(@Param("empresaId") Long empresaId);
+	// Busca por ID garantindo a empresa
+	@Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.id = :id AND u.empresa.id = :empresaId")
+	Optional<Usuario> findByIdAndEmpresaId(@Param("id") Long id, @Param("empresaId") Long empresaId);
 
-    @Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.ativo = false ORDER BY u.nome ASC")
-    List<Usuario> findByAtivoFalseOrderByNomeAsc();
+	// Pendentes/aprovação
+	@Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.ativo = false AND u.empresa.id = :empresaId ORDER BY u.nome ASC")
+	List<Usuario> findByAtivoFalseAndEmpresaIdOrderByNomeAsc(@Param("empresaId") Long empresaId);
 
-    // Busca por departamento, empresa e ativo
-    @Query("SELECT DISTINCT u FROM Usuario u JOIN u.departamentos d LEFT JOIN FETCH u.empresa WHERE d.id = :departamentoId AND u.empresa.id = :empresaId AND u.ativo = true ORDER BY u.nome ASC")
-    List<Usuario> findByDepartamentosIdAndEmpresaIdAndAtivoTrue(@Param("departamentoId") Long departamentoId, @Param("empresaId") Long empresaId);
+	@Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.ativo = false ORDER BY u.nome ASC")
+	List<Usuario> findByAtivoFalseOrderByNomeAsc();
 
-    // Busca por instrumento, empresa e ativo
-    @Query("SELECT DISTINCT u FROM Usuario u JOIN u.instrumentos i LEFT JOIN FETCH u.empresa WHERE i.id = :instrumentoId AND u.empresa.id = :empresaId AND u.ativo = true ORDER BY u.nome ASC")
-    List<Usuario> findByInstrumentosIdAndEmpresaIdAndAtivoTrue(@Param("instrumentoId") Long instrumentoId, @Param("empresaId") Long empresaId);
+	// Busca por departamento, empresa e ativo
+	@Query("SELECT DISTINCT u FROM Usuario u JOIN u.departamentos d LEFT JOIN FETCH u.empresa WHERE d.id = :departamentoId AND u.empresa.id = :empresaId AND u.ativo = true ORDER BY u.nome ASC")
+	List<Usuario> findByDepartamentosIdAndEmpresaIdAndAtivoTrue(@Param("departamentoId") Long departamentoId,
+			@Param("empresaId") Long empresaId);
 
-    // 🟢 Data Table com filtros: adicionado LEFT JOIN FETCH u.empresa e countQuery explícita
-    @Query(value = "SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE (:empresaId IS NULL OR u.empresa.id = :empresaId) " +
-                   "AND (:busca IS NULL OR LOWER(u.nome) LIKE LOWER(CONCAT('%', :busca, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :busca, '%'))) " +
-                   "AND (:perfil IS NULL OR u.perfil = :perfil) " +
-                   "AND (:ativo IS NULL OR u.ativo = :ativo)",
-           countQuery = "SELECT COUNT(u) FROM Usuario u WHERE (:empresaId IS NULL OR u.empresa.id = :empresaId) " +
-                        "AND (:busca IS NULL OR LOWER(u.nome) LIKE LOWER(CONCAT('%', :busca, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :busca, '%'))) " +
-                        "AND (:perfil IS NULL OR u.perfil = :perfil) " +
-                        "AND (:ativo IS NULL OR u.ativo = :ativo)")
-    Page<Usuario> listarComFiltros(@Param("empresaId") Long empresaId,
-                                  @Param("busca") String busca,
-                                  @Param("perfil") PerfilUsuario perfil,
-                                  @Param("ativo") Boolean ativo,
-                                  Pageable pageable);
+	// Busca por instrumento, empresa e ativo
+	@Query("SELECT DISTINCT u FROM Usuario u JOIN u.instrumentos i LEFT JOIN FETCH u.empresa WHERE i.id = :instrumentoId AND u.empresa.id = :empresaId AND u.ativo = true ORDER BY u.nome ASC")
+	List<Usuario> findByInstrumentosIdAndEmpresaIdAndAtivoTrue(@Param("instrumentoId") Long instrumentoId,
+			@Param("empresaId") Long empresaId);
 
-    long countByAtivoTrue();
+	// 🟢 Data Table com filtros: adicionado LEFT JOIN FETCH u.empresa e countQuery
+	// explícita
+	@Query(value = "SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE (:empresaId IS NULL OR u.empresa.id = :empresaId) "
+			+ "AND (:busca IS NULL OR LOWER(u.nome) LIKE LOWER(CONCAT('%', :busca, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :busca, '%'))) "
+			+ "AND (:perfil IS NULL OR u.perfil = :perfil) "
+			+ "AND (:ativo IS NULL OR u.ativo = :ativo)", countQuery = "SELECT COUNT(u) FROM Usuario u WHERE (:empresaId IS NULL OR u.empresa.id = :empresaId) "
+					+ "AND (:busca IS NULL OR LOWER(u.nome) LIKE LOWER(CONCAT('%', :busca, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :busca, '%'))) "
+					+ "AND (:perfil IS NULL OR u.perfil = :perfil) " + "AND (:ativo IS NULL OR u.ativo = :ativo)")
+	Page<Usuario> listarComFiltros(@Param("empresaId") Long empresaId, @Param("busca") String busca,
+			@Param("perfil") PerfilUsuario perfil, @Param("ativo") Boolean ativo, Pageable pageable);
 
-    long countByAtivoFalse();
+	long countByAtivoTrue();
 
-    @Query("SELECT COUNT(u) FROM Usuario u WHERE u.empresa.id = :empresaId AND u.ativo = true")
-    long countByEmpresaIdAndAtivoTrue(@Param("empresaId") Long empresaId);
+	long countByAtivoFalse();
 
-    @Query("SELECT COUNT(u) FROM Usuario u WHERE u.empresa.id = :empresaId AND u.ativo = false")
-    long countByEmpresaIdAndAtivoFalse(@Param("empresaId") Long empresaId);
+	@Query("SELECT COUNT(u) FROM Usuario u WHERE u.empresa.id = :empresaId AND u.ativo = true")
+	long countByEmpresaIdAndAtivoTrue(@Param("empresaId") Long empresaId);
 
-    long countByDataCadastroBetween(LocalDateTime inicio, LocalDateTime fim);
+	@Query("SELECT COUNT(u) FROM Usuario u WHERE u.empresa.id = :empresaId AND u.ativo = false")
+	long countByEmpresaIdAndAtivoFalse(@Param("empresaId") Long empresaId);
 
-    @Query("SELECT u.perfil, COUNT(u) FROM Usuario u GROUP BY u.perfil")
-    List<Object[]> contarUsuariosPorPerfilRaw();
-    
-    @Query("""
-    	    SELECT u FROM Usuario u 
-    	    LEFT JOIN FETCH u.empresa 
-    	    WHERE u.id = :id
-    	""")
-    	Optional<Usuario> findByIdComEmpresa(@Param("id") Long id);
-    
-    @Query("SELECT u.pushToken FROM Usuario u WHERE u.empresa.id = :empresaId AND u.pushToken IS NOT NULL AND u.ativo = true")
-    List<String> findPushTokensAtivosByEmpresa(@Param("empresaId") Long empresaId);
+	long countByDataCadastroBetween(LocalDateTime inicio, LocalDateTime fim);
+
+	@Query("SELECT u.perfil, COUNT(u) FROM Usuario u GROUP BY u.perfil")
+	List<Object[]> contarUsuariosPorPerfilRaw();
+
+	@Query("""
+			    SELECT u FROM Usuario u
+			    LEFT JOIN FETCH u.empresa
+			    WHERE u.id = :id
+			""")
+	Optional<Usuario> findByIdComEmpresa(@Param("id") Long id);
+
+	@Query("SELECT u.pushToken FROM Usuario u WHERE u.empresa.id = :empresaId AND u.pushToken IS NOT NULL AND u.ativo = true")
+	List<String> findPushTokensAtivosByEmpresa(@Param("empresaId") Long empresaId);
 
 }

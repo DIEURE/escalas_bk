@@ -127,5 +127,4 @@ public class UsuarioController {
         return ResponseEntity.ok("Usuário inativado");
     }
      
-
 }

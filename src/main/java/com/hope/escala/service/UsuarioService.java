@@ -572,4 +572,5 @@ public class UsuarioService {
 
         return usuarioRepository.findByAtivoFalseAndEmpresaIdOrderByNomeAsc(usuarioLogado.getEmpresa().getId());
     }
+    
 }

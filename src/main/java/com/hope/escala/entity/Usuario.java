@@ -129,11 +129,9 @@ public class Usuario implements UserDetails {
     public void preUpdate() {
         this.dataAtualizacao = LocalDateTime.now();
     }
-
     // ==========================================
     // Métodos da Interface UserDetails (Spring Security)
     // ==========================================
-
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         if (this.perfil == null) {
@@ -142,7 +140,15 @@ public class Usuario implements UserDetails {
         return List.of(new SimpleGrantedAuthority(this.perfil.name()));
     }
 
-    @Override
+    public String getPushToken() {
+		return pushToken;
+	}
+
+	public void setPushToken(String pushToken) {
+		this.pushToken = pushToken;
+	}
+
+	@Override
     public String getPassword() {
         return this.senha;
     }
