@@ -40,6 +40,7 @@ public class EmailService {
             System.out.println(">>> [Resend] Remetente: " + emailFrom);
 
             if (resendApiKey == null || resendApiKey.isBlank()) {
+            	
                 System.err.println(">>> [Resend] AVISO: RESEND_API_KEY não configurada no servidor. E-mail não enviado.");
                 return false;
             }
