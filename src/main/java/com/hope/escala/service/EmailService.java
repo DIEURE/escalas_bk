@@ -22,7 +22,7 @@ public class EmailService {
     @Value("${resend.api.key:}")
     private String resendApiKey;
 
-    @Value("${resend.email.from:Hope Escala Pro <nao-responda@hopeescalapro.com.br>}")
+    @Value("${resend.api.from:Hope Escala Pro <nao-responda@hopeescalapro.com.br>}")
     private String emailFrom;
 
     public EmailService(ObjectMapper objectMapper) {
@@ -30,22 +30,15 @@ public class EmailService {
         this.httpClient = HttpClient.newHttpClient();
     }
 
-    /**
-     * Disparo HTTP REST direto para o Resend (Porta 443 HTTPS)
-     */
     private boolean enviarViaResend(String destinatario, String assunto, String htmlBody) {
-     
-            System.out.println(">>> [Resend] Iniciando disparo para: " + destinatario);
-            System.out.println(">>> [Resend] Key configurada? " + (resendApiKey != null && !resendApiKey.isBlank()));
-            System.out.println(">>> [Resend] Remetente: " + emailFrom);
+        System.out.println(">>> [Resend] Iniciando disparo para: " + destinatario);
+        System.out.println(">>> [Resend] Key configurada? " + (resendApiKey != null && !resendApiKey.isBlank()));
+        System.out.println(">>> [Resend] Remetente: " + emailFrom);
 
-            if (resendApiKey == null || resendApiKey.isBlank()) {
-            	
-                System.err.println(">>> [Resend] AVISO: RESEND_API_KEY não configurada no servidor. E-mail não enviado.");
-                return false;
-            }
-            // ... restante do método
-
+        if (resendApiKey == null || resendApiKey.isBlank()) {
+            System.err.println(">>> [Resend] AVISO: RESEND_API_KEY não configurada no servidor. E-mail não enviado.");
+            return false;
+        }
 
         try {
             Map<String, Object> payload = Map.of(

@@ -70,8 +70,14 @@ public class UsuarioService {
 
             try {
                 Long empresaId = usuario.getEmpresa() != null ? usuario.getEmpresa().getId() : 1L;
-                // Caso seu EmailService tenha método específico ou você queira delegar
-                // emailService.enviarEmailRecuperacao(empresaId, usuario.getEmail(), usuario.getNome(), String.valueOf(codigo));
+                
+                // Chamada ativa para o EmailService:
+                emailService.enviarEmailRecuperacaoSenha(
+                    empresaId, 
+                    usuario.getEmail(), 
+                    usuario.getNome(), 
+                    String.valueOf(codigo)
+                );
             } catch (Exception e) {
                 System.err.println("Aviso: Falha ao enviar e-mail com código de recuperação: " + e.getMessage());
             }
