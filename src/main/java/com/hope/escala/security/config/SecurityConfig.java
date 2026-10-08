@@ -1,5 +1,7 @@
 package com.hope.escala.security.config;
 
+import java.util.Arrays;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -18,8 +20,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.hope.escala.security.jwt.JwtAuthenticationFilter;
 
-import java.util.Arrays;
-
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
@@ -31,7 +31,6 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
 		http.cors(cors -> cors.configurationSource(corsConfigurationSource())).csrf(csrf -> csrf.disable())
@@ -39,12 +38,12 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 						// Rotas Públicas / Swagger
 						.requestMatchers("/auth/**").permitAll()
-						
 						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 						.requestMatchers(HttpMethod.GET, "/empresas-publicas").permitAll()
 						.requestMatchers(HttpMethod.GET, "/empresas", "/empresas/**").permitAll()
-						.requestMatchers("/perfil/**").permitAll().requestMatchers("/usuarios/meu-perfil")
-						.authenticated().requestMatchers("/usuarios/**").permitAll()
+						.requestMatchers("/perfil/**").permitAll()
+						.requestMatchers("/usuarios/meu-perfil").authenticated()
+						.requestMatchers("/usuarios/**").permitAll()
 						.requestMatchers(
 							    "/auth/login",
 							    "/auth/solicitar-cadastro",
@@ -53,9 +52,8 @@ public class SecurityConfig {
 							).permitAll()
 
 						// 1º: Regras específicas de Pautas
-						// Votação liberada para qualquer usuário logado (voluntários, músicos,
-						// liderança)
-						.requestMatchers(HttpMethod.POST, "/pautas/*/votar", "/pautas/**/votar").authenticated()
+						// Votação liberada para qualquer usuário logado (voluntários, músicos, liderança)
+						.requestMatchers(HttpMethod.POST, "/pautas/*/votar").authenticated()
 
 						// Abertura e encerramento de status de votação restrito à liderança
 						.requestMatchers(HttpMethod.PATCH, "/pautas/*/status-votacao", "/pautas/*/status")
