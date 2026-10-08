@@ -91,8 +91,30 @@ public class Usuario implements UserDetails {
     private LocalDateTime dataInativacao;
 
     private LocalDateTime ultimoLogin;
+    
+    @Column(name = "token_recuperacao_senha")
+    private String tokenRecuperacaoSenha;
 
-    public Usuario() {
+    @Column(name = "token_recuperacao_expira_em")
+    private java.time.LocalDateTime tokenRecuperacaoExpiraEm;
+
+    public String getTokenRecuperacaoSenha() {
+		return tokenRecuperacaoSenha;
+	}
+
+	public void setTokenRecuperacaoSenha(String tokenRecuperacaoSenha) {
+		this.tokenRecuperacaoSenha = tokenRecuperacaoSenha;
+	}
+
+	public java.time.LocalDateTime getTokenRecuperacaoExpiraEm() {
+		return tokenRecuperacaoExpiraEm;
+	}
+
+	public void setTokenRecuperacaoExpiraEm(java.time.LocalDateTime tokenRecuperacaoExpiraEm) {
+		this.tokenRecuperacaoExpiraEm = tokenRecuperacaoExpiraEm;
+	}
+
+	public Usuario() {
     }
 
     @PrePersist

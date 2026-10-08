@@ -1,5 +1,6 @@
 package com.hope.escala.service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -16,6 +17,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.hope.escala.dto.AtualizarPerfilDTO;
 import com.hope.escala.dto.UsuarioPerfilDTO;
+import com.hope.escala.dto.request.RedefinirSenhaDTO;
+import com.hope.escala.dto.request.SolicitarRecuperacaoSenhaDTO;
+import com.hope.escala.dto.request.UsuarioDisponibilidadeDTO;
 import com.hope.escala.dto.request.UsuarioRequestDTO;
 import com.hope.escala.dto.response.UsuarioResponseDTO;
 import com.hope.escala.entity.Departamento;
@@ -53,18 +57,56 @@ public class UsuarioService {
         this.emailService = emailService;
     }
 
-    // 🟢 Alimenta a Data Table do frontend com paginação, busca e filtros combinados
+    @Transactional
+    public void solicitarRecuperacaoSenha(SolicitarRecuperacaoSenhaDTO dto) {
+        usuarioRepository.findByEmail(dto.email().trim().toLowerCase()).ifPresent(usuario -> {
+            // Gera código numérico seguro de 6 dígitos
+            int codigo = 100000 + new SecureRandom().nextInt(900000);
+            usuario.setTokenRecuperacaoSenha(String.valueOf(codigo));
+            usuario.setTokenRecuperacaoExpiraEm(LocalDateTime.now().plusMinutes(15));
+            usuarioRepository.save(usuario);
+
+            System.out.println(">>> [HOPE ESCALA] CÓDIGO DE RECUPERAÇÃO PARA " + usuario.getEmail() + ": " + codigo);
+
+            try {
+                Long empresaId = usuario.getEmpresa() != null ? usuario.getEmpresa().getId() : 1L;
+                // Caso seu EmailService tenha método específico ou você queira delegar
+                // emailService.enviarEmailRecuperacao(empresaId, usuario.getEmail(), usuario.getNome(), String.valueOf(codigo));
+            } catch (Exception e) {
+                System.err.println("Aviso: Falha ao enviar e-mail com código de recuperação: " + e.getMessage());
+            }
+        });
+    }
+
+    @Transactional
+    public void redefinirSenhaComCodigo(RedefinirSenhaDTO dto) {
+        Usuario usuario = usuarioRepository.findByEmail(dto.email().trim().toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("Código de verificação inválido ou expirado."));
+
+        if (usuario.getTokenRecuperacaoSenha() == null
+                || usuario.getTokenRecuperacaoExpiraEm() == null
+                || !usuario.getTokenRecuperacaoSenha().equals(dto.tokenOuCodigo().trim())
+                || LocalDateTime.now().isAfter(usuario.getTokenRecuperacaoExpiraEm())) {
+            throw new IllegalArgumentException("Código de verificação inválido ou expirado.");
+        }
+
+        usuario.setSenha(passwordEncoder.encode(dto.novaSenha()));
+        usuario.setTokenRecuperacaoSenha(null);
+        usuario.setTokenRecuperacaoExpiraEm(null);
+        usuarioRepository.save(usuario);
+    }
+
     @Transactional(readOnly = true)
     public Page<UsuarioResponseDTO> listarPaginado(String busca, PerfilUsuario perfil, Boolean ativo, Pageable pageable) {
         Long empresaIdLogada = securityUtils.empresaId();
         return usuarioRepository.listarComFiltros(empresaIdLogada, busca, perfil, ativo, pageable)
                 .map(this::converterParaDTO);
     }
+
     @Transactional(readOnly = true)
     public List<UsuarioResponseDTO> listar(Long empresaFiltroId) {
         List<Usuario> usuarios;
 
-        // 1. Se for SUPER_ADMIN:
         if (securityUtils.isSuperAdmin()) {
             if (empresaFiltroId != null) {
                 usuarios = usuarioRepository.findByEmpresaIdOrderByNomeAsc(empresaFiltroId);
@@ -72,7 +114,6 @@ public class UsuarioService {
                 usuarios = usuarioRepository.findAllByOrderByNomeAsc();
             }
         } else {
-            // 2. Se for ADMIN ou LÍDER comum: apenas da congregação dele
             Long empresaId = securityUtils.empresaId();
             if (empresaId == null) {
                 return List.of();
@@ -113,7 +154,6 @@ public class UsuarioService {
         
         usuario.setTelefone(dto.telefone());
 
-        // Se preencheu nova senha, valida a senha atual
         if (dto.novaSenha() != null && !dto.novaSenha().isBlank()) {
             if (dto.senhaAtual() == null || dto.senhaAtual().isBlank()) {
                 throw new IllegalArgumentException("Informe a senha atual para cadastrar uma nova.");
@@ -137,16 +177,13 @@ public class UsuarioService {
         );
     }
 
-    
-    
-    @Transactional // 🟢 OBRIGATÓRIO: Mantém a sessão aberta até o fim do converterParaDTO
+    @Transactional
     @PodeSerAdmin
     public UsuarioResponseDTO salvar(UsuarioRequestDTO dto) {
         if (usuarioRepository.existsByEmail(dto.getEmail())) {
             throw new RuntimeException("Email já existe");
         }
 
-        // Multi-tenant: se for Super Admin e escolheu a congregação no modal, usa o dto.getEmpresaId()
         Long empresaIdDestino = securityUtils.empresaId();
         if (securityUtils.isSuperAdmin() && dto.getEmpresaId() != null) {
             empresaIdDestino = dto.getEmpresaId();
@@ -185,7 +222,6 @@ public class UsuarioService {
 
         Usuario salvo = usuarioRepository.save(usuario);
         
-        // 🟢 Recarrega com fetch da empresa para preencher empresaNome com segurança no DTO
         return converterParaDTO(usuarioRepository.findByIdComEmpresa(salvo.getId()).orElse(salvo));
     }
 
@@ -214,7 +250,6 @@ public class UsuarioService {
         usuario.setNome(dto.nome());
         usuario.setTelefone(dto.telefone());
 
-        // Se o usuário solicitou troca de senha
         if (dto.novaSenha() != null && !dto.novaSenha().isBlank()) {
             if (dto.senhaAtual() == null || dto.senhaAtual().isBlank()) {
                 throw new IllegalArgumentException("Informe sua senha atual para definir uma nova.");
@@ -237,7 +272,6 @@ public class UsuarioService {
             empresaNome
         );
     }
-
 
     public UsuarioResponseDTO solicitarCadastroPublico(UsuarioRequestDTO dto) {
         if (dto.getEmpresaId() == null) {
@@ -265,7 +299,7 @@ public class UsuarioService {
         usuario.setDisponibilidade(true);
         
         usuario.setInstrumentos(instrumentosEncontrados);
-        usuario.setAtivo(false); // REGRA: Inativo até admin/líder liberar
+        usuario.setAtivo(false);
         usuario.setEmpresa(empresa);
 
         Usuario salvo = usuarioRepository.save(usuario);
@@ -304,7 +338,6 @@ public class UsuarioService {
     public UsuarioResponseDTO aprovar(Long id, UsuarioRequestDTO dto) {
         Long empresaIdLogada = securityUtils.empresaId();
 
-        // 🟢 Trocado para findByIdComEmpresa: resolve o erro de proxy da Empresa#2
         Usuario usuario = usuarioRepository.findByIdComEmpresa(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário pendente não encontrado"));
 
@@ -340,7 +373,6 @@ public class UsuarioService {
 
         return converterParaDTO(aprovado);
     }
-
 
     @PodeSerAdmin
     public UsuarioResponseDTO alternarStatus(Long id) {
@@ -388,7 +420,6 @@ public class UsuarioService {
     public UsuarioResponseDTO buscarPorId(Long id) {
         Long empresaIdLogada = securityUtils.empresaId();
 
-        // 🟢 Usar findByIdComEmpresa para não quebrar no modal de edição
         Usuario usuario = usuarioRepository.findByIdComEmpresa(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
@@ -399,7 +430,6 @@ public class UsuarioService {
         return converterParaDTO(usuario);
     }
 
-
     @Transactional(readOnly = true)
     public List<UsuarioResponseDTO> buscarPorDepartamento(Long departamentoId) {
         Long empresaIdLogada = securityUtils.empresaId();
@@ -409,7 +439,7 @@ public class UsuarioService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional // 🟢 OBRIGATÓRIO: Sem isso, o LazyInitializationException ocorre no converterParaDTO
+    @Transactional
     @PodeSerAdmin
     public UsuarioResponseDTO atualizar(Long id, UsuarioRequestDTO dto) {
         Long empresaIdLogada = securityUtils.empresaId();
@@ -417,7 +447,6 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findByIdComEmpresa(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com id: " + id));
 
-        // Se não for Super Admin, só altera da própria congregação
         if (!securityUtils.isSuperAdmin() && (usuario.getEmpresa() == null || !usuario.getEmpresa().getId().equals(empresaIdLogada))) {
             throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
         }
@@ -426,7 +455,6 @@ public class UsuarioService {
             throw new RuntimeException("Email já existe");
         }
 
-        // Se for Super Admin e trocou a congregação no modal
         if (securityUtils.isSuperAdmin() && dto.getEmpresaId() != null) {
             Empresa novaEmpresa = new Empresa();
             novaEmpresa.setId(dto.getEmpresaId());
@@ -459,14 +487,12 @@ public class UsuarioService {
 
         Usuario atualizado = usuarioRepository.save(usuario);
         
-        // 🟢 Se a congregação foi alterada, recarrega com a nova congregação para o DTO
         if (securityUtils.isSuperAdmin() && dto.getEmpresaId() != null) {
             return converterParaDTO(usuarioRepository.findByIdComEmpresa(atualizado.getId()).orElse(atualizado));
         }
 
         return converterParaDTO(atualizado);
     }
-
 
     @PodeSerAdmin
     public void inativar(Long id) {
@@ -501,7 +527,6 @@ public class UsuarioService {
         return converterParaDTO(atualizado);
     }
 
-    // 🟢 Conversor preenchendo empresaId e empresaNome
     private UsuarioResponseDTO converterParaDTO(Usuario usuario) {
         UsuarioResponseDTO dto = new UsuarioResponseDTO();
 
@@ -513,7 +538,6 @@ public class UsuarioService {
         dto.setPerfil(usuario.getPerfil());
         dto.setAtivo(usuario.getAtivo());
 
-        // 🟢 Preenche a congregação no DTO
         if (usuario.getEmpresa() != null) {
             dto.setEmpresaId(usuario.getEmpresa().getId());
             dto.setEmpresaNome(usuario.getEmpresa().getNome());

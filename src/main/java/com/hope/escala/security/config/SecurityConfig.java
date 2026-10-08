@@ -38,12 +38,18 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 						// Rotas Públicas / Swagger
 						.requestMatchers("/auth/**").permitAll()
+						
 						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 						.requestMatchers(HttpMethod.GET, "/empresas-publicas").permitAll()
 						.requestMatchers(HttpMethod.GET, "/empresas", "/empresas/**").permitAll()
 						.requestMatchers("/perfil/**").permitAll().requestMatchers("/usuarios/meu-perfil")
 						.authenticated().requestMatchers("/usuarios/**").permitAll()
-						.requestMatchers("/auth/login", "/auth/solicitar-cadastro").permitAll()
+						.requestMatchers(
+							    "/auth/login",
+							    "/auth/solicitar-cadastro",
+							    "/auth/esqueceu-senha",
+							    "/auth/redefinir-senha"
+							).permitAll()
 
 						// 1º: Regras específicas de Pautas
 						// Votação liberada para qualquer usuário logado (voluntários, músicos,
