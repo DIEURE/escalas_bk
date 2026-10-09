@@ -127,9 +127,10 @@ public class EscalaMusicoService {
 
 	public EscalaMusicoResponseDTO confirmarMinhaEscala(Long escalaId, Boolean confirmado) {
 	    Long usuarioId = securityUtils.usuarioId();
-	    // Busca a relação entre esse músico e essa escala
+	    
+	    // 🟢 Protegido contra vagas em aberto (usuario == null)
 	    EscalaMusico em = escalaMusicoRepository.findByEscalaId(escalaId).stream()
-	            .filter(m -> m.getUsuario().getId().equals(usuarioId))
+	            .filter(m -> m.getUsuario() != null && m.getUsuario().getId().equals(usuarioId))
 	            .findFirst()
 	            .orElseThrow(() -> new ResourceNotFoundException("Você não está escalado nesta escala"));
 	            
@@ -138,7 +139,7 @@ public class EscalaMusicoService {
 	    verificarFechamentoEscala(escalaId);
 	    return converterParaDTO(salvo);
 	}
-	
+
 	private EscalaMusicoResponseDTO converterParaDTO(EscalaMusico escalaMusico) {
 
 	    EscalaMusicoResponseDTO dto = new EscalaMusicoResponseDTO();
