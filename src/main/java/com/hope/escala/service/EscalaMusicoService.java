@@ -25,8 +25,7 @@ public class EscalaMusicoService {
 	private final EscalaRepository escalaRepository;
 	private final UsuarioRepository usuarioRepository;
 	private final EscalaService escalaService;
-	// Importe SecurityUtils no topo
-	 private final com.hope.escala.security.SecurityUtils securityUtils;
+	private final SecurityUtils securityUtils;
 
 	public EscalaMusicoService(EscalaMusicoRepository escalaMusicoRepository, EscalaRepository escalaRepository,
 			UsuarioRepository usuarioRepository, EscalaService escalaService, SecurityUtils securityUtils) {
@@ -71,15 +70,12 @@ public class EscalaMusicoService {
 		return converterParaDTO(escalaMusicoSalvo);
 	}
 
-
 	public List<EscalaMusicoResponseDTO> listarPorEscala(Long escalaId) {
 
 		List<EscalaMusico> escalaMusicos = escalaMusicoRepository.findByEscalaId(escalaId);
 
 		return escalaMusicos.stream().map(this::converterParaDTO).toList();
 	}
-	
- 
 
 	public EscalaMusicoResponseDTO atualizarConfirmacao(Long id, ConfirmacaoEscalaMusicoDTO dto) {
 
@@ -89,8 +85,6 @@ public class EscalaMusicoService {
 		escalaMusico.setConfirmado(dto.getConfirmado());
 
 		EscalaMusico escalaMusicoAtualizado = escalaMusicoRepository.save(escalaMusico);
-		
-		
 
 		verificarFechamentoEscala(escalaMusico.getEscala().getId());
 
@@ -116,7 +110,6 @@ public class EscalaMusicoService {
 		return converterParaDTO(escalaMusicoAtualizado);
 	}
   
-	  
 	public List<EscalaMusicoResponseDTO> listarMinhasEscalas() {
 	    Long usuarioId = securityUtils.usuarioId();
 	    return escalaMusicoRepository.findMinhasEscalasPorUsuarioId(usuarioId)
@@ -127,8 +120,7 @@ public class EscalaMusicoService {
 
 	public EscalaMusicoResponseDTO confirmarMinhaEscala(Long escalaId, Boolean confirmado) {
 	    Long usuarioId = securityUtils.usuarioId();
-	    
-	    // 🟢 Protegido contra vagas em aberto (usuario == null)
+	    // 🟢 Filtra garantindo que ignora vagas em aberto (usuario == null)
 	    EscalaMusico em = escalaMusicoRepository.findByEscalaId(escalaId).stream()
 	            .filter(m -> m.getUsuario() != null && m.getUsuario().getId().equals(usuarioId))
 	            .findFirst()
@@ -139,7 +131,7 @@ public class EscalaMusicoService {
 	    verificarFechamentoEscala(escalaId);
 	    return converterParaDTO(salvo);
 	}
-
+	
 	private EscalaMusicoResponseDTO converterParaDTO(EscalaMusico escalaMusico) {
 
 	    EscalaMusicoResponseDTO dto = new EscalaMusicoResponseDTO();
@@ -190,7 +182,6 @@ public class EscalaMusicoService {
 	    return dto;
 	}
 
-
 	private void verificarFechamentoEscala(Long escalaId) {
 
 	    List<EscalaMusico> musicos =
@@ -202,12 +193,9 @@ public class EscalaMusicoService {
 	                    || Boolean.TRUE.equals(m.getSubstituido()));
 
 	    if (todosConfirmados) {
-
-	    		
 	        escalaService.fecharEscala(escalaId);
 	    }
 	}
-	
 	
 	public EscalaMusicoResponseDTO desocuparVaga(Long id) {
 	    EscalaMusico escalaMusico = escalaMusicoRepository.findById(id)
@@ -227,6 +215,5 @@ public class EscalaMusicoService {
 	    EscalaMusico vagaDesocupada = escalaMusicoRepository.save(escalaMusico);
 	    return converterParaDTO(vagaDesocupada);
 	}
-
 
 }
