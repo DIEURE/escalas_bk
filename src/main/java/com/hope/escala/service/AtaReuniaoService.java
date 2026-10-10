@@ -1,8 +1,11 @@
 package com.hope.escala.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
@@ -16,6 +19,7 @@ import com.hope.escala.dto.request.RegistrarVotoRequestDTO;
 import com.hope.escala.dto.response.AtaDetalheResponseDTO;
 import com.hope.escala.dto.response.PautaDetalheResponseDTO;
 import com.hope.escala.dto.response.PautaOpcaoResponseDTO;
+import com.hope.escala.dto.response.UsuarioVotoResponseDTO;
 import com.hope.escala.entity.AtaReuniao;
 import com.hope.escala.entity.Departamento;
 import com.hope.escala.entity.Empresa;
@@ -200,7 +204,9 @@ public class AtaReuniaoService {
                 salva.getStatusVotacao(),
                 0,
                 null,
-                opcoesDto
+                opcoesDto,
+                Collections.emptyList(),
+                Collections.emptyList()
         );
     }
 
@@ -210,7 +216,6 @@ public class AtaReuniaoService {
             throw new AccessDeniedException("Usuário não autenticado");
         }
 
-        // 1. Obtém o e-mail/login do usuário autenticado no token
         String emailUsuario = authentication.getName();
 
         Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
@@ -223,7 +228,6 @@ public class AtaReuniaoService {
         Long empresaId = usuario.getEmpresa().getId();
         Long usuarioId = usuario.getId();
 
-        // 2. Validações da Pauta e Ata
         PautaReuniao pauta = pautaRepository.findByIdAndEmpresaId(pautaId, empresaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pauta não encontrada"));
 
@@ -242,7 +246,6 @@ public class AtaReuniaoService {
         PautaOpcao opcaoEscolhida = pautaOpcaoRepository.findByIdAndPautaId(dto.opcaoId(), pautaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Opção de votação não encontrada para esta pauta"));
 
-        // 3. Salva ou atualiza o voto do usuário
         Optional<VotoPauta> votoExistente = votoRepository.findByPautaIdAndUsuarioId(pautaId, usuarioId);
 
         if (votoExistente.isPresent()) {
@@ -271,7 +274,6 @@ public class AtaReuniaoService {
         pauta.setStatusVotacao(novoStatus);
         pautaRepository.save(pauta);
 
-        // Dispara o alerta somente ao transicionar para EM_VOTACAO
         if (statusAnterior != StatusVotacaoPauta.EM_VOTACAO && novoStatus == StatusVotacaoPauta.EM_VOTACAO) {
             eventPublisher.publishEvent(new VotacaoAbertaEvent(
                     pauta.getId(),
@@ -284,6 +286,12 @@ public class AtaReuniaoService {
 
     private AtaDetalheResponseDTO mapearParaDetalheResponse(AtaReuniao ata, Long usuarioLogadoId) {
         List<PautaDetalheResponseDTO> pautasDto = new ArrayList<>();
+        Long empresaId = ata.getEmpresa() != null ? ata.getEmpresa().getId() : null;
+
+        // Recupera usuários ativos da congregação/empresa para apurar quórum
+        List<Usuario> membrosEmpresa = (empresaId != null)
+                ? usuarioRepository.findByEmpresaIdAndAtivoTrue(empresaId)
+                : Collections.emptyList();
 
         if (ata.getPautas() != null) {
             for (PautaReuniao p : ata.getPautas()) {
@@ -308,6 +316,34 @@ public class AtaReuniaoService {
                     }
                 }
 
+                // Carrega votos detalhados para montar as listas de 'votaram' e 'pendentes'
+                List<VotoPauta> votosDaPauta = votoRepository.findByPautaId(p.getId());
+
+                List<UsuarioVotoResponseDTO> votaram = votosDaPauta.stream()
+                        .map(v -> new UsuarioVotoResponseDTO(
+                                v.getUsuario().getId(),
+                                v.getUsuario().getNome(),
+                              
+                                v.getOpcao().getId(),
+                                v.getOpcao().getTexto()
+                        ))
+                        .toList();
+
+                Set<Long> idsQuemVotou = votosDaPauta.stream()
+                        .map(v -> v.getUsuario().getId())
+                        .collect(Collectors.toSet());
+
+                List<UsuarioVotoResponseDTO> pendentes = membrosEmpresa.stream()
+                        .filter(m -> !idsQuemVotou.contains(m.getId()))
+                        .map(m -> new UsuarioVotoResponseDTO(
+                                m.getId(),
+                                m.getNome(),
+                           
+                                null,
+                                null
+                        ))
+                        .toList();
+
                 pautasDto.add(new PautaDetalheResponseDTO(
                         p.getId(),
                         p.getOrdem(),
@@ -317,7 +353,9 @@ public class AtaReuniaoService {
                         p.getStatusVotacao(),
                         totalGeral,
                         minhaOpcaoEscolhidaId,
-                        opcoesDto
+                        opcoesDto,
+                        votaram,
+                        pendentes
                 ));
             }
         }

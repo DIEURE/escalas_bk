@@ -1,5 +1,6 @@
 package com.hope.escala.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,4 +20,13 @@ public interface VotoPautaRepository extends JpaRepository<VotoPauta, Long> {
 
     @Query("SELECT COUNT(v) FROM VotoPauta v WHERE v.pauta.id = :pautaId")
     long countTotalVotosPauta(@Param("pautaId") Long pautaId);
+    
+      
+
+        @Query("SELECT v FROM VotoPauta v " +
+               "JOIN FETCH v.usuario u " +
+               "JOIN FETCH v.opcao o " +
+               "WHERE v.pauta.id = :pautaId")
+        List<VotoPauta> findByPautaId(@Param("pautaId") Long pautaId);
+    
 }

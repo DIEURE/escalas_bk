@@ -12,5 +12,7 @@ public record PautaDetalheResponseDTO(
         StatusVotacaoPauta statusVotacao,
         long totalVotosGeral,
         Long minhaOpcaoEscolhidaId,
-        List<PautaOpcaoResponseDTO> opcoes
+        List<PautaOpcaoResponseDTO> opcoes,
+        List<UsuarioVotoResponseDTO> votaram,
+        List<UsuarioVotoResponseDTO> pendentes
 ) {}
