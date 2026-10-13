@@ -39,7 +39,10 @@ import com.hope.escala.repository.PautaReuniaoRepository;
 import com.hope.escala.repository.UsuarioRepository;
 import com.hope.escala.repository.VotoPautaRepository;
 import com.hope.escala.security.SecurityUtils;
-
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 @Service
 public class AtaReuniaoService {
 
@@ -210,14 +213,16 @@ public class AtaReuniaoService {
         );
     }
 
+
+
     @Transactional
     public void registrarVoto(Long pautaId, RegistrarVotoRequestDTO dto, Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
             throw new AccessDeniedException("Usuário não autenticado");
         }
 
+        // 1. Usuário autenticado
         String emailUsuario = authentication.getName();
-
         Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado no sistema"));
 
@@ -228,15 +233,40 @@ public class AtaReuniaoService {
         Long empresaId = usuario.getEmpresa().getId();
         Long usuarioId = usuario.getId();
 
+        // 2. Busca pauta e ata vinculada
         PautaReuniao pauta = pautaRepository.findByIdAndEmpresaId(pautaId, empresaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pauta não encontrada"));
 
-        if (!Boolean.TRUE.equals(pauta.getRequerVotacao()) || pauta.getStatusVotacao() != StatusVotacaoPauta.EM_VOTACAO) {
-            throw new IllegalStateException("Esta pauta não está aberta para votação.");
+        AtaReuniao ata = pauta.getAta();
+
+        // Trava de ata já finalizada previamente
+        if (ata.getStatus() == StatusAta.CONCLUIDA) {
+            throw new IllegalStateException("A ata já foi concluída.");
         }
 
-        if (pauta.getAta().getStatus() == StatusAta.CONCLUIDA) {
-            throw new IllegalStateException("A ata já foi concluída.");
+        // REGRA DE FECHAMENTO AUTOMÁTICO: data marcada da reunião até as 17:00 (Horário de Brasília)
+        LocalDate dataMarcada = ata.getDataReuniao();
+        if (dataMarcada != null) {
+            ZoneId fusoSp = ZoneId.of("America/Sao_Paulo");
+            ZonedDateTime agora = ZonedDateTime.now(fusoSp);
+            ZonedDateTime prazoLimite = dataMarcada.atTime(LocalTime.of(17, 0, 0)).atZone(fusoSp);
+
+            if (agora.isAfter(prazoLimite)) {
+                // Fecha a ata e a votação no banco de dados automaticamente
+                pauta.setStatusVotacao(StatusVotacaoPauta.CONCLUIDA);
+                pautaRepository.save(pauta);
+
+                ata.setStatus(StatusAta.CONCLUIDA);
+                ataRepository.save(ata);
+
+                throw new IllegalStateException(
+                    "A votação para esta reunião (" + dataMarcada + ") foi encerrada automaticamente às 17:00."
+                );
+            }
+        }
+
+        if (!Boolean.TRUE.equals(pauta.getRequerVotacao()) || pauta.getStatusVotacao() != StatusVotacaoPauta.EM_VOTACAO) {
+            throw new IllegalStateException("Esta pauta não está aberta para votação.");
         }
 
         if (dto.opcaoId() == null) {
@@ -246,6 +276,7 @@ public class AtaReuniaoService {
         PautaOpcao opcaoEscolhida = pautaOpcaoRepository.findByIdAndPautaId(dto.opcaoId(), pautaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Opção de votação não encontrada para esta pauta"));
 
+        // 3. Salva ou atualiza voto
         Optional<VotoPauta> votoExistente = votoRepository.findByPautaIdAndUsuarioId(pautaId, usuarioId);
 
         if (votoExistente.isPresent()) {
@@ -263,6 +294,7 @@ public class AtaReuniaoService {
             votoRepository.save(novoVoto);
         }
     }
+
 
     @Transactional
     public void alterarStatusVotacaoPauta(Long pautaId, StatusVotacaoPauta novoStatus) {

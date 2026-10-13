@@ -8,7 +8,7 @@ INSERT INTO public.empresas(
 --02
 INSERT INTO public.empresas(
 	ativa, criado_em, id, cnpj, nome, email, endereco, telefone)
-	VALUES (TRUE, '2026-09-22 00:00:00', 2, '062369123000157', 'LUZ NOROESTE', 'LUZPOVOSNOROESTE@GMAIL.COM', 'RUA CONDE MATARAZZU', '62994609455');
+	VALUES (TRUE, '2026-09-22 00:00:00', 2, '02.104.297/0001-60', 'Luz para os Povos-Noroeste', 'luzpovosnoroeste@gmail.com', 'Rua Conde Matarazzo Qd.32 - St. Santos Dummont- Goiânia-GO', '62994609455');
 
 -- DEPARTAMENTO
 INSERT INTO public.departamentos(ativo, empresa_id, id, nome) VALUES (TRUE, 2, 1, 'LOUVOR');
@@ -25,6 +25,27 @@ INSERT INTO public.instrumentos (ativo, quantidade_escala, empresa_id, id, descr
  
 
 --USUARIOS
+INSERT INTO usuarios (
+    id, 
+    nome, 
+    email, 
+    senha, 
+    perfil, 
+    ativo, 
+    empresa_id, 
+    data_cadastro
+)
+VALUES (
+    1,
+    'Super Administrador Hope',
+    'admin@hopeescalapro.com',
+    '$2a$10$wE8wJpU5Yp9H0zR6fF7zI.Z1Yh0bM5kQ4kI7j9t0pU5Yp9H0zR6fF', -- Senha: Admin@123456
+    'SUPER_ADMIN',
+    true,
+    (SELECT id FROM empresas WHERE nome = 'Hope Sistema Matriz' LIMIT 1),
+    NOW()
+);	
+	
 	
 INSERT INTO usuarios (
     nome, 
@@ -43,9 +64,9 @@ INSERT INTO usuarios (
 );	
 
 UPDATE usuarios 
-SET senha = '$2a$10$eACCYoNOHEqgkZdd9dWbVue79g7m8yO6p6zFv8QkQ1u1P4QkM4QCe',
+SET senha = '$2a$10$eACCYoNOHEqgkZdd9dWbVue79g7m8yO6p6zFv8QkQ1u1P4QkM4QCe',--123456
     ativo = true
-WHERE email = 'admin@hope.com';
+WHERE email = 'admin@hopeescalapro.com';
 
 INSERT INTO public.usuarios("id","ativo","data_atualizacao","data_cadastro","data_inativacao","disponibilidade","email","nome","observacao","perfil","senha","telefone","ultimo_login","empresa_id")
 VALUES(1, TRUE, NULL, TIMESTAMP '2026-06-11 14:09:04', NULL, TRUE, 'suporte@hope.com', 'DIEURE OLIVEIRA', NULL, 'SUPER_ADMIN', '$2a$10$T9KlNwYYNwZLcm8Rpbt8KOXhoPMIi2e5tjZS9PkXrIAWlyQrO1KEe', '62994609450', NULL,1);

@@ -4,5 +4,5 @@ public enum StatusVotacaoPauta {
     NAO_INICIADA,
     EM_VOTACAO,
     APROVADA,
-    REJEITADA
+    REJEITADA, CONCLUIDA
 }
