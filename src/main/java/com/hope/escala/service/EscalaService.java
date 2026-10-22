@@ -86,6 +86,7 @@ public class EscalaService {
 		this.disponibilidadeUsuarioRepository = disponibilidadeUsuarioRepository;
 	}
 
+	
 	@Transactional
 	public EscalaResponseDTO salvar(EscalaRequestDTO dto) {
 		Long empresaIdLogada = securityUtils.empresaId();

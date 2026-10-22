@@ -38,4 +38,5 @@ public class SubstitutoDisponivelDTO {
     public void setPrincipal(boolean principal) {
         this.principal = principal;
     }
+    
 }

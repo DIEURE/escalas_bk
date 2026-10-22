@@ -37,7 +37,8 @@ public class Instrumento {
 		this.departamento = departamento;
 	}
 
-	@JsonIgnore // 🟢 IMPEDE O JACKSON DE TOCAR NO PROXY LAZY
+	
+	@JsonIgnore //
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "empresa_id", nullable = false)
 	private Empresa empresa;

@@ -1,5 +1,6 @@
 package com.hope.escala.dto;
 
+
  
 import jakarta.validation.constraints.NotNull;
 

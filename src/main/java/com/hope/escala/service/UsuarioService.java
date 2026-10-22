@@ -57,6 +57,7 @@ public class UsuarioService {
 		this.emailService = emailService;
 	}
 
+	
 	@Transactional
 	public void solicitarRecuperacaoSenha(SolicitarRecuperacaoSenhaDTO dto) {
 		usuarioRepository.findByEmail(dto.email().trim().toLowerCase()).ifPresent(usuario -> {

@@ -146,4 +146,5 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 		       "WHERE u.instrumentoPrincipal IS NULL AND u.instrumentos IS NOT EMPTY")
 		List<Usuario> findSemInstrumentoPrincipalComInstrumentos();
 
+	
 }

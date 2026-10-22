@@ -144,4 +144,5 @@ public class EscalaAutomaticaService {
     public Usuario escolherMusicoRodizio(Long instrumentoId, Long departamentoId, Long escalaId) {
         return escolherMusicoRodizio(instrumentoId, departamentoId, escalaId, null);
     }
+    
 }

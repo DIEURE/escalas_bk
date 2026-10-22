@@ -14,6 +14,7 @@ public class BackfillInstrumentoPrincipalRunner implements CommandLineRunner {
         this.usuarioRepository = usuarioRepository;
     }
 
+    
     @Override
     public void run(String... args) {
         var usuarios = usuarioRepository.findAll();
