@@ -1,4 +1,3 @@
-
 package com.hope.escala.dto.request;
 
 import java.util.HashSet;
@@ -22,13 +21,20 @@ public class UsuarioRequestDTO {
 
     private PerfilUsuario perfil;
 
- // Substitua o antigo Long instrumentoId por:
+    /**
+     * Todos os instrumentos que o usuário toca
+     * (principal + curingas). Mantém compatibilidade com o front atual.
+     */
     private Set<Long> instrumentoIds = new HashSet<>();
-    // ou List<Long> instrumentoIds = new ArrayList<>();
 
+    /**
+     * Instrumento PRINCIPAL — único — usado pelo motor de escala automática.
+     * Se não vier, o service assume o primeiro de instrumentoIds (backfill).
+     */
+    private Long instrumentoPrincipalId;
 
     private Set<Long> departamentoIds;
-    
+
     private Long empresaId;
 
     public UsuarioRequestDTO() {
@@ -86,38 +92,39 @@ public class UsuarioRequestDTO {
         return perfil;
     }
 
-    public void setPerfil(
-            PerfilUsuario perfil
-    ) {
+    public void setPerfil(PerfilUsuario perfil) {
         this.perfil = perfil;
     }
 
-  
-
     public Long getEmpresaId() {
-		return empresaId;
-	}
+        return empresaId;
+    }
 
-	public void setEmpresaId(Long empresaId) {
-		this.empresaId = empresaId;
-	}
+    public void setEmpresaId(Long empresaId) {
+        this.empresaId = empresaId;
+    }
 
-	public Set<Long> getInstrumentoIds() {
-		return instrumentoIds;
-	}
+    public Set<Long> getInstrumentoIds() {
+        return instrumentoIds;
+    }
 
-	public void setInstrumentoIds(Set<Long> instrumentoIds) {
-		this.instrumentoIds = instrumentoIds;
-	}
+    public void setInstrumentoIds(Set<Long> instrumentoIds) {
+        this.instrumentoIds = instrumentoIds;
+    }
 
-	public Set<Long> getDepartamentoIds() {
+    public Long getInstrumentoPrincipalId() {
+        return instrumentoPrincipalId;
+    }
+
+    public void setInstrumentoPrincipalId(Long instrumentoPrincipalId) {
+        this.instrumentoPrincipalId = instrumentoPrincipalId;
+    }
+
+    public Set<Long> getDepartamentoIds() {
         return departamentoIds;
     }
 
-    public void setDepartamentoIds(
-            Set<Long> departamentoIds
-    ) {
+    public void setDepartamentoIds(Set<Long> departamentoIds) {
         this.departamentoIds = departamentoIds;
     }
 }
-

@@ -7,17 +7,13 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 @Entity
-@Table(
-	    name = "instrumentos", // Certifique-se de que é o mesmo nome da sua tabela
-	    uniqueConstraints = {
-	        @UniqueConstraint(
-	            name = "uk_instrumento_nome_empresa", 
-	            columnNames = {"nome", "empresa_id"} // Nomes exatos das colunas no banco
-	        )
-	    }
-	)
+@Table(name = "instrumentos", // Certifique-se de que é o mesmo nome da sua tabela
+		uniqueConstraints = {
+				@UniqueConstraint(name = "uk_instrumento_nome_empresa", columnNames = { "nome", "empresa_id" }
 
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+				) })
+
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Instrumento {
 
 	@Id
@@ -33,7 +29,6 @@ public class Instrumento {
 	@JoinColumn(name = "departamento_id")
 	private Departamento departamento;
 
-	
 	public Departamento getDepartamento() {
 		return departamento;
 	}
@@ -43,11 +38,10 @@ public class Instrumento {
 	}
 
 	@JsonIgnore // 🟢 IMPEDE O JACKSON DE TOCAR NO PROXY LAZY
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "empresa_id", nullable = false)
-    private Empresa empresa;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "empresa_id", nullable = false)
+	private Empresa empresa;
 
-	
 	@JsonIgnore
 	public Empresa getEmpresa() {
 		return empresa;

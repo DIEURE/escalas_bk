@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.hope.escala.entity.Instrumento;
 import com.hope.escala.entity.Usuario;
 import com.hope.escala.enums.PerfilUsuario;
 
@@ -32,11 +33,20 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 	List<Usuario> findAllByOrderByNomeAsc();
 
 	// 🟢 Músicos aptos para rodízio
-	@Query("SELECT DISTINCT u FROM Usuario u " + "JOIN u.instrumentos i " + "JOIN u.departamentos d "
-			+ "LEFT JOIN FETCH u.empresa " + "WHERE i.id = :instrumentoId " + "AND d.id = :departamentoId "
-			+ "AND u.empresa.id = :empresaId " + "AND u.ativo = true " + "AND u.disponibilidade = true")
-	List<Usuario> buscarMusicosDisponiveisPorEmpresa(@Param("instrumentoId") Long instrumentoId,
-			@Param("departamentoId") Long departamentoId, @Param("empresaId") Long empresaId);
+	@Query("""
+		    SELECT DISTINCT u FROM Usuario u
+		     LEFT JOIN u.departamentos d
+		     WHERE u.ativo = true
+		       AND u.empresa.id = :empresaId
+		       AND u.instrumentoPrincipal.id = :instrumentoId
+		       AND (:departamentoId IS NULL OR d.id = :departamentoId)
+		""")
+		List<Usuario> buscarMusicosDisponiveisPorEmpresa(
+		    @Param("instrumentoId") Long instrumentoId,
+		    @Param("departamentoId") Long departamentoId,
+		    @Param("empresaId") Long empresaId
+		);
+
 
 	@Query("SELECT DISTINCT u FROM Usuario u " + "LEFT JOIN FETCH u.instrumentos " + "JOIN u.departamentos d "
 			+ "WHERE d.id = :departamentoId " + "AND u.empresa.id = :empresaId " + "AND u.ativo = true "
@@ -108,5 +118,32 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
 	@Query("SELECT u.pushToken FROM Usuario u WHERE u.empresa.id = :empresaId AND u.pushToken IS NOT NULL AND u.ativo = true")
 	List<String> findPushTokensAtivosByEmpresa(@Param("empresaId") Long empresaId);
+
+	// Geração automática: só quem tem o instrumento como PRINCIPAL
+	@Query("""
+			    SELECT u FROM Usuario u
+			     WHERE u.ativo = true
+			       AND u.empresa.id = :empresaId
+			       AND u.instrumentoPrincipal = :instrumentoVaga
+			""")
+	List<Usuario> findElegiveisGeracaoAutomatica(@Param("empresaId") Long empresaId,
+			@Param("instrumentoVaga") Instrumento instrumentoVaga);
+
+	// Substituição manual: principal OU curinga
+	@Query("""
+			    SELECT DISTINCT u FROM Usuario u
+			     LEFT JOIN u.instrumentos i
+			     WHERE u.ativo = true
+			       AND u.empresa.id = :empresaId
+			       AND (u.instrumentoPrincipal = :instrumentoVaga OR i = :instrumentoVaga)
+			""")
+	List<Usuario> findCandidatosSubstituicao(
+			@Param("empresaId") Long empresaId,
+			@Param("instrumentoVaga") Instrumento instrumentoVaga);
+	
+	@Query("SELECT u FROM Usuario u " +
+		       "LEFT JOIN FETCH u.instrumentoPrincipal " +
+		       "WHERE u.instrumentoPrincipal IS NULL AND u.instrumentos IS NOT EMPTY")
+		List<Usuario> findSemInstrumentoPrincipalComInstrumentos();
 
 }

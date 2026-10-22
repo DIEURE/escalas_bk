@@ -20,6 +20,8 @@ public class UsuarioResponseDTO {
     private String nomeInstrumento;
     private Set<String> departamentos;
     private Integer quantidade_Escala;
+    
+    private Long instrumentoPrincipalId;
 
     // 🟢 Multi-tenant: ID e Nome da congregação
     private Long empresaId;
@@ -115,6 +117,14 @@ public class UsuarioResponseDTO {
 
     public void setPerfil(PerfilUsuario perfil) {
         this.perfil = perfil;
+    }
+    
+    public Long getInstrumentoPrincipalId() {
+        return instrumentoPrincipalId;
+    }
+
+    public void setInstrumentoPrincipalId(Long instrumentoPrincipalId) {
+        this.instrumentoPrincipalId = instrumentoPrincipalId;
     }
 
     public Set<Long> getInstrumentoIds() {

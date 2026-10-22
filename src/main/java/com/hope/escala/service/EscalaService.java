@@ -4,6 +4,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,6 +20,7 @@ import com.hope.escala.dto.response.EscalaMesDTO;
 import com.hope.escala.dto.response.EscalaMusicaResponseDTO;
 import com.hope.escala.dto.response.EscalaMusicoResponseDTO;
 import com.hope.escala.dto.response.EscalaResponseDTO;
+import com.hope.escala.dto.response.SubstitutoDisponivelDTO;
 import com.hope.escala.entity.AgendaMensal;
 import com.hope.escala.entity.Departamento;
 import com.hope.escala.entity.Empresa;
@@ -280,8 +282,8 @@ public class EscalaService {
 				novo.setDataEscala(escala.getDataEscala());
 				novo.setUsuario(usuario);
 
-				String nomeInstrumento = (usuario.getInstrumentos() != null && !usuario.getInstrumentos().isEmpty())
-						? usuario.getInstrumentos().iterator().next().getNome()
+				String nomeInstrumento = usuario.getInstrumentoPrincipal() != null
+						? usuario.getInstrumentoPrincipal().getNome()
 						: "Geral";
 				novo.setInstrumento(nomeInstrumento);
 
@@ -450,6 +452,34 @@ public class EscalaService {
 				escala.getMusicos().add(salvo);
 			}
 		}
+	}
+
+	@Transactional(readOnly = true)
+	public List<SubstitutoDisponivelDTO> listarSubstitutosDisponiveis(Long escalaId, Long instrumentoId) {
+		Long empresaIdLogada = securityUtils.empresaId();
+
+		Escala escala = escalaRepository.findById(escalaId)
+				.orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada"));
+
+		if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
+			throw new ResourceNotFoundException("Escala não pertence à sua instituição");
+		}
+
+		Instrumento instrumento = instrumentoRepository.findById(instrumentoId)
+				.orElseThrow(() -> new ResourceNotFoundException("Instrumento não encontrado"));
+
+		if (instrumento.getEmpresa() == null || !instrumento.getEmpresa().getId().equals(empresaIdLogada)) {
+			throw new ResourceNotFoundException("Instrumento não pertence à sua instituição");
+		}
+
+		return usuarioRepository.findCandidatosSubstituicao(empresaIdLogada, instrumento)
+				.stream()
+				.map(u -> new SubstitutoDisponivelDTO(
+						u.getId(),
+						u.getNome(),
+						instrumento.equals(u.getInstrumentoPrincipal())
+				))
+				.toList();
 	}
 
 	@Transactional
@@ -648,8 +678,8 @@ public class EscalaService {
 			novo.setDataEscala(escala.getDataEscala());
 			novo.setUsuario(usuario);
 
-			String nomeInstrumento = (usuario.getInstrumentos() != null && !usuario.getInstrumentos().isEmpty())
-					? usuario.getInstrumentos().iterator().next().getNome()
+			String nomeInstrumento = usuario.getInstrumentoPrincipal() != null
+					? usuario.getInstrumentoPrincipal().getNome()
 					: "Geral";
 			novo.setInstrumento(nomeInstrumento);
 
@@ -691,7 +721,6 @@ public class EscalaService {
 			throw new ResourceNotFoundException("Escala não pertence à sua instituição");
 		}
 
-		// 1. Limpa as músicas antigas da escala e decrementa o contador
 		List<EscalaMusica> antigas = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId);
 		for (EscalaMusica antiga : antigas) {
 			Musica musicaAntiga = antiga.getMusica();
@@ -706,7 +735,6 @@ public class EscalaService {
 		escalaMusicaRepository.deleteAll(antigas);
 		escalaMusicaRepository.flush();
 
-		// 2. Salva as novas músicas já com empresa_id preenchido (Multi-tenant)
 		List<EscalaMusica> novas = new ArrayList<>();
 		int ordem = 1;
 		if (musicasIds != null) {
@@ -730,7 +758,7 @@ public class EscalaService {
 			}
 		}
 
-		String tituloFinal = (tituloPersonalizado != null && !tituloPersonalizado.isBlank()) 
+		String tituloFinal = (tituloPersonalizado != null && !tituloPersonalizado.isBlank())
 				? tituloPersonalizado
 				: ("Escala - " + escala.getDataEscala());
 
