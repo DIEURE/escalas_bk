@@ -1,4 +1,3 @@
-
 package com.hope.escala.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -7,12 +6,10 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "instrumentos", // Certifique-se de que é o mesmo nome da sua tabela
+@Table(name = "instrumentos",
 		uniqueConstraints = {
-				@UniqueConstraint(name = "uk_instrumento_nome_empresa", columnNames = { "nome", "empresa_id" }
-
-				) })
-
+				@UniqueConstraint(name = "uk_instrumento_nome_empresa", columnNames = { "nome", "empresa_id" })
+		})
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Instrumento {
 
@@ -20,42 +17,24 @@ public class Instrumento {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	private String nome; // Ex: Teclado, Ministro, Back-Vocal
+	private String nome;
 	private Integer quantidadeEscala = 1;
 	private Boolean ativo = true;
 	private String tipo;
 	private String descricao;
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "departamento_id")
 	private Departamento departamento;
 
-	public Departamento getDepartamento() {
-		return departamento;
-	}
-
-	public void setDepartamento(Departamento departamento) {
-		this.departamento = departamento;
-	}
-
-	
-	@JsonIgnore //
+	@JsonIgnore
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "empresa_id", nullable = false)
 	private Empresa empresa;
 
-	@JsonIgnore
-	public Empresa getEmpresa() {
-		return empresa;
-	}
-
-	public void setEmpresa(Empresa empresa) {
-		this.empresa = empresa;
-	}
-
 	public Instrumento() {
 	}
 
-	// Getters e Setters normais (sem getUsuario/setUsuario)
 	public Long getId() {
 		return id;
 	}
@@ -71,7 +50,6 @@ public class Instrumento {
 	public void setNome(String nome) {
 		this.nome = nome;
 	}
-	// ... demais getters e setters
 
 	public Integer getQuantidadeEscala() {
 		return quantidadeEscala;
@@ -105,4 +83,20 @@ public class Instrumento {
 		this.descricao = descricao;
 	}
 
+	public Departamento getDepartamento() {
+		return departamento;
+	}
+
+	public void setDepartamento(Departamento departamento) {
+		this.departamento = departamento;
+	}
+
+	@JsonIgnore
+	public Empresa getEmpresa() {
+		return empresa;
+	}
+
+	public void setEmpresa(Empresa empresa) {
+		this.empresa = empresa;
+	}
 }

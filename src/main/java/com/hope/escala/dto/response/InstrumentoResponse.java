@@ -10,19 +10,22 @@ public record InstrumentoResponse(
         Integer quantidade_escala,
         Boolean ativo,
         Long empresaId,
-        String empresaNome
+        String empresaNome,
+        Long departamentoId,
+        String departamentoNome
 ) {
-    // Construtor auxiliar compacto a partir da Entidade
     public InstrumentoResponse(Instrumento inst) {
         this(
             inst.getId(),
             inst.getNome(),
             inst.getTipo(),
             inst.getDescricao(),
-            inst.getQuantidadeEscala(), 
+            inst.getQuantidadeEscala(),
             inst.getAtivo(),
             inst.getEmpresa() != null ? inst.getEmpresa().getId() : null,
-            inst.getEmpresa() != null ? inst.getEmpresa().getNome() : null
+            inst.getEmpresa() != null ? inst.getEmpresa().getNome() : null,
+            inst.getDepartamento() != null ? inst.getDepartamento().getId() : null,
+            inst.getDepartamento() != null ? inst.getDepartamento().getNome() : null
         );
     }
 }

@@ -6,6 +6,7 @@ public record InstrumentoRequestDTO(
         String descricao,
         Integer quantidade_escala,
         Boolean ativo,
-        Long empresaId // opcional, para o Super Admin vincular
+        Long empresaId,
+        Long departamentoId
 ) {
 }
