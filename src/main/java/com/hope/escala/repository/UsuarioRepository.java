@@ -53,6 +53,17 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 			+ "ORDER BY u.nome ASC")
 	List<Usuario> buscarUsuariosPorDepartamentoEEmpresa(@Param("departamentoId") Long departamentoId,
 			@Param("empresaId") Long empresaId);
+	
+	@Query("SELECT DISTINCT u FROM Usuario u " +
+		       "LEFT JOIN FETCH u.instrumentoPrincipal " +
+		       "WHERE u.id IN (SELECT u2.id FROM Usuario u2 " +
+		       "                JOIN u2.departamentos d " +
+		       "                WHERE d.id = :departamentoId AND u2.empresa.id = :empresaId AND u2.ativo = true) " +
+		       "ORDER BY u.nome")
+		List<Usuario> buscarUsuariosPorDepartamentoEEmpresaComPrincipal(
+		        @Param("departamentoId") Long departamentoId,
+		        @Param("empresaId") Long empresaId);
+
 
 	// Listagem por congregação/empresa
 	@Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.empresa WHERE u.empresa.id = :empresaId ORDER BY u.nome ASC")
@@ -145,6 +156,13 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 		       "LEFT JOIN FETCH u.instrumentoPrincipal " +
 		       "WHERE u.instrumentoPrincipal IS NULL AND u.instrumentos IS NOT EMPTY")
 		List<Usuario> findSemInstrumentoPrincipalComInstrumentos();
+
+	// UsuarioRepository
+	@Query("SELECT u FROM Usuario u " +
+	       "WHERE u.ativo = false " +
+	       "AND u.dataInativacao IS NULL " +   // nunca foi inativado = cadastro novo
+	       "ORDER BY u.dataCadastro DESC")
+	List<Usuario> listarPendentesReais();
 
 	
 }

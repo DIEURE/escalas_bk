@@ -75,7 +75,7 @@ public class Usuario implements UserDetails {
 	@JoinTable(name = "usuario_instrumentos", joinColumns = @JoinColumn(name = "usuario_id"), inverseJoinColumns = @JoinColumn(name = "instrumento_id"))
 	private Set<Instrumento> instrumentos = new HashSet<>();
 
-	@ManyToOne(fetch = FetchType.EAGER)
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "instrumento_principal_id")
 	private Instrumento instrumentoPrincipal;
 

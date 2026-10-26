@@ -2,7 +2,7 @@ package com.hope.escala.enums;
 
 public enum Status {
 
-	ATIVO(0, "ATIVO"), INATIVO(1, "INATIVO");
+	ATIVO(0, "ATIVO"), INATIVO(1, "INATIVO"), PENDENTE(2, "PENDENTE");
 	
 	private Integer codigo;
 	private String descricao;

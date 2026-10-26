@@ -46,9 +46,6 @@ public class DisponibilidadeService {
         this.securityUtils = securityUtils;
     }
 
-    /**
-     * Retorna a lista de LocalDate que o usuário logado marcou como disponíveis no mês/ano informados.
-     */
     @Transactional(readOnly = true)
     public List<LocalDate> buscarMinhasDatasPorMes(int mes, int ano) {
         Long usuarioId = securityUtils.usuarioId();
@@ -65,10 +62,6 @@ public class DisponibilidadeService {
                 usuarioId, empresaId, inicioMes, fimMes);
     }
 
-    /**
-     * Salva a lista de datas em que o voluntário pode servir no mês informado.
-     * Limpa as marcações anteriores daquele mês e grava o novo lote.
-     */
     @Transactional
     public void salvarLote(int mes, int ano, List<LocalDate> datas) {
         Long usuarioId = securityUtils.usuarioId();
@@ -84,7 +77,6 @@ public class DisponibilidadeService {
         Empresa empresa = empresaRepository.findById(empresaId)
                 .orElseThrow(() -> new RuntimeException("Congregação não encontrada: " + empresaId));
 
-        // Busca ou vincula a agenda mensal do período (se existir na base)
         AgendaMensal agendaMensal = agendaMensalRepository
                 .findByMesEAnoEEmpresaId(mes, ano, empresaId)
                 .orElse(null);
@@ -92,15 +84,12 @@ public class DisponibilidadeService {
         LocalDate inicioMes = LocalDate.of(ano, mes, 1);
         LocalDate fimMes = inicioMes.withDayOfMonth(inicioMes.lengthOfMonth());
 
-        // 1. Remove as marcações prévias do voluntário para aquele mês (estratégia replace)
         disponibilidadeRepository.removerPorUsuarioPeriodoEEmpresa(usuarioId, empresaId, inicioMes, fimMes);
 
-        // 2. Se a lista veio vazia (o voluntário desmarcou tudo), finaliza aqui
         if (datas == null || datas.isEmpty()) {
             return;
         }
 
-        // 3. Insere apenas as datas válidas dentro do mês solicitado
         List<DisponibilidadeUsuario> novasDisponibilidades = datas.stream()
                 .filter(d -> d.getMonthValue() == mes && d.getYear() == ano)
                 .distinct()
@@ -116,7 +105,7 @@ public class DisponibilidadeService {
 
         disponibilidadeRepository.saveAll(novasDisponibilidades);
     }
-    
+
     @Transactional(readOnly = true)
     public MatrizDisponibilidadeResponseDTO obterMatrizDisponibilidade(Long departamentoId, int mes, int ano) {
         Long empresaId = securityUtils.empresaId();
@@ -125,7 +114,6 @@ public class DisponibilidadeService {
         LocalDate inicioMes = yearMonth.atDay(1);
         LocalDate fimMes = yearMonth.atEndOfMonth();
 
-        // 1. Considera apenas os domingos do mês (regra do Hope Escala Pro)
         List<LocalDate> domingos = new ArrayList<>();
         LocalDate cursor = inicioMes;
         while (!cursor.isAfter(fimMes)) {
@@ -135,22 +123,17 @@ public class DisponibilidadeService {
             cursor = cursor.plusDays(1);
         }
 
-        // 2. Busca voluntários ativos do departamento na congregação
-        List<Usuario> voluntarios = usuarioRepository.buscarUsuariosPorDepartamentoEEmpresa(departamentoId, empresaId);
+        List<Usuario> voluntarios = usuarioRepository.buscarUsuariosPorDepartamentoEEmpresaComPrincipal(departamentoId, empresaId);
 
-        // 3. Busca marcações de presença do mês
         List<DisponibilidadeUsuario> registros = disponibilidadeRepository.buscarPorPeriodoEEmpresa(
                 empresaId, inicioMes, fimMes);
 
-        // Mapeia por "usuarioId_data" -> true
         Map<String, Boolean> mapaPresenca = new HashMap<>();
         for (DisponibilidadeUsuario reg : registros) {
             String chave = reg.getUsuario().getId() + "_" + reg.getDataDisponivel();
             mapaPresenca.put(chave, true);
         }
 
-
-        // 4. Monta as linhas da matriz para cada voluntário
         List<MusicoMatrizDTO> linhas = new ArrayList<>();
 
         for (Usuario musico : voluntarios) {
@@ -158,15 +141,13 @@ public class DisponibilidadeService {
 
             for (LocalDate domingo : domingos) {
                 String chave = musico.getId() + "_" + domingo;
-                
-                // Se a chave existe no mapa, o voluntário marcou disponibilidade
                 String status = Boolean.TRUE.equals(mapaPresenca.get(chave)) ? "DISPONIVEL" : "PENDENTE";
-
                 listaStatus.add(new StatusDataDTO(domingo, status));
             }
 
-            String instrumentoNome = (musico.getInstrumentos() != null && !musico.getInstrumentos().isEmpty())
-                    ? musico.getInstrumentos().iterator().next().getNome()
+            // ✅ CORRIGIDO: usa o campo instrumentoPrincipal (não a coleção)
+            String instrumentoNome = musico.getInstrumentoPrincipal() != null
+                    ? musico.getInstrumentoPrincipal().getNome()
                     : "Geral";
 
             linhas.add(new MusicoMatrizDTO(
@@ -179,5 +160,4 @@ public class DisponibilidadeService {
 
         return new MatrizDisponibilidadeResponseDTO(mes, ano, domingos, linhas);
     }
-
 }
