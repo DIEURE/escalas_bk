@@ -123,7 +123,7 @@ public class DisponibilidadeService {
             cursor = cursor.plusDays(1);
         }
 
-        List<Usuario> voluntarios = usuarioRepository.buscarUsuariosPorDepartamentoEEmpresaComPrincipal(departamentoId, empresaId);
+        List<Usuario> voluntarios = usuarioRepository.buscarUsuariosPorDepartamentoEEmpresa(departamentoId, empresaId);
 
         List<DisponibilidadeUsuario> registros = disponibilidadeRepository.buscarPorPeriodoEEmpresa(
                 empresaId, inicioMes, fimMes);
@@ -141,11 +141,15 @@ public class DisponibilidadeService {
 
             for (LocalDate domingo : domingos) {
                 String chave = musico.getId() + "_" + domingo;
-                String status = Boolean.TRUE.equals(mapaPresenca.get(chave)) ? "DISPONIVEL" : "PENDENTE";
+
+                // ✅ Marcou = DISPONIVEL | Não marcou = INDISPONIVEL
+                String status = Boolean.TRUE.equals(mapaPresenca.get(chave))
+                        ? "DISPONIVEL"
+                        : "INDISPONIVEL";
+
                 listaStatus.add(new StatusDataDTO(domingo, status));
             }
 
-            // ✅ CORRIGIDO: usa o campo instrumentoPrincipal (não a coleção)
             String instrumentoNome = musico.getInstrumentoPrincipal() != null
                     ? musico.getInstrumentoPrincipal().getNome()
                     : "Geral";
