@@ -290,27 +290,27 @@ public class UsuarioService {
 
 	@Transactional(readOnly = true)
 	public List<UsuarioResponseDTO> listarPendentes(Long empresaFiltroId) {
-		Long usuarioLogadoId = securityUtils.usuarioId();
-		Usuario usuarioLogado = usuarioRepository.findById(usuarioLogadoId)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não encontrado"));
+	    Long usuarioLogadoId = securityUtils.usuarioId();
+	    Usuario usuarioLogado = usuarioRepository.findById(usuarioLogadoId)
+	            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não encontrado"));
 
-		List<Usuario> pendentes;
+	    List<Usuario> pendentes;
 
-		if (securityUtils.isSuperAdmin()) {
-			if (empresaFiltroId != null) {
-				pendentes = usuarioRepository.findByAtivoFalseAndEmpresaIdOrderByNomeAsc(empresaFiltroId);
-			} else {
-				pendentes = usuarioRepository.findByAtivoFalseOrderByNomeAsc();
-			}
-		} else {
-			Long empresaId = (usuarioLogado.getEmpresa() != null) ? usuarioLogado.getEmpresa().getId() : null;
-			if (empresaId == null) {
-				return List.of();
-			}
-			pendentes = usuarioRepository.findByAtivoFalseAndEmpresaIdOrderByNomeAsc(empresaId);
-		}
+	    if (securityUtils.isSuperAdmin()) {
+	        if (empresaFiltroId != null) {
+	            pendentes = usuarioRepository.findPendentesReaisPorEmpresa(empresaFiltroId);
+	        } else {
+	            pendentes = usuarioRepository.findPendentesReais();
+	        }
+	    } else {
+	        Long empresaId = (usuarioLogado.getEmpresa() != null) ? usuarioLogado.getEmpresa().getId() : null;
+	        if (empresaId == null) {
+	            return List.of();
+	        }
+	        pendentes = usuarioRepository.findPendentesReaisPorEmpresa(empresaId);
+	    }
 
-		return pendentes.stream().map(this::converterParaDTO).toList();
+	    return pendentes.stream().map(this::converterParaDTO).toList();
 	}
 
 	@Transactional
@@ -575,18 +575,16 @@ public class UsuarioService {
 	}
 
 	public List<Usuario> listarPendentesPorUsuarioLogado(Usuario usuarioLogado, Long empresaFiltroId) {
-		if (usuarioLogado.getPerfil() == PerfilUsuario.SUPER_ADMIN) {
-			if (empresaFiltroId != null) {
-				return usuarioRepository.findByAtivoFalseAndEmpresaIdOrderByNomeAsc(empresaFiltroId);
-			}
-			return usuarioRepository.findByAtivoFalseOrderByNomeAsc();
-		}
-
-		if (usuarioLogado.getEmpresa() == null) {
-			return List.of();
-		}
-
-		return usuarioRepository.findByAtivoFalseAndEmpresaIdOrderByNomeAsc(usuarioLogado.getEmpresa().getId());
+	    if (usuarioLogado.getPerfil() == PerfilUsuario.SUPER_ADMIN) {
+	        if (empresaFiltroId != null) {
+	            return usuarioRepository.findPendentesReaisPorEmpresa(empresaFiltroId);
+	        }
+	        return usuarioRepository.findPendentesReais();
+	    }
+	    if (usuarioLogado.getEmpresa() == null) {
+	        return List.of();
+	    }
+	    return usuarioRepository.findPendentesReaisPorEmpresa(usuarioLogado.getEmpresa().getId());
 	}
 
 }

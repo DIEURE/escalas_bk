@@ -163,6 +163,27 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 	       "AND u.dataInativacao IS NULL " +   // nunca foi inativado = cadastro novo
 	       "ORDER BY u.dataCadastro DESC")
 	List<Usuario> listarPendentesReais();
+	
+	// 🟢 Pendentes REAIS: nunca aprovados (data_inativacao permanece nula)
+	@Query("""
+	    SELECT u FROM Usuario u
+	     LEFT JOIN FETCH u.empresa
+	     WHERE u.ativo = false
+	       AND u.dataInativacao IS NULL
+	       AND u.empresa.id = :empresaId
+	     ORDER BY u.nome ASC
+	""")
+	List<Usuario> findPendentesReaisPorEmpresa(@Param("empresaId") Long empresaId);
+
+	@Query("""
+	    SELECT u FROM Usuario u
+	     LEFT JOIN FETCH u.empresa
+	     WHERE u.ativo = false
+	       AND u.dataInativacao IS NULL
+	     ORDER BY u.nome ASC
+	""")
+	List<Usuario> findPendentesReais();
+
 
 	
 }
