@@ -110,6 +110,9 @@ public class Usuario implements UserDetails {
 	@Column(name = "token_recuperacao_expira_em")
 	private java.time.LocalDateTime tokenRecuperacaoExpiraEm;
 
+	@Column(name = "elegivel_escala_automatica", nullable = false)
+	private Boolean elegivelEscalaAutomatica = true;
+	
 	public String getTokenRecuperacaoSenha() {
 		return tokenRecuperacaoSenha;
 	}
@@ -331,5 +334,13 @@ public class Usuario implements UserDetails {
 
 	public void setUltimoLogin(LocalDateTime ultimoLogin) {
 		this.ultimoLogin = ultimoLogin;
+	}
+	
+	public Boolean getElegivelEscalaAutomatica() {
+	    return elegivelEscalaAutomatica;
+	}
+
+	public void setElegivelEscalaAutomatica(Boolean elegivelEscalaAutomatica) {
+	    this.elegivelEscalaAutomatica = elegivelEscalaAutomatica;
 	}
 }

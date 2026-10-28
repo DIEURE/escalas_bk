@@ -20,6 +20,8 @@ public class UsuarioRequestDTO {
     private String observacao;
 
     private PerfilUsuario perfil;
+    
+    private Boolean elegivelEscalaAutomatica;
 
     /**
      * Todos os instrumentos que o usuário toca
@@ -126,5 +128,13 @@ public class UsuarioRequestDTO {
 
     public void setDepartamentoIds(Set<Long> departamentoIds) {
         this.departamentoIds = departamentoIds;
+    }
+    
+    public Boolean getElegivelEscalaAutomatica() {
+        return elegivelEscalaAutomatica;
+    }
+
+    public void setElegivelEscalaAutomatica(Boolean elegivelEscalaAutomatica) {
+        this.elegivelEscalaAutomatica = elegivelEscalaAutomatica;
     }
 }

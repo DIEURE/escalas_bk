@@ -26,6 +26,10 @@ public class UsuarioResponseDTO {
     // 🟢 Multi-tenant: ID e Nome da congregação
     private Long empresaId;
     private String empresaNome;
+    
+    private Boolean elegivelEscalaAutomatica;
+
+   
 
     public UsuarioResponseDTO() {
     }
@@ -173,5 +177,13 @@ public class UsuarioResponseDTO {
 
     public void setEmpresaNome(String empresaNome) {
         this.empresaNome = empresaNome;
+    }
+    
+    public Boolean getElegivelEscalaAutomatica() {
+        return elegivelEscalaAutomatica;
+    }
+
+    public void setElegivelEscalaAutomatica(Boolean elegivelEscalaAutomatica) {
+        this.elegivelEscalaAutomatica = elegivelEscalaAutomatica;
     }
 }

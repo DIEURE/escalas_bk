@@ -202,6 +202,12 @@ public class UsuarioService {
 		usuario.setPerfil(dto.getPerfil());
 		usuario.setDisponibilidade(dto.getDisponibilidade());
 		usuario.setObservacao(dto.getObservacao());
+		usuario.setElegivelEscalaAutomatica(
+		        dto.getElegivelEscalaAutomatica() != null
+		                ? dto.getElegivelEscalaAutomatica()
+		                : true
+		);
+
 
 		aplicarInstrumentos(usuario, dto);
 
@@ -277,7 +283,7 @@ public class UsuarioService {
 		usuario.setSenha(passwordEncoder.encode(dto.getSenha()));
 		usuario.setPerfil(PerfilUsuario.VOLUNTARIO);
 		usuario.setDisponibilidade(true);
-
+		usuario.setElegivelEscalaAutomatica(true);
 		/* usuario.setInstrumentos(instrumentosEncontrados); */
 		aplicarInstrumentos(usuario, dto);
 
@@ -346,6 +352,10 @@ public class UsuarioService {
 					departamentoRepository.findAllById(dto.getDepartamentoIds()));
 			usuario.setDepartamentos(departamentos);
 		}
+		if (dto.getElegivelEscalaAutomatica() != null) {
+		    usuario.setElegivelEscalaAutomatica(dto.getElegivelEscalaAutomatica());
+		}
+
 
 		Usuario aprovado = usuarioRepository.save(usuario);
 
@@ -462,6 +472,11 @@ public class UsuarioService {
 		usuario.setPerfil(dto.getPerfil());
 		usuario.setDisponibilidade(dto.getDisponibilidade());
 		usuario.setObservacao(dto.getObservacao());
+		usuario.setElegivelEscalaAutomatica(
+		        dto.getElegivelEscalaAutomatica() != null
+		                ? dto.getElegivelEscalaAutomatica()
+		                : usuario.getElegivelEscalaAutomatica()
+		);
 
 		/* usuario.setInstrumentos(instrumentosEncontrados); */
 		aplicarInstrumentos(usuario, dto);
@@ -551,6 +566,11 @@ public class UsuarioService {
 		dto.setDisponibilidade(usuario.getDisponibilidade());
 		dto.setPerfil(usuario.getPerfil());
 		dto.setAtivo(usuario.getAtivo());
+		dto.setElegivelEscalaAutomatica(
+		        usuario.getElegivelEscalaAutomatica() != null
+		                ? usuario.getElegivelEscalaAutomatica()
+		                : true
+		);
 
 		if (usuario.getEmpresa() != null) {
 			dto.setEmpresaId(usuario.getEmpresa().getId());
