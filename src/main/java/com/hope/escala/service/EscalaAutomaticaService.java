@@ -70,8 +70,14 @@ public class EscalaAutomaticaService {
         List<Long> usuariosSuspensos = suspensaoRepository.buscarIdsSuspensosNoMes(
                 departamentoId, mesEscala, anoEscala, empresaAlvo);
 
-        // Filtra os voluntários ativos que não estão suspensos nem escalados no mesmo evento
+        // 5. Filtrar candidatos que marcaram disponibilidade na data exata
+        List<Long> usuariosQueMarcaramPresenca = disponibilidadeUsuarioRepository
+                .buscarIdsUsuariosDisponiveisNaData(dataEscala, empresaAlvo);
+
+        // ✅ REGRA NOVA: sem marcação de disponibilidade = não entra. Ponto.
+        // Não há fallback. Não há exceção. Não há "prazo do dia 25".
         List<Usuario> candidatosElegiveis = todosDoInstrumento.stream()
+                .filter(u -> usuariosQueMarcaramPresenca.contains(u.getId()))
                 .filter(u -> !usuariosJaEscalados.contains(u.getId()))
                 .filter(u -> !usuariosSuspensos.contains(u.getId()))
                 .toList();
@@ -80,49 +86,16 @@ public class EscalaAutomaticaService {
             return null;
         }
 
-        // 🟢 5. REGRA DO DIA 25 E DISPONIBILIDADE ATIVA
-        List<Long> usuariosQueMarcaramPresenca = disponibilidadeUsuarioRepository
-                .buscarIdsUsuariosDisponiveisNaData(dataEscala, empresaAlvo);
-
-        LocalDate hoje = LocalDate.now();
-
-        // Prazo limite oficial: dia 25 do mês anterior ao mês do culto que está sendo escalado
-        LocalDate limiteDia25MesAnterior = dataEscala.withDayOfMonth(1).minusDays(1).withDayOfMonth(25);
-        boolean prazoDisponibilidadeExpirado = hoje.isAfter(limiteDia25MesAnterior);
-
-        // Separa quem deste instrumento marcou explicitamente que pode servir na data
-        List<Usuario> queMarcaramDisponibilidade = candidatosElegiveis.stream()
-                .filter(u -> usuariosQueMarcaramPresenca.contains(u.getId()))
-                .toList();
-
-        List<Usuario> poolFinal;
-
-        // Se houver voluntários que marcaram disponibilidade ativa, a prioridade absoluta é deles
-        if (!queMarcaramDisponibilidade.isEmpty()) {
-            poolFinal = queMarcaramDisponibilidade;
-        } else if (prazoDisponibilidadeExpirado || usuariosQueMarcaramPresenca.isEmpty()) {
-            // Fallback automático: após o dia 25 (ou caso ninguém tenha marcado),
-            // considera todo o contingente ativo elegível para não desfalcar a banda
-            poolFinal = candidatosElegiveis;
-        } else {
-            // Fallback de segurança na geração da escala para evitar vagas em branco
-            poolFinal = candidatosElegiveis;
-        }
-
-        if (poolFinal.isEmpty()) {
-            return null;
-        }
-
         // Se restou apenas um voluntário elegível, retorna diretamente
-        if (poolFinal.size() == 1) {
-            return poolFinal.get(0);
+        if (candidatosElegiveis.size() == 1) {
+            return candidatosElegiveis.get(0);
         }
 
         // 6. Critério de Rodízio Justo: seleciona quem está há mais tempo sem tocar
         Usuario escolhido = null;
         LocalDate dataMaisAntiga = null;
 
-        for (Usuario usuario : poolFinal) {
+        for (Usuario usuario : candidatosElegiveis) {
             LocalDate ultimaEscala = escalaMusicoRepository.buscarUltimaEscalaDoMusico(usuario.getId());
 
             // Prioridade máxima para quem nunca tocou
@@ -144,5 +117,4 @@ public class EscalaAutomaticaService {
     public Usuario escolherMusicoRodizio(Long instrumentoId, Long departamentoId, Long escalaId) {
         return escolherMusicoRodizio(instrumentoId, departamentoId, escalaId, null);
     }
-    
 }
