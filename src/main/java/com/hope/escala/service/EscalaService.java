@@ -86,7 +86,6 @@ public class EscalaService {
 		this.disponibilidadeUsuarioRepository = disponibilidadeUsuarioRepository;
 	}
 
-	
 	@Transactional
 	public EscalaResponseDTO salvar(EscalaRequestDTO dto) {
 		Long empresaIdLogada = securityUtils.empresaId();
@@ -270,7 +269,7 @@ public class EscalaService {
 						mDto.getInstrumento() != null && !mDto.getInstrumento().isBlank()
 								? mDto.getInstrumento()
 								: "Geral");
-				novo.setConfirmado(false);
+				novo.setConfirmado(null);
 				novo.setSubstituido(false);
 				novo.setEmpresa(escala.getEmpresa());
 
@@ -292,7 +291,7 @@ public class EscalaService {
 						: "Geral";
 				novo.setInstrumento(nomeInstrumento);
 
-				novo.setConfirmado(false);
+				novo.setConfirmado(null);
 				novo.setSubstituido(false);
 				novo.setEmpresa(escala.getEmpresa());
 
@@ -388,7 +387,6 @@ public class EscalaService {
 	    Long departamentoId = escala.getDepartamento().getId();
 	    LocalDate dataEscala = escala.getDataEscala();
 
-	    // ✅ CORRIGIDO: só instrumentos do departamento da escala
 	    List<Instrumento> instrumentos = instrumentoRepository
 	            .findByEmpresaIdAndDepartamentoIdAndAtivoTrue(empresaId, departamentoId);
 
@@ -450,7 +448,7 @@ public class EscalaService {
 	            escalaMusico.setHorarioManha(escala.getHorarioManha());
 	            escalaMusico.setHorarioNoite(escala.getHorarioNoite());
 	            escalaMusico.setInstrumento(instrumento.getNome());
-	            escalaMusico.setConfirmado(false);
+	            escalaMusico.setConfirmado(null);
 	            escalaMusico.setSubstituido(false);
 	            escalaMusico.setEmpresa(escala.getEmpresa());
 	            escalaMusico.setUsuario(usuario);
@@ -460,7 +458,6 @@ public class EscalaService {
 	        }
 	    }
 	}
-
 
 	@Transactional(readOnly = true)
 	public List<SubstitutoDisponivelDTO> listarSubstitutosDisponiveis(Long escalaId, Long instrumentoId) {
@@ -691,7 +688,7 @@ public class EscalaService {
 					: "Geral";
 			novo.setInstrumento(nomeInstrumento);
 
-			novo.setConfirmado(false);
+			novo.setConfirmado(null);
 			novo.setSubstituido(false);
 			novo.setEmpresa(escala.getEmpresa());
 

@@ -35,7 +35,9 @@ public class EscalaMusico {
 
     private String motivoSubstituicao;
 
-    private Boolean confirmado = false;
+    @Column(name = "confirmado", nullable = true)
+    private Boolean confirmado;
+
 
     @Column(name = "justificativa_recusa")
     private String justificativaRecusa;
