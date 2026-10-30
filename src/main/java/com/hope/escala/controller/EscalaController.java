@@ -76,6 +76,15 @@ public class EscalaController {
 		return ResponseEntity.ok(escalaService.listar());
 	}
 
+	// 🟢 Minhas escalas — para o painel do voluntário e do músico
+	// Retorna EscalaResponseDTO (com departamentoId e nomeDepartamento)
+	@Transactional(readOnly = true)
+	@GetMapping("/minhas")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<List<EscalaResponseDTO>> minhasEscalas() {
+		return ResponseEntity.ok(escalaService.buscarMinhasEscalas());
+	}
+
 	@Transactional(readOnly = true)
 	@GetMapping("/{id}")
 	public ResponseEntity<EscalaResponseDTO> buscarPorId(@PathVariable Long id) {
@@ -152,7 +161,6 @@ public class EscalaController {
 		return ResponseEntity.ok(musicas);
 	}
 
-	// 🟢 Alias direto para consumo do app mobile e outras integrações
 	@Transactional(readOnly = true)
 	@GetMapping("/{id}/musicas")
 	public ResponseEntity<List<EscalaMusicaResponseDTO>> listarMusicasDaEscala(@PathVariable Long id) {
@@ -212,7 +220,7 @@ public class EscalaController {
 		escalaService.desvincularPlaylist(id);
 		return ResponseEntity.noContent().build();
 	}
-	
+
 	@PutMapping("/{escalaId}/confirmar")
 	public ResponseEntity<Void> confirmarMinhaEscala(
 	        @PathVariable Long escalaId,

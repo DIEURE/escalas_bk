@@ -165,44 +165,67 @@ public class EscalaService {
 	            .collect(Collectors.toList());
 	}
 
+	// 🟢 Minhas escalas — usadas pelos painéis do voluntário, músico e ministro
 	@Transactional(readOnly = true)
-	public List<EscalaMesDTO> buscarEscalasPorMesEDepartamento(Long departamentoId, int mes, int ano) {
-		Long empresaId = securityUtils.empresaId();
+	public List<EscalaResponseDTO> buscarMinhasEscalas() {
+	    Long usuarioId = securityUtils.usuarioId();
+	    Long empresaId = securityUtils.empresaId();
+	    LocalDate hoje = LocalDate.now();
 
-		YearMonth yearMonth = YearMonth.of(ano, mes);
-		LocalDate inicioMes = yearMonth.atDay(1);
-		LocalDate fimMes = yearMonth.atEndOfMonth();
-
-		List<Escala> escalas = escalaRepository.buscarPorPeriodoEDepartamento(
-				departamentoId, empresaId, inicioMes, fimMes);
-
-		return escalas.stream().map(escala -> {
-			List<EscalaMesDTO.VoluntarioEscalaDTO> voluntarios = new ArrayList<>();
-
-			if (escala.getMusicos() != null) {
-				for (EscalaMusico m : escala.getMusicos()) {
-					String funcaoOuInstrumento = m.getInstrumento();
-					if (funcaoOuInstrumento == null || funcaoOuInstrumento.isBlank()) {
-						funcaoOuInstrumento = "Voluntário";
-					}
-
-					voluntarios.add(new EscalaMesDTO.VoluntarioEscalaDTO(
-							m.getUsuario() != null ? m.getUsuario().getId() : null,
-							m.getUsuario() != null ? m.getUsuario().getNome() : null,
-							funcaoOuInstrumento
-					));
-				}
-			}
-
-			return new EscalaMesDTO(
-					escala.getId(),
-					escala.getDataEscala(),
-					escala.getObservacao(),
-					voluntarios
-			);
-		}).toList();
+	    return escalaMusicoRepository
+	            .findMinhasEscalasPorUsuarioId(usuarioId, empresaId, hoje)
+	            .stream()
+	            .map(EscalaMusico::getEscala)
+	            .distinct()
+	            .sorted(Comparator.comparing(Escala::getDataEscala))
+	            .map(this::converterParaDTO)
+	            .collect(Collectors.toList());
 	}
 
+	@Transactional(readOnly = true)
+	public List<EscalaMesDTO> buscarEscalasPorMesEDepartamento(Long departamentoId, int mes, int ano) {
+	    Long empresaId = securityUtils.empresaId();
+
+	    YearMonth yearMonth = YearMonth.of(ano, mes);
+	    LocalDate inicioMes = yearMonth.atDay(1);
+	    LocalDate fimMes = yearMonth.atEndOfMonth();
+
+	    List<Escala> escalas = escalaRepository.buscarPorPeriodoEDepartamento(
+	            departamentoId, empresaId, inicioMes, fimMes);
+
+	    return escalas.stream().map(escala -> {
+	        Long deptId = escala.getDepartamento() != null ? escala.getDepartamento().getId() : null;
+	        String deptNome = escala.getDepartamento() != null ? escala.getDepartamento().getNome() : null;
+
+	        List<EscalaMesDTO.VoluntarioEscalaDTO> voluntarios = new ArrayList<>();
+
+	        if (escala.getMusicos() != null) {
+	            for (EscalaMusico m : escala.getMusicos()) {
+	                String funcaoOuInstrumento = m.getInstrumento();
+	                if (funcaoOuInstrumento == null || funcaoOuInstrumento.isBlank()) {
+	                    funcaoOuInstrumento = "Voluntário";
+	                }
+
+	                voluntarios.add(new EscalaMesDTO.VoluntarioEscalaDTO(
+	                        m.getUsuario() != null ? m.getUsuario().getId() : null,
+	                        deptId,
+	                        m.getUsuario() != null ? m.getUsuario().getNome() : null,
+	                        funcaoOuInstrumento,
+	                        deptNome
+	                ));
+	            }
+	        }
+
+	        return new EscalaMesDTO(
+	                escala.getId(),
+	                escala.getDataEscala(),
+	                escala.getObservacao(),
+	                deptNome,
+	                deptId,
+	                voluntarios
+	        );
+	    }).toList();
+	}
 	public List<EscalaResponseDTO> listarPorAgendaMensal(Long agendaMensalId) {
 		Long empresaIdLogada = securityUtils.empresaId();
 		return escalaRepository.findByAgendaMensalIdAndEmpresaIdAndAtivaTrue(agendaMensalId, empresaIdLogada).stream()

@@ -1,5 +1,6 @@
 package com.hope.escala.service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -112,7 +113,9 @@ public class EscalaMusicoService {
   
 	public List<EscalaMusicoResponseDTO> listarMinhasEscalas() {
 	    Long usuarioId = securityUtils.usuarioId();
-	    return escalaMusicoRepository.findMinhasEscalasPorUsuarioId(usuarioId)
+	    Long empresaIdLogada = securityUtils.empresaId();
+	    LocalDate hoje = LocalDate.now();
+	    return escalaMusicoRepository.findMinhasEscalasPorUsuarioId(usuarioId, empresaIdLogada, hoje)
 	            .stream()
 	            .map(this::converterParaDTO)
 	            .toList();

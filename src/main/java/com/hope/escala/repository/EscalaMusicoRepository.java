@@ -22,14 +22,20 @@ public interface EscalaMusicoRepository extends JpaRepository<EscalaMusico, Long
 
 
     List<EscalaMusico> findByUsuarioId(Long usuarioId);
-    
-    @Query("SELECT em FROM EscalaMusico em " +
-    	       "JOIN FETCH em.escala e " +
-    	       "JOIN FETCH em.usuario u " +
-    	       "WHERE em.usuario.id = :usuarioId " +
-    	       "ORDER BY e.dataEscala ASC")
-    	List<EscalaMusico> findMinhasEscalasPorUsuarioId(@Param("usuarioId") Long usuarioId);
 
+    // 🟢 Minhas escalas — filtra por empresa, ativas e futuras
+    @Query("SELECT em FROM EscalaMusico em " +
+           "JOIN FETCH em.escala e " +
+           "JOIN FETCH em.usuario u " +
+           "WHERE em.usuario.id = :usuarioId " +
+           "AND em.empresa.id = :empresaId " +
+           "AND e.ativa = true " +
+           "AND e.dataEscala >= :hoje " +
+           "ORDER BY e.dataEscala ASC")
+    List<EscalaMusico> findMinhasEscalasPorUsuarioId(
+            @Param("usuarioId") Long usuarioId,
+            @Param("empresaId") Long empresaId,
+            @Param("hoje") LocalDate hoje);
 
     // 🟢 Busca os registros pela congregação
     @Query("SELECT em FROM EscalaMusico em WHERE em.empresa.id = :empresaId")
