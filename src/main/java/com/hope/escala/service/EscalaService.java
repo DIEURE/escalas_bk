@@ -157,9 +157,13 @@ public class EscalaService {
 	}
 
 	public List<EscalaResponseDTO> listar() {
-		Long empresaIdLogada = securityUtils.empresaId();
-		return escalaRepository.findByEmpresaIdAndAtivaTrue(empresaIdLogada).stream().map(this::converterParaDTO)
-				.collect(Collectors.toList());
+	    Long empresaIdLogada = securityUtils.empresaId();
+	    LocalDate hoje = LocalDate.now();
+
+	    return escalaRepository.findByEmpresaIdAndAtivaTrue(empresaIdLogada).stream()
+	            .filter(e -> e.getDataEscala() != null && !e.getDataEscala().isBefore(hoje))
+	            .map(this::converterParaDTO)
+	            .collect(Collectors.toList());
 	}
 
 	@Transactional(readOnly = true)
