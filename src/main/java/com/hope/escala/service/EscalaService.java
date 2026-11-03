@@ -96,6 +96,14 @@ public class EscalaService {
 		Departamento departamento = departamentoRepository.findById(dto.getDepartamentoId())
 				.orElseThrow(() -> new RuntimeException("Departamento não encontrado"));
 
+		if (escalaRepository.existsByAgendaMensalIdAndDepartamentoIdAndDataEscala(
+		        dto.getAgendaMensalId(), dto.getDepartamentoId(), dto.getDataEscala())) {
+		    throw new RuntimeException(
+		            "Já existe uma escala para este domingo neste departamento. " +
+		            "Edite ou inative a existente antes de criar outra.");
+		}
+		
+		
 		Escala escala = new Escala();
 		escala.setDataEscala(dto.getDataEscala());
 		escala.setNomeCultoNoite(dto.getNomeCultoNoite());
@@ -160,8 +168,7 @@ public class EscalaService {
 		LocalDate hoje = LocalDate.now();
 
 		return escalaRepository.findByEmpresaIdAndAtivaTrue(empresaIdLogada).stream()
-				.filter(e -> e.getDataEscala() != null && !e.getDataEscala().isBefore(hoje))
-				.map(this::converterParaDTO)
+				.filter(e -> e.getDataEscala() != null && !e.getDataEscala().isBefore(hoje)).map(this::converterParaDTO)
 				.collect(Collectors.toList());
 	}
 
@@ -171,14 +178,9 @@ public class EscalaService {
 		Long empresaId = securityUtils.empresaId();
 		LocalDate hoje = LocalDate.now();
 
-		return escalaMusicoRepository
-				.findMinhasEscalasPorUsuarioId(usuarioId, empresaId, hoje)
-				.stream()
-				.map(EscalaMusico::getEscala)
-				.distinct()
-				.sorted(Comparator.comparing(Escala::getDataEscala))
-				.map(this::converterParaDTO)
-				.collect(Collectors.toList());
+		return escalaMusicoRepository.findMinhasEscalasPorUsuarioId(usuarioId, empresaId, hoje).stream()
+				.map(EscalaMusico::getEscala).distinct().sorted(Comparator.comparing(Escala::getDataEscala))
+				.map(this::converterParaDTO).collect(Collectors.toList());
 	}
 
 	@Transactional(readOnly = true)
@@ -189,8 +191,8 @@ public class EscalaService {
 		LocalDate inicioMes = yearMonth.atDay(1);
 		LocalDate fimMes = yearMonth.atEndOfMonth();
 
-		List<Escala> escalas = escalaRepository.buscarPorPeriodoEDepartamento(
-				departamentoId, empresaId, inicioMes, fimMes);
+		List<Escala> escalas = escalaRepository.buscarPorPeriodoEDepartamento(departamentoId, empresaId, inicioMes,
+				fimMes);
 
 		return escalas.stream().map(escala -> {
 			Long deptId = escala.getDepartamento() != null ? escala.getDepartamento().getId() : null;
@@ -206,23 +208,13 @@ public class EscalaService {
 					}
 
 					voluntarios.add(new EscalaMesDTO.VoluntarioEscalaDTO(
-							m.getUsuario() != null ? m.getUsuario().getId() : null,
-							deptId,
-							m.getUsuario() != null ? m.getUsuario().getNome() : null,
-							funcaoOuInstrumento,
-							deptNome
-					));
+							m.getUsuario() != null ? m.getUsuario().getId() : null, deptId,
+							m.getUsuario() != null ? m.getUsuario().getNome() : null, funcaoOuInstrumento, deptNome));
 				}
 			}
 
-			return new EscalaMesDTO(
-					escala.getId(),
-					escala.getDataEscala(),
-					escala.getObservacao(),
-					deptNome,
-					deptId,
-					voluntarios
-			);
+			return new EscalaMesDTO(escala.getId(), escala.getDataEscala(), escala.getObservacao(), deptNome, deptId,
+					voluntarios);
 		}).toList();
 	}
 
@@ -247,8 +239,7 @@ public class EscalaService {
 	public EscalaResponseDTO atualizar(Long id, EscalaRequestDTO dto) {
 		Long empresaIdLogada = securityUtils.empresaId();
 
-		Escala escala = escalaRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Escala não encontrada"));
+		Escala escala = escalaRepository.findById(id).orElseThrow(() -> new RuntimeException("Escala não encontrada"));
 
 		if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
 			throw new ResourceNotFoundException("Escala não pertence à sua instituição");
@@ -289,8 +280,7 @@ public class EscalaService {
 				novo.setDataEscala(escala.getDataEscala());
 				novo.setUsuario(usuario);
 				novo.setInstrumento(
-						mDto.getInstrumento() != null && !mDto.getInstrumento().isBlank()
-								? mDto.getInstrumento()
+						mDto.getInstrumento() != null && !mDto.getInstrumento().isBlank() ? mDto.getInstrumento()
 								: "Geral");
 				novo.setConfirmado(null);
 				novo.setSubstituido(false);
@@ -365,6 +355,14 @@ public class EscalaService {
 
 			if (data.getDayOfWeek() == DayOfWeek.SUNDAY) {
 
+				boolean jaExiste = escalaRepository.existsByAgendaMensalIdAndDepartamentoIdAndDataEscala(agendaMensalId,
+						departamento.getId(), data);
+
+				if (jaExiste) {
+					data = data.plusDays(1);
+					continue;
+				}
+
 				Escala escala = new Escala();
 				escala.setAgendaMensal(agendaMensal);
 				escala.setDepartamento(departamento);
@@ -410,8 +408,8 @@ public class EscalaService {
 		Long departamentoId = escala.getDepartamento().getId();
 		LocalDate dataEscala = escala.getDataEscala();
 
-		List<Instrumento> instrumentos = instrumentoRepository
-				.findByEmpresaIdAndDepartamentoIdAndAtivoTrue(empresaId, departamentoId);
+		List<Instrumento> instrumentos = instrumentoRepository.findByEmpresaIdAndDepartamentoIdAndAtivoTrue(empresaId,
+				departamentoId);
 
 		int quantidadeMinistrosNaData = 0;
 		for (Instrumento inst : instrumentos) {
@@ -420,8 +418,8 @@ public class EscalaService {
 				int qtdMinistro = inst.getQuantidadeEscala() != null ? inst.getQuantidadeEscala() : 1;
 
 				java.util.Optional<com.hope.escala.entity.ExcecaoEscalaData> excMinistro = excecaoEscalaDataRepository
-						.findByDepartamentoIdAndDataExcecaoAndInstrumentoIdAndEmpresaId(
-								departamentoId, dataEscala, inst.getId(), empresaId);
+						.findByDepartamentoIdAndDataExcecaoAndInstrumentoIdAndEmpresaId(departamentoId, dataEscala,
+								inst.getId(), empresaId);
 
 				if (excMinistro.isPresent()) {
 					com.hope.escala.entity.ExcecaoEscalaData exc = excMinistro.get();
@@ -441,8 +439,8 @@ public class EscalaService {
 			int quantidadeFinal = instrumento.getQuantidadeEscala() != null ? instrumento.getQuantidadeEscala() : 0;
 
 			java.util.Optional<com.hope.escala.entity.ExcecaoEscalaData> excecaoOpt = excecaoEscalaDataRepository
-					.findByDepartamentoIdAndDataExcecaoAndInstrumentoIdAndEmpresaId(
-							departamentoId, dataEscala, instrumento.getId(), empresaId);
+					.findByDepartamentoIdAndDataExcecaoAndInstrumentoIdAndEmpresaId(departamentoId, dataEscala,
+							instrumento.getId(), empresaId);
 
 			if (excecaoOpt.isPresent()) {
 				com.hope.escala.entity.ExcecaoEscalaData excecao = excecaoOpt.get();
@@ -462,12 +460,8 @@ public class EscalaService {
 			}
 
 			for (int i = 0; i < quantidadeFinal; i++) {
-				Usuario usuario = escalaAutomaticaService.escolherMusicoRodizio(
-						instrumento.getNome(),
-						instrumento.getId(),
-						departamentoId,
-						escala.getId(),
-						empresaId);
+				Usuario usuario = escalaAutomaticaService.escolherMusicoRodizio(instrumento.getNome(),
+						instrumento.getId(), departamentoId, escala.getId(), empresaId);
 
 				EscalaMusico escalaMusico = new EscalaMusico();
 				escalaMusico.setEscala(escala);
@@ -504,13 +498,9 @@ public class EscalaService {
 			throw new ResourceNotFoundException("Instrumento não pertence à sua instituição");
 		}
 
-		return usuarioRepository.findCandidatosSubstituicao(empresaIdLogada, instrumento)
-				.stream()
-				.map(u -> new SubstitutoDisponivelDTO(
-						u.getId(),
-						u.getNome(),
-						instrumento.equals(u.getInstrumentoPrincipal())
-				))
+		return usuarioRepository.findCandidatosSubstituicao(empresaIdLogada, instrumento).stream()
+				.map(u -> new SubstitutoDisponivelDTO(u.getId(), u.getNome(),
+						instrumento.equals(u.getInstrumentoPrincipal())))
 				.toList();
 	}
 
@@ -522,8 +512,7 @@ public class EscalaService {
 		List<EscalaMusico> registros = escalaMusicoRepository.findByEscalaId(escalaId);
 
 		EscalaMusico vinculo = registros.stream()
-				.filter(em -> em.getUsuario() != null && em.getUsuario().getId().equals(usuarioLogadoId))
-				.findFirst()
+				.filter(em -> em.getUsuario() != null && em.getUsuario().getId().equals(usuarioLogadoId)).findFirst()
 				.orElseThrow(() -> new ResourceNotFoundException("Você não está escalado para este evento."));
 
 		if (!vinculo.getEmpresa().getId().equals(empresaIdLogada)) {
@@ -549,12 +538,10 @@ public class EscalaService {
 		}
 
 		List<EscalaMusicoResponseDTO> musicos = escalaMusicoRepository.findByEscalaId(escalaId).stream()
-				.map(this::converterMusicoDTO)
-				.toList();
+				.map(this::converterMusicoDTO).toList();
 
 		List<EscalaMusicaResponseDTO> musicas = escalaMusicaRepository.findByEscalaIdOrderByOrdemAsc(escalaId).stream()
-				.map(this::converterMusicaDTO)
-				.toList();
+				.map(this::converterMusicaDTO).toList();
 
 		List<Long> idsDisponiveis = disponibilidadeUsuarioRepository
 				.buscarIdsUsuariosDisponiveisNaData(escala.getDataEscala(), empresaIdLogada);
@@ -790,8 +777,7 @@ public class EscalaService {
 			}
 		}
 
-		String tituloFinal = (tituloPersonalizado != null && !tituloPersonalizado.isBlank())
-				? tituloPersonalizado
+		String tituloFinal = (tituloPersonalizado != null && !tituloPersonalizado.isBlank()) ? tituloPersonalizado
 				: ("Escala - " + escala.getDataEscala());
 
 		String urlPlaylist = "";
@@ -884,8 +870,7 @@ public class EscalaService {
 		List<EscalaMusico> registros = escalaMusicoRepository.findByEscalaId(escalaId);
 
 		EscalaMusico vinculo = registros.stream()
-				.filter(em -> em.getUsuario() != null && em.getUsuario().getId().equals(usuarioLogadoId))
-				.findFirst()
+				.filter(em -> em.getUsuario() != null && em.getUsuario().getId().equals(usuarioLogadoId)).findFirst()
 				.orElseThrow(() -> new ResourceNotFoundException("Você não está escalado para este evento."));
 
 		if (!vinculo.getEmpresa().getId().equals(empresaIdLogada)) {
@@ -895,7 +880,8 @@ public class EscalaService {
 		vinculo.setConfirmado(confirmado);
 
 		if (Boolean.FALSE.equals(confirmado)) {
-			vinculo.setJustificativaRecusa(justificativa != null && !justificativa.isBlank() ? justificativa.trim() : "Sem justificativa informada");
+			vinculo.setJustificativaRecusa(justificativa != null && !justificativa.isBlank() ? justificativa.trim()
+					: "Sem justificativa informada");
 		} else {
 			vinculo.setJustificativaRecusa(null);
 		}

@@ -54,12 +54,19 @@ public interface EscalaRepository extends JpaRepository<Escala, Long> {
              @Param("inicio") LocalDate inicio,
              @Param("fim") LocalDate fim);
 
-
-
-
-
  // EscalaRepository.java
     Optional<Escala> findByIdAndEmpresaId(Long id, Long empresaId);
 
+    @Query("SELECT COUNT(e) > 0 FROM Escala e " +
+    	       "WHERE e.agendaMensal.id = :agendaMensalId " +
+    	       "AND e.departamento.id = :departamentoId " +
+    	       "AND e.dataEscala = :data " +
+    	       "AND e.ativa = true")
+    	boolean existsByAgendaMensalIdAndDepartamentoIdAndDataEscala(
+    	        @Param("agendaMensalId") Long agendaMensalId,
+    	        @Param("departamentoId") Long departamentoId,
+    	        @Param("data") LocalDate data);
+
+    
 
 }
