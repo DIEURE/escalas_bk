@@ -39,32 +39,44 @@ public class EscalaMusicoService {
 
 	public EscalaMusicoResponseDTO salvar(EscalaMusicoRequestDTO dto) {
 
-		// 🟢 1. Obtém o ID da empresa logada com segurança pelo Token JWT
 		Long empresaIdLogada = securityUtils.empresaId();
 
-		// 🟢 2. Busca e valida se a escala pertence à empresa logada
 		Escala escala = escalaRepository.findById(dto.getEscalaId())
 				.orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada"));
-				
+
 		if (!escala.getEmpresa().getId().equals(empresaIdLogada)) {
 			throw new ResourceNotFoundException("Escala não pertence à sua instituição");
 		}
 
-		// 🟢 3. Busca e valida se o usuário pertence à empresa logada
 		Usuario usuario = usuarioRepository.findById(dto.getUsuarioId())
 				.orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-				
+
 		if (!usuario.getEmpresa().getId().equals(empresaIdLogada)) {
 			throw new ResourceNotFoundException("Usuário não pertence à sua instituição");
 		}
 
-		EscalaMusico escalaMusico = new EscalaMusico();
+		String instrumento = (dto.getInstrumento() != null && !dto.getInstrumento().isBlank())
+				? dto.getInstrumento()
+				: (usuario.getInstrumentoPrincipal() != null
+						? usuario.getInstrumentoPrincipal().getNome()
+						: "Geral");
 
+		if (escalaMusicoRepository.existsByEscalaIdAndUsuarioIdAndInstrumento(
+				dto.getEscalaId(), dto.getUsuarioId(), instrumento)) {
+			throw new RuntimeException(
+					"Este usuário já está escalado como " + instrumento
+							+ " neste evento. Ele pode assumir outro instrumento, mas não repetir o mesmo.");
+		}
+
+		EscalaMusico escalaMusico = new EscalaMusico();
 		escalaMusico.setEscala(escala);
 		escalaMusico.setDataEscala(escala.getDataEscala());
 		escalaMusico.setUsuario(usuario);
+		escalaMusico.setInstrumento(instrumento);
 		escalaMusico.setObservacao(dto.getObservacao());
 		escalaMusico.setConfirmado(false);
+		escalaMusico.setSubstituido(false);
+		escalaMusico.setEmpresa(escala.getEmpresa());
 
 		EscalaMusico escalaMusicoSalvo = escalaMusicoRepository.save(escalaMusico);
 
@@ -72,14 +84,11 @@ public class EscalaMusicoService {
 	}
 
 	public List<EscalaMusicoResponseDTO> listarPorEscala(Long escalaId) {
-
 		List<EscalaMusico> escalaMusicos = escalaMusicoRepository.findByEscalaId(escalaId);
-
 		return escalaMusicos.stream().map(this::converterParaDTO).toList();
 	}
 
 	public EscalaMusicoResponseDTO atualizarConfirmacao(Long id, ConfirmacaoEscalaMusicoDTO dto) {
-
 		EscalaMusico escalaMusico = escalaMusicoRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Escala músico não encontrada"));
 
@@ -93,7 +102,6 @@ public class EscalaMusicoService {
 	}
 
 	public EscalaMusicoResponseDTO substituirMusico(Long id, SubstituicaoEscalaMusicoDTO dto) {
-
 		EscalaMusico escalaMusico = escalaMusicoRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Escala músico não encontrada"));
 
@@ -110,113 +118,107 @@ public class EscalaMusicoService {
 
 		return converterParaDTO(escalaMusicoAtualizado);
 	}
-  
+
 	public List<EscalaMusicoResponseDTO> listarMinhasEscalas() {
-	    Long usuarioId = securityUtils.usuarioId();
-	    Long empresaIdLogada = securityUtils.empresaId();
-	    LocalDate hoje = LocalDate.now();
-	    return escalaMusicoRepository.findMinhasEscalasPorUsuarioId(usuarioId, empresaIdLogada, hoje)
-	            .stream()
-	            .map(this::converterParaDTO)
-	            .toList();
+		Long usuarioId = securityUtils.usuarioId();
+		Long empresaIdLogada = securityUtils.empresaId();
+		LocalDate hoje = LocalDate.now();
+		return escalaMusicoRepository.findMinhasEscalasPorUsuarioId(usuarioId, empresaIdLogada, hoje)
+				.stream()
+				.map(this::converterParaDTO)
+				.toList();
 	}
 
 	public EscalaMusicoResponseDTO confirmarMinhaEscala(Long escalaId, Boolean confirmado) {
-	    Long usuarioId = securityUtils.usuarioId();
-	    // 🟢 Filtra garantindo que ignora vagas em aberto (usuario == null)
-	    EscalaMusico em = escalaMusicoRepository.findByEscalaId(escalaId).stream()
-	            .filter(m -> m.getUsuario() != null && m.getUsuario().getId().equals(usuarioId))
-	            .findFirst()
-	            .orElseThrow(() -> new ResourceNotFoundException("Você não está escalado nesta escala"));
-	            
-	    em.setConfirmado(confirmado);
-	    EscalaMusico salvo = escalaMusicoRepository.save(em);
-	    verificarFechamentoEscala(escalaId);
-	    return converterParaDTO(salvo);
+		Long usuarioId = securityUtils.usuarioId();
+		EscalaMusico em = escalaMusicoRepository.findByEscalaId(escalaId).stream()
+				.filter(m -> m.getUsuario() != null && m.getUsuario().getId().equals(usuarioId))
+				.findFirst()
+				.orElseThrow(() -> new ResourceNotFoundException("Você não está escalado nesta escala"));
+
+		em.setConfirmado(confirmado);
+		EscalaMusico salvo = escalaMusicoRepository.save(em);
+		verificarFechamentoEscala(escalaId);
+		return converterParaDTO(salvo);
 	}
-	
+
 	private EscalaMusicoResponseDTO converterParaDTO(EscalaMusico escalaMusico) {
 
-	    EscalaMusicoResponseDTO dto = new EscalaMusicoResponseDTO();
+		EscalaMusicoResponseDTO dto = new EscalaMusicoResponseDTO();
 
-	    dto.setId(escalaMusico.getId());
+		dto.setId(escalaMusico.getId());
 
-	    if (escalaMusico.getEscala() != null) {
-	        dto.setEscalaId(escalaMusico.getEscala().getId());
-	        dto.setNomeCultoManha(escalaMusico.getEscala().getNomeCultoManha());
-	        dto.setNomeCultoNoite(escalaMusico.getEscala().getNomeCultoNoite());
-	        dto.setDataEscala(escalaMusico.getEscala().getDataEscala()); 
-	        dto.setHorarioManha(escalaMusico.getEscala().getHorarioManha());
-	        dto.setHorarioNoite(escalaMusico.getEscala().getHorarioNoite());
-	    }
+		if (escalaMusico.getEscala() != null) {
+			dto.setEscalaId(escalaMusico.getEscala().getId());
+			dto.setNomeCultoManha(escalaMusico.getEscala().getNomeCultoManha());
+			dto.setNomeCultoNoite(escalaMusico.getEscala().getNomeCultoNoite());
+			dto.setDataEscala(escalaMusico.getEscala().getDataEscala());
+			dto.setHorarioManha(escalaMusico.getEscala().getHorarioManha());
+			dto.setHorarioNoite(escalaMusico.getEscala().getHorarioNoite());
+		}
 
-	    // 🟢 Trata vaga aberta/desocupada (sem usuário)
-	    if (escalaMusico.getUsuario() != null) {
-	        dto.setUsuarioId(escalaMusico.getUsuario().getId());
-	        dto.setNomeUsuario(escalaMusico.getUsuario().getNome());
-	    } else {
-	        dto.setUsuarioId(null);
-	        dto.setNomeUsuario(null);
-	    }
+		if (escalaMusico.getUsuario() != null) {
+			dto.setUsuarioId(escalaMusico.getUsuario().getId());
+			dto.setNomeUsuario(escalaMusico.getUsuario().getNome());
+		} else {
+			dto.setUsuarioId(null);
+			dto.setNomeUsuario(null);
+		}
 
-	    // 🟢 Garante o instrumento da vaga mesmo se o usuário for null
-	    if (escalaMusico.getInstrumento() != null && !escalaMusico.getInstrumento().isBlank()) {
-	        dto.setInstrumento(escalaMusico.getInstrumento());
-	    } else if (escalaMusico.getUsuario() != null && escalaMusico.getUsuario().getInstrumentos() != null && !escalaMusico.getUsuario().getInstrumentos().isEmpty()) {
-	        String nomesInstrumentos = escalaMusico.getUsuario().getInstrumentos().stream()
-	                .map(com.hope.escala.entity.Instrumento::getNome)
-	                .collect(Collectors.joining(", "));
-	        dto.setInstrumento(nomesInstrumentos);
-	    } else {
-	        dto.setInstrumento("Sem Instrumento");
-	    }
+		if (escalaMusico.getInstrumento() != null && !escalaMusico.getInstrumento().isBlank()) {
+			dto.setInstrumento(escalaMusico.getInstrumento());
+		} else if (escalaMusico.getUsuario() != null && escalaMusico.getUsuario().getInstrumentos() != null
+				&& !escalaMusico.getUsuario().getInstrumentos().isEmpty()) {
+			String nomesInstrumentos = escalaMusico.getUsuario().getInstrumentos().stream()
+					.map(com.hope.escala.entity.Instrumento::getNome)
+					.collect(Collectors.joining(", "));
+			dto.setInstrumento(nomesInstrumentos);
+		} else {
+			dto.setInstrumento("Sem Instrumento");
+		}
 
-	    dto.setConfirmado(escalaMusico.getConfirmado());
-	    dto.setObservacao(escalaMusico.getObservacao());
-	    dto.setSubstituido(escalaMusico.getSubstituido());
+		dto.setConfirmado(escalaMusico.getConfirmado());
+		dto.setObservacao(escalaMusico.getObservacao());
+		dto.setSubstituido(escalaMusico.getSubstituido());
 
-	    if (escalaMusico.getUsuarioSubstituto() != null) {
-	        dto.setUsuarioSubstitutoId(escalaMusico.getUsuarioSubstituto().getId());
-	        dto.setNomeSubstituto(escalaMusico.getUsuarioSubstituto().getNome());
-	    }
+		if (escalaMusico.getUsuarioSubstituto() != null) {
+			dto.setUsuarioSubstitutoId(escalaMusico.getUsuarioSubstituto().getId());
+			dto.setNomeSubstituto(escalaMusico.getUsuarioSubstituto().getNome());
+		}
 
-	    dto.setMotivoSubstituicao(escalaMusico.getMotivoSubstituicao());
+		dto.setMotivoSubstituicao(escalaMusico.getMotivoSubstituicao());
 
-	    return dto;
+		return dto;
 	}
 
 	private void verificarFechamentoEscala(Long escalaId) {
+		List<EscalaMusico> musicos = escalaMusicoRepository.findByEscalaId(escalaId);
 
-	    List<EscalaMusico> musicos =
-	            escalaMusicoRepository.findByEscalaId(escalaId);
+		boolean todosConfirmados = musicos.stream()
+				.allMatch(m -> Boolean.TRUE.equals(m.getConfirmado())
+						|| Boolean.TRUE.equals(m.getSubstituido()));
 
-	    boolean todosConfirmados = musicos.stream()
-	            .allMatch(m ->
-	                    Boolean.TRUE.equals(m.getConfirmado())
-	                    || Boolean.TRUE.equals(m.getSubstituido()));
-
-	    if (todosConfirmados) {
-	        escalaService.fecharEscala(escalaId);
-	    }
+		if (todosConfirmados) {
+			escalaService.fecharEscala(escalaId);
+		}
 	}
-	
+
 	public EscalaMusicoResponseDTO desocuparVaga(Long id) {
-	    EscalaMusico escalaMusico = escalaMusicoRepository.findById(id)
-	            .orElseThrow(() -> new ResourceNotFoundException("Vaga da escala não encontrada"));
+		EscalaMusico escalaMusico = escalaMusicoRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Vaga da escala não encontrada"));
 
-	    Long empresaIdLogada = securityUtils.empresaId();
-	    if (!escalaMusico.getEmpresa().getId().equals(empresaIdLogada)) {
-	        throw new ResourceNotFoundException("Escala não pertence à sua congregação");
-	    }
+		Long empresaIdLogada = securityUtils.empresaId();
+		if (!escalaMusico.getEmpresa().getId().equals(empresaIdLogada)) {
+			throw new ResourceNotFoundException("Escala não pertence à sua congregação");
+		}
 
-	    escalaMusico.setUsuario(null);
-	    escalaMusico.setConfirmado(false);
-	    escalaMusico.setSubstituido(false);
-	    escalaMusico.setUsuarioSubstituto(null);
-	    escalaMusico.setObservacao("Vaga em aberto");
+		escalaMusico.setUsuario(null);
+		escalaMusico.setConfirmado(false);
+		escalaMusico.setSubstituido(false);
+		escalaMusico.setUsuarioSubstituto(null);
+		escalaMusico.setObservacao("Vaga em aberto");
 
-	    EscalaMusico vagaDesocupada = escalaMusicoRepository.save(escalaMusico);
-	    return converterParaDTO(vagaDesocupada);
+		EscalaMusico vagaDesocupada = escalaMusicoRepository.save(escalaMusico);
+		return converterParaDTO(vagaDesocupada);
 	}
-
 }

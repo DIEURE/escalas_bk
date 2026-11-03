@@ -41,7 +41,13 @@ public class EscalaAutomaticaService {
     }
 
     @Transactional(readOnly = true)
-    public Usuario escolherMusicoRodizio(Long instrumentoId, Long departamentoId, Long escalaId, Long empresaId) {
+    public Usuario escolherMusicoRodizio(
+            String nomeInstrumento,
+            Long instrumentoId,
+            Long departamentoId,
+            Long escalaId,
+            Long empresaId) {
+
         Long empresaAlvo = empresaId != null ? empresaId : securityUtils.empresaId();
 
         if (empresaAlvo == null) {
@@ -62,7 +68,9 @@ public class EscalaAutomaticaService {
             return null;
         }
 
-        List<Long> usuariosJaEscalados = escalaMusicoRepository.buscarUsuariosJaEscalados(escalaId);
+        // 🟢 Filtra por instrumento — permite o mesmo usuário em outro instrumento
+        List<Long> usuariosJaEscaladosNoInstrumento = escalaMusicoRepository
+                .buscarUsuariosJaEscaladosNoInstrumento(escalaId, nomeInstrumento);
 
         List<Long> usuariosSuspensos = suspensaoRepository.buscarIdsSuspensosNoMes(
                 departamentoId, mesEscala, anoEscala, empresaAlvo);
@@ -72,7 +80,7 @@ public class EscalaAutomaticaService {
 
         List<Usuario> candidatosElegiveis = todosDoInstrumento.stream()
                 .filter(u -> usuariosQueMarcaramPresenca.contains(u.getId()))
-                .filter(u -> !usuariosJaEscalados.contains(u.getId()))
+                .filter(u -> !usuariosJaEscaladosNoInstrumento.contains(u.getId()))
                 .filter(u -> !usuariosSuspensos.contains(u.getId()))
                 .filter(u -> Boolean.TRUE.equals(u.getElegivelEscalaAutomatica()))
                 .toList();
@@ -105,7 +113,11 @@ public class EscalaAutomaticaService {
     }
 
     @Transactional(readOnly = true)
-    public Usuario escolherMusicoRodizio(Long instrumentoId, Long departamentoId, Long escalaId) {
-        return escolherMusicoRodizio(instrumentoId, departamentoId, escalaId, null);
+    public Usuario escolherMusicoRodizio(
+            String nomeInstrumento,
+            Long instrumentoId,
+            Long departamentoId,
+            Long escalaId) {
+        return escolherMusicoRodizio(nomeInstrumento, instrumentoId, departamentoId, escalaId, null);
     }
 }

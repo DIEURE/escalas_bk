@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,7 @@ import com.hope.escala.dto.response.MatrizDisponibilidadeResponseDTO;
 import com.hope.escala.dto.response.MatrizDisponibilidadeResponseDTO.MusicoMatrizDTO;
 import com.hope.escala.dto.response.MatrizDisponibilidadeResponseDTO.StatusDataDTO;
 import com.hope.escala.entity.AgendaMensal;
+import com.hope.escala.entity.Departamento;
 import com.hope.escala.entity.DisponibilidadeUsuario;
 import com.hope.escala.entity.Empresa;
 import com.hope.escala.entity.Usuario;
@@ -77,9 +79,18 @@ public class DisponibilidadeService {
         Empresa empresa = empresaRepository.findById(empresaId)
                 .orElseThrow(() -> new RuntimeException("Congregação não encontrada: " + empresaId));
 
-        AgendaMensal agendaMensal = agendaMensalRepository
-                .findByMesEAnoEEmpresaId(mes, ano, empresaId)
-                .orElse(null);
+        Long departamentoId = null;
+        Set<Departamento> departamentos = usuario.getDepartamentos();
+        if (departamentos != null && !departamentos.isEmpty()) {
+            departamentoId = departamentos.iterator().next().getId();
+        }
+
+        AgendaMensal agendaMensal = null;
+        if (departamentoId != null) {
+            agendaMensal = agendaMensalRepository
+                    .findByMesEAnoEEmpresaIdAndDepartamentoId(mes, ano, empresaId, departamentoId)
+                    .orElse(null);
+        }
 
         LocalDate inicioMes = LocalDate.of(ano, mes, 1);
         LocalDate fimMes = inicioMes.withDayOfMonth(inicioMes.lengthOfMonth());
@@ -90,6 +101,7 @@ public class DisponibilidadeService {
             return;
         }
 
+        final AgendaMensal agendaFinal = agendaMensal;
         List<DisponibilidadeUsuario> novasDisponibilidades = datas.stream()
                 .filter(d -> d.getMonthValue() == mes && d.getYear() == ano)
                 .distinct()
@@ -98,7 +110,7 @@ public class DisponibilidadeService {
                     disp.setUsuario(usuario);
                     disp.setDataDisponivel(data);
                     disp.setEmpresa(empresa);
-                    disp.setAgendaMensal(agendaMensal);
+                    disp.setAgendaMensal(agendaFinal);
                     return disp;
                 })
                 .toList();
@@ -142,7 +154,6 @@ public class DisponibilidadeService {
             for (LocalDate domingo : domingos) {
                 String chave = musico.getId() + "_" + domingo;
 
-                // ✅ Marcou = DISPONIVEL | Não marcou = INDISPONIVEL
                 String status = Boolean.TRUE.equals(mapaPresenca.get(chave))
                         ? "DISPONIVEL"
                         : "INDISPONIVEL";
