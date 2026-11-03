@@ -1,6 +1,7 @@
 package com.hope.escala.dto.response;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -18,7 +19,7 @@ public class UsuarioResponseDTO {
 
     private Set<Long> instrumentoIds = new HashSet<>();
     private String nomeInstrumento;
-    private Set<String> departamentos;
+    private List<DepartamentoResumoDTO> departamentos;
     private Integer quantidade_Escala;
     
     private Long instrumentoPrincipalId;
@@ -34,40 +35,33 @@ public class UsuarioResponseDTO {
     public UsuarioResponseDTO() {
     }
 
-    // 🟢 Construtor a partir da entidade Usuario
-    public UsuarioResponseDTO(com.hope.escala.entity.Usuario usuario) {
-        if (usuario != null) {
-            this.id = usuario.getId();
-            this.nome = usuario.getNome();
-            this.email = usuario.getEmail();
-            this.telefone = usuario.getTelefone();
-            this.disponibilidade = usuario.getDisponibilidade();
-            this.ativo = usuario.getAtivo();
-            this.perfil = usuario.getPerfil();
+   
 
-            // Vínculo da congregação/empresa
-            if (usuario.getEmpresa() != null) {
-                this.empresaId = usuario.getEmpresa().getId();
-                this.empresaNome = usuario.getEmpresa().getNome();
-            }
+    public UsuarioResponseDTO(Long id, String nome, String email, String telefone, Boolean disponibilidade,
+			Boolean ativo, PerfilUsuario perfil, Set<Long> instrumentoIds, String nomeInstrumento,
+			List<DepartamentoResumoDTO> departamentos, Integer quantidade_Escala, Long instrumentoPrincipalId,
+			Long empresaId, String empresaNome, Boolean elegivelEscalaAutomatica) {
+		super();
+		this.id = id;
+		this.nome = nome;
+		this.email = email;
+		this.telefone = telefone;
+		this.disponibilidade = disponibilidade;
+		this.ativo = ativo;
+		this.perfil = perfil;
+		this.instrumentoIds = instrumentoIds;
+		this.nomeInstrumento = nomeInstrumento;
+		this.departamentos = departamentos;
+		this.quantidade_Escala = quantidade_Escala;
+		this.instrumentoPrincipalId = instrumentoPrincipalId;
+		this.empresaId = empresaId;
+		this.empresaNome = empresaNome;
+		this.elegivelEscalaAutomatica = elegivelEscalaAutomatica;
+	}
 
-            // Mapeia os IDs dos instrumentos
-            if (usuario.getInstrumentos() != null) {
-                this.instrumentoIds = usuario.getInstrumentos().stream()
-                        .map(inst -> inst.getId())
-                        .collect(Collectors.toSet());
-            }
 
-            // Mapeia os nomes dos departamentos
-            if (usuario.getDepartamentos() != null) {
-                this.departamentos = usuario.getDepartamentos().stream()
-                        .map(dep -> dep.getNome())
-                        .collect(Collectors.toSet());
-            }
-        }
-    }
 
-    public Long getId() {
+	public Long getId() {
         return id;
     }
 
@@ -147,15 +141,21 @@ public class UsuarioResponseDTO {
         this.nomeInstrumento = nomeInstrumento;
     }
 
-    public Set<String> getDepartamentos() {
-        return departamentos;
-    }
+    
 
-    public void setDepartamentos(Set<String> departamentos) {
-        this.departamentos = departamentos;
-    }
+    public List<DepartamentoResumoDTO> getDepartamentos() {
+		return departamentos;
+	}
 
-    public Integer getQuantidade_Escala() {
+
+
+	public void setDepartamentos(List<DepartamentoResumoDTO> departamentos) {
+		this.departamentos = departamentos;
+	}
+
+
+
+	public Integer getQuantidade_Escala() {
         return quantidade_Escala;
     }
 

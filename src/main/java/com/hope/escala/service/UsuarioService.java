@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
+import com.hope.escala.dto.response.DepartamentoResumoDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -587,8 +587,9 @@ public class UsuarioService {
 		}
 
 		if (usuario.getDepartamentos() != null) {
-			dto.setDepartamentos(
-					usuario.getDepartamentos().stream().map(Departamento::getNome).collect(Collectors.toSet()));
+			dto.setDepartamentos(usuario.getDepartamentos().stream()
+			        .map(d -> new DepartamentoResumoDTO(d.getId(), d.getNome()))
+			        .collect(Collectors.toList()));
 		}
 
 		return dto;
