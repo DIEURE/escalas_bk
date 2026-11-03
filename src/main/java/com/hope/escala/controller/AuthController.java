@@ -1,6 +1,9 @@
 package com.hope.escala.controller;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.hope.escala.dto.request.RedefinirSenhaDTO;
 import com.hope.escala.dto.request.SolicitarRecuperacaoSenhaDTO;
 import com.hope.escala.dto.request.UsuarioRequestDTO;
+import com.hope.escala.dto.response.DepartamentoResumoDTO;
 import com.hope.escala.entity.Empresa;
 import com.hope.escala.entity.Usuario;
 import com.hope.escala.enums.PerfilUsuario;
@@ -71,8 +75,21 @@ public class AuthController {
 		Long empresaId = usuario.getEmpresa() != null ? usuario.getEmpresa().getId() : null;
 		String nomeEmpresa = usuario.getEmpresa() != null ? usuario.getEmpresa().getNome() : null;
 
-		return new LoginResponseDTO(token, usuario.getNome(), usuario.getEmail(), usuario.getPerfil().name(), empresaId,
-				nomeEmpresa);
+		List<DepartamentoResumoDTO> departamentos = (usuario.getDepartamentos() == null || usuario.getDepartamentos().isEmpty())
+				? new ArrayList<>()
+				: usuario.getDepartamentos().stream()
+						.map(d -> new DepartamentoResumoDTO(d.getId(), d.getNome()))
+						.collect(Collectors.toList());
+
+		return new LoginResponseDTO(
+				usuario.getId(),
+				token,
+				usuario.getNome(),
+				usuario.getEmail(),
+				usuario.getPerfil().name(),
+				empresaId,
+				nomeEmpresa,
+				departamentos);
 	}
 
 	@PostMapping("/solicitar-cadastro")
