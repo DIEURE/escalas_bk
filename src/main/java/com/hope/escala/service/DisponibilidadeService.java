@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,10 +20,12 @@ import com.hope.escala.entity.AgendaMensal;
 import com.hope.escala.entity.Departamento;
 import com.hope.escala.entity.DisponibilidadeUsuario;
 import com.hope.escala.entity.Empresa;
+import com.hope.escala.entity.Escala;
 import com.hope.escala.entity.Usuario;
 import com.hope.escala.repository.AgendaMensalRepository;
 import com.hope.escala.repository.DisponibilidadeUsuarioRepository;
 import com.hope.escala.repository.EmpresaRepository;
+import com.hope.escala.repository.EscalaRepository;
 import com.hope.escala.repository.UsuarioRepository;
 import com.hope.escala.security.SecurityUtils;
 
@@ -33,6 +36,7 @@ public class DisponibilidadeService {
     private final UsuarioRepository usuarioRepository;
     private final EmpresaRepository empresaRepository;
     private final AgendaMensalRepository agendaMensalRepository;
+    private final EscalaRepository escalaRepository;
     private final SecurityUtils securityUtils;
 
     public DisponibilidadeService(
@@ -40,11 +44,13 @@ public class DisponibilidadeService {
             UsuarioRepository usuarioRepository,
             EmpresaRepository empresaRepository,
             AgendaMensalRepository agendaMensalRepository,
+            EscalaRepository escalaRepository,
             SecurityUtils securityUtils) {
         this.disponibilidadeRepository = disponibilidadeRepository;
         this.usuarioRepository = usuarioRepository;
         this.empresaRepository = empresaRepository;
         this.agendaMensalRepository = agendaMensalRepository;
+        this.escalaRepository = escalaRepository;
         this.securityUtils = securityUtils;
     }
 
@@ -126,19 +132,34 @@ public class DisponibilidadeService {
         LocalDate inicioMes = yearMonth.atDay(1);
         LocalDate fimMes = yearMonth.atEndOfMonth();
 
-        List<LocalDate> domingos = new ArrayList<>();
+        // 1) Todos os domingos do mês (mantém o comportamento atual)
+        // 2) + datas de escalas avulsas ativas do departamento (ex.: Culto da Virada, Rede-Mídia)
+        Set<LocalDate> conjuntoDatas = new TreeSet<>();
+
         LocalDate cursor = inicioMes;
         while (!cursor.isAfter(fimMes)) {
             if (cursor.getDayOfWeek() == DayOfWeek.SUNDAY) {
-                domingos.add(cursor);
+                conjuntoDatas.add(cursor);
             }
             cursor = cursor.plusDays(1);
         }
 
-        List<Usuario> voluntarios = usuarioRepository.buscarUsuariosPorDepartamentoEEmpresa(departamentoId, empresaId);
+        List<Escala> escalasAvulsas = escalaRepository.buscarAtivasPorPeriodoEDepartamento(
+                departamentoId, empresaId, inicioMes, fimMes);
 
-        List<DisponibilidadeUsuario> registros = disponibilidadeRepository.buscarPorPeriodoEEmpresa(
-                empresaId, inicioMes, fimMes);
+        for (Escala escala : escalasAvulsas) {
+            if (escala.getDataEscala() != null) {
+                conjuntoDatas.add(escala.getDataEscala());
+            }
+        }
+
+        List<LocalDate> datas = new ArrayList<>(conjuntoDatas);
+
+        List<Usuario> voluntarios = usuarioRepository
+                .buscarUsuariosPorDepartamentoEEmpresa(departamentoId, empresaId);
+
+        List<DisponibilidadeUsuario> registros = disponibilidadeRepository
+                .buscarPorPeriodoEEmpresa(empresaId, inicioMes, fimMes);
 
         Map<String, Boolean> mapaPresenca = new HashMap<>();
         for (DisponibilidadeUsuario reg : registros) {
@@ -151,14 +172,14 @@ public class DisponibilidadeService {
         for (Usuario musico : voluntarios) {
             List<StatusDataDTO> listaStatus = new ArrayList<>();
 
-            for (LocalDate domingo : domingos) {
-                String chave = musico.getId() + "_" + domingo;
+            for (LocalDate data : datas) {
+                String chave = musico.getId() + "_" + data;
 
                 String status = Boolean.TRUE.equals(mapaPresenca.get(chave))
                         ? "DISPONIVEL"
                         : "INDISPONIVEL";
 
-                listaStatus.add(new StatusDataDTO(domingo, status));
+                listaStatus.add(new StatusDataDTO(data, status));
             }
 
             String instrumentoNome = musico.getInstrumentoPrincipal() != null
@@ -173,6 +194,6 @@ public class DisponibilidadeService {
             ));
         }
 
-        return new MatrizDisponibilidadeResponseDTO(mes, ano, domingos, linhas);
+        return new MatrizDisponibilidadeResponseDTO(mes, ano, datas, linhas);
     }
 }

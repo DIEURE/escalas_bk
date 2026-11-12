@@ -16,31 +16,29 @@ public interface EscalaRepository extends JpaRepository<Escala, Long> {
     List<Escala> findByAtivaTrue();
 
     List<Escala> findByAgendaMensalIdAndAtivaTrue(Long agendaMensalId);
-    
+
     List<Escala> findByEmpresaId(Long empresaId);
-    
-    // 🟢 Método padrão para listagem geral filtrada por empresa e ativas
+
+    // Método padrão para listagem geral filtrada por empresa e ativas
     List<Escala> findByEmpresaIdAndAtivaTrue(Long empresaId);
 
-    // 🟢 Método que estava faltando no repositório para a agenda mensal com multi-tenant
+    // Método que estava faltando no repositório para a agenda mensal com multi-tenant
     List<Escala> findByAgendaMensalIdAndEmpresaIdAndAtivaTrue(Long agendaMensalId, Long empresaId);
-    
-    List<Escala> findByEmpresaIdAndDataEscalaBetweenOrderByDataEscalaAsc(Long empresaId, LocalDate inicio, LocalDate fim);
 
+    List<Escala> findByEmpresaIdAndDataEscalaBetweenOrderByDataEscalaAsc(Long empresaId, LocalDate inicio, LocalDate fim);
 
     // Query customizada para verificar conflito de horário (manhã OU noite)
     @Query("SELECT COUNT(e) > 0 FROM Escala e WHERE e.dataEscala = :data " +
             "AND e.departamento.id = :deptId " +
             "AND e.empresa.id = :empresaId " +
             "AND (e.horarioManha = :horaManha OR e.horarioNoite = :horaNoite)")
-     boolean existeConflitoHorario(
-         @Param("data") LocalDate data,
-         @Param("horaManha") LocalTime horaManha,
-         @Param("horaNoite") LocalTime horaNoite,
-         @Param("deptId") Long deptId,
-         @Param("empresaId") Long empresaId);
+    boolean existeConflitoHorario(
+            @Param("data") LocalDate data,
+            @Param("horaManha") LocalTime horaManha,
+            @Param("horaNoite") LocalTime horaNoite,
+            @Param("deptId") Long deptId,
+            @Param("empresaId") Long empresaId);
 
-    
     @Query("SELECT DISTINCT e FROM Escala e " +
             "LEFT JOIN FETCH e.musicos m " +
             "LEFT JOIN FETCH m.usuario u " +
@@ -48,25 +46,34 @@ public interface EscalaRepository extends JpaRepository<Escala, Long> {
             "AND e.empresa.id = :empresaId " +
             "AND (e.dataEscala BETWEEN :inicio AND :fim) " +
             "ORDER BY e.dataEscala ASC")
-     List<Escala> buscarPorPeriodoEDepartamento(
-             @Param("departamentoId") Long departamentoId,
-             @Param("empresaId") Long empresaId,
-             @Param("inicio") LocalDate inicio,
-             @Param("fim") LocalDate fim);
+    List<Escala> buscarPorPeriodoEDepartamento(
+            @Param("departamentoId") Long departamentoId,
+            @Param("empresaId") Long empresaId,
+            @Param("inicio") LocalDate inicio,
+            @Param("fim") LocalDate fim);
 
- // EscalaRepository.java
+    // 🟢 Novo: escalas ativas do departamento no período — usado pela matriz de disponibilidade
+    @Query("SELECT e FROM Escala e " +
+            "WHERE e.departamento.id = :departamentoId " +
+            "AND e.empresa.id = :empresaId " +
+            "AND e.ativa = true " +
+            "AND (e.dataEscala BETWEEN :inicio AND :fim) " +
+            "ORDER BY e.dataEscala ASC")
+    List<Escala> buscarAtivasPorPeriodoEDepartamento(
+            @Param("departamentoId") Long departamentoId,
+            @Param("empresaId") Long empresaId,
+            @Param("inicio") LocalDate inicio,
+            @Param("fim") LocalDate fim);
+
     Optional<Escala> findByIdAndEmpresaId(Long id, Long empresaId);
 
     @Query("SELECT COUNT(e) > 0 FROM Escala e " +
-    	       "WHERE e.agendaMensal.id = :agendaMensalId " +
-    	       "AND e.departamento.id = :departamentoId " +
-    	       "AND e.dataEscala = :data " +
-    	       "AND e.ativa = true")
-    	boolean existsByAgendaMensalIdAndDepartamentoIdAndDataEscala(
-    	        @Param("agendaMensalId") Long agendaMensalId,
-    	        @Param("departamentoId") Long departamentoId,
-    	        @Param("data") LocalDate data);
-
-    
-
+            "WHERE e.agendaMensal.id = :agendaMensalId " +
+            "AND e.departamento.id = :departamentoId " +
+            "AND e.dataEscala = :data " +
+            "AND e.ativa = true")
+    boolean existsByAgendaMensalIdAndDepartamentoIdAndDataEscala(
+            @Param("agendaMensalId") Long agendaMensalId,
+            @Param("departamentoId") Long departamentoId,
+            @Param("data") LocalDate data);
 }
