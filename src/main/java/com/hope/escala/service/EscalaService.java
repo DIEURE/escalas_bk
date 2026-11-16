@@ -131,7 +131,7 @@ public class EscalaService {
 
 		if (dto.getTipoEscala() == TipoEscala.AUTOMATICA) {
 			gerarMusicosAutomaticamente(salva);
-			salva.setStatus(StatusEscala.AGUARDANDO_CONFIRMACAO);
+			salva.setStatus(StatusEscala.ABERTA);
 			escalaRepository.save(salva);
 		}
 
@@ -154,7 +154,7 @@ public class EscalaService {
 		escalaMusicoRepository.flush();
 
 		escala.setTipoEscala(TipoEscala.AUTOMATICA);
-		escala.setStatus(StatusEscala.AGUARDANDO_CONFIRMACAO);
+		escala.setStatus(StatusEscala.ABERTA);
 
 		gerarMusicosAutomaticamente(escala);
 
@@ -389,7 +389,7 @@ public class EscalaService {
 
 				if (dto.getTipoEscala() == TipoEscala.AUTOMATICA) {
 					gerarMusicosAutomaticamente(salva);
-					salva.setStatus(StatusEscala.AGUARDANDO_CONFIRMACAO);
+					salva.setStatus(StatusEscala.ABERTA);
 					escalaRepository.save(salva);
 				}
 
@@ -778,7 +778,7 @@ public class EscalaService {
 		}
 
 		String tituloFinal = (tituloPersonalizado != null && !tituloPersonalizado.isBlank()) ? tituloPersonalizado
-				: ("Escala - " + escala.getDataEscala());
+				: ("Escala-" + escala.getDataEscala());
 
 		String urlPlaylist = "";
 
